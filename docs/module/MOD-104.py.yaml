@@ -1,0 +1,220 @@
+id: MOD-104
+visibility: internal
+title: 常駐アプリ / ホットキーと画面 / settings_shortcuts.py
+test_files:
+  - tests/unit/voice_paste/ui/windows/test_settings_shortcuts.py
+classes:
+  - name: ShortcutPanel
+    title: ショートカットの一覧
+    container: ui/windows/settings_shortcuts.py
+    usecase: 設定を変える
+    role: 画面の部品
+    kind: クラス
+    inherits: PySide6.QtWidgets.QWidget
+    summary: 設定画面の「ショートカット」のまとまりに配置する、見出しの行（見出しと行の追加ボタン）と、用語集のプリセットを切り替えるショートカットの一覧（行 = キーの欄 + 切り替える用語集のプリセットの選択 + 削除ボタン）
+    description: |-
+      要素（見出しの行・一覧・キーの欄・切り替える用語集のプリセットの選択・削除ボタン・行の追加ボタン・行が無いときの文）と読み上げの名前・objectName（項目 ID）は画面設計「設定画面」が持つ。
+      行は切り替える用語集のプリセットを、名前ではなく GlossaryPanel のプリセットの識別子で持つ（画面で名前を変えても指す先が変わらない）。set_presets で受けた一覧に無い識別子を指す行は一覧から削除する（画面でプリセットを削除した）。collect でそのときの名前を適用する。
+      キーの欄は設定画面のホットキーの欄と同じ部品を使用し、入力待ちに入る・出るたびに capturing を emit する。
+      コンストラクタは、OS の種類（行の追加の初期値のキーを決める）と、受け付けているほかのホットキーを返却する関数（設定画面の今の欄の値）を受ける。
+    properties:
+      - name: changed
+        type: Signal()
+        description: 行の追加・削除、キーの入力、プリセットの選択で値が変わった（設定画面が変えた欄の数えに使用する）
+      - name: capturing
+        type: Signal(bool)
+        description: キーの欄が入力待ちに入った（True）・出た（False）
+    methods:
+      - name: set_rows
+        title: 一覧に入れる
+        kind: メソッド
+        scope: public
+        summary: 引き渡した行で一覧を作り直し、開いたときの行として控える（変えた欄の数えの基準）。名前でプリセットの識別子を引き、一覧に無い名前の行は入れない
+        args:
+          - name: rows
+            type: Sequence[GlossaryPresetHotkeySettings]
+            required: true
+            passing: positional
+            description: 設定のショートカットの一覧
+        returns:
+          type: None
+          description: なし
+      - name: set_presets
+        title: 用語集のプリセットの一覧の更新
+        kind: メソッド
+        scope: public
+        summary: GlossaryPanel.presets_changed のスロット。各行の選択欄の選択肢を今の一覧の名前に替え、一覧に無い識別子を指す行を削除し、補正に使用するプリセットの識別子を行の追加の初期値として持つ
+        args:
+          - name: presets
+            type: Sequence[tuple[object, str]]
+            required: true
+            passing: positional
+            description: プリセットの識別子と名前の組の並び（GlossaryPanel の並び）
+          - name: active
+            type: object
+            required: true
+            passing: positional
+            description: 補正に使用するプリセットの識別子
+        returns:
+          type: None
+          description: なし
+        unit_tests:
+          - name: test_set_presets_when_renamed
+            case: 正常
+            summary: 名前を変えたプリセットを指す行は新しい名前になる
+            condition: 会議 を指す行を入れた後、会議 の識別子の名前を 打ち合わせ にした一覧で set_presets を呼び、collect を呼ぶ
+            mock: なし（offscreen の QApplication）
+            expected: collect の行の preset が 打ち合わせ
+          - name: test_set_presets_when_removed
+            case: 正常
+            summary: 削除したプリセットを指す行は一覧から削除する
+            condition: 会議 を指す行を入れた後、会議 を除いた一覧で set_presets を呼ぶ
+            mock: なし（offscreen の QApplication）
+            expected: 一覧の行が 0 で、行が無いときの文が出て、changed が emit される
+      - name: add_row
+        title: 行の追加
+        kind: メソッド
+        scope: public
+        summary: 一覧の末尾に行を 1 つ追加し、キーの欄にフォーカスを移す。キーの初期値は SHORTCUT_DEFAULT_HOTKEYS の OS の値（ほかのホットキーかほかの行が同じ組み合わせを使用していれば空）、切り替える用語集のプリセットの初期値は補正に使用するプリセット
+        returns:
+          type: None
+          description: なし
+        unit_tests:
+          - name: test_add_row
+            case: 正常
+            summary: 初期値の入った行を追加する
+            condition: Windows、ほかのホットキーが <ctrl>+<alt>+d・z・q、補正に使用するプリセットが 既定 で add_row
+            mock: なし（offscreen の QApplication）
+            expected: 行が 1 つ増え、キーが <ctrl>+<alt>+s、プリセットが 既定、行の背景が追加した行の色、changed が emit される
+          - name: test_add_row_when_default_key_used
+            case: 正常
+            summary: 初期値のキーが使用されていれば空にする
+            condition: Windows、ほかのホットキーに <ctrl>+<alt>+s があるときに add_row
+            mock: なし（offscreen の QApplication）
+            expected: 追加した行のキーが空
+          - name: test_add_row_when_linux
+            case: 正常
+            summary: Linux の初期値のキーは Super+Alt+G
+            condition: Linux で add_row
+            mock: なし（offscreen の QApplication）
+            expected: 追加した行のキーが <cmd>+<alt>+g
+      - name: collect
+        title: 行の収集
+        kind: メソッド
+        scope: public
+        summary: 行を設定の glossary_preset_hotkeys の並びにする（プリセットはそのときの名前。キーは pynput の書式。空のキーもそのまま入れ、Settings の確認で断らせる）
+        returns:
+          type: list[dict[str, str]]
+          description: hotkey・preset の dict の並び
+        unit_tests:
+          - name: test_collect
+            case: 正常
+            summary: 行を pynput の書式とそのときの名前で返却する
+            condition: （<ctrl>+<alt>+1、会議）の行と、キーが空の追加した行
+            mock: なし（offscreen の QApplication）
+            expected: '[{"hotkey": "<ctrl>+<alt>+1", "preset": "会議"}, {"hotkey": "", "preset": "既定"}]'
+      - name: change_count
+        title: 変えた数
+        kind: メソッド
+        scope: public
+        summary: 開いたとき（保存したとき）の行から、追加・削除・キーかプリセットを変えた行を 1 件として数える
+        returns:
+          type: int
+          description: 変えた行の数
+        unit_tests:
+          - name: test_change_count
+            case: 正常
+            summary: 追加・削除・キーかプリセットを変えた行を 1 件ずつ数える
+            condition: 3 行を set_rows した後、1 行目のキーを変え、2 行目を削除し、行を 1 つ追加する。別のケースで 1 行目のキーを変えてから元のキーに戻す
+            mock: なし（offscreen の QApplication）
+            expected: 3。元に戻したケースは 0
+      - name: mark_saved
+        title: 保存した行を基準にする
+        kind: メソッド
+        scope: public
+        summary: 今の行を開いたときの行として控え直し、追加した行の背景を戻す
+        returns:
+          type: None
+          description: なし
+        unit_tests:
+          - name: test_mark_saved
+            case: 正常
+            summary: 保存した行を基準にし直す
+            condition: add_row の後に mark_saved を呼ぶ
+            mock: なし（offscreen の QApplication）
+            expected: change_count が 0 で、追加した行の背景が通常の行と同じ
+      - name: focus_field
+        title: 欄へのフォーカス
+        kind: メソッド
+        scope: public
+        summary: 何行目かのキーの欄かプリセットの選択欄へフォーカスを移す（エラーの一覧の行を押したとき）
+        args:
+          - name: index
+            type: int
+            required: true
+            passing: positional
+            description: 行の番号（0 始まり）
+          - name: field
+            type: str
+            required: true
+            passing: positional
+            description: hotkey か preset
+        returns:
+          type: None
+          description: なし
+        unit_tests:
+          - name: test_focus_field
+            case: 正常
+            summary: 指定の行の欄へフォーカスを移す
+            condition: 2 行を set_rows した後、focus_field(1, "preset")
+            mock: なし（offscreen の QApplication）
+            expected: 2 行目の切り替える用語集のプリセットの選択欄にフォーカスがある
+      - name: show_error
+        title: エラーの表示
+        kind: メソッド
+        scope: public
+        summary: 何行目かのキーの欄かプリセットの選択欄を赤くし、行の下にエラーを出す（同じ欄の失敗は重ねて出す。行を削除するとエラーを削除する）
+        args:
+          - name: index
+            type: int
+            required: true
+            passing: positional
+            description: 行の番号（0 始まり）
+          - name: field
+            type: str
+            required: true
+            passing: positional
+            description: hotkey か preset
+          - name: message
+            type: str
+            required: true
+            passing: positional
+            description: 欄の下に出す文言
+        returns:
+          type: None
+          description: なし
+      - name: clear_errors
+        title: エラーの削除
+        kind: メソッド
+        scope: public
+        summary: 前の保存で出したエラーを全て削除する
+        returns:
+          type: None
+          description: なし
+    refs:
+      - SCR-9#elements[ショートカットの一覧]
+    status: planned
+    introduced:
+      pr: 291
+constants:
+  - name: SHORTCUT_DEFAULT_HOTKEYS
+    title: 追加したショートカットの行のキーの初期値
+    container: ui/windows/settings_shortcuts.py
+    usecase: 設定を変える
+    summary: OS の種類 → 追加した行のキーの初期値（pynput の書式）。Windows は <ctrl>+<alt>+s、Linux は <cmd>+<alt>+g（GNOME は Super+Alt+S を画面の読み上げの切り替えに割り当てている）
+    value: '{OsKind.WINDOWS: "<ctrl>+<alt>+s", OsKind.LINUX: "<cmd>+<alt>+g"}'
+    refs:
+      - SC-6#
+    status: planned
+    introduced:
+      pr: 291

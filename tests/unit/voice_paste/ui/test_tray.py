@@ -73,13 +73,15 @@ def test_set_state_when_starting(qapp: QApplication, tmp_path: Path) -> None:
     # 検証
     assert not _menu_action(tray, "録音を開始").isEnabled()
     assert not _menu_action(tray, "設定…").isEnabled()
+    assert not _menu_action(tray, "用語集の設定…").isEnabled()
+    assert not _menu_action(tray, "ショートカットの設定…").isEnabled()
     assert _menu_action(tray, "再起動").isEnabled()
     assert _menu_action(tray, "終了").isEnabled()
     assert tray._icon.toolTip() == "voice-paste: 準備中"
 
 
 def test_set_state_when_busy(qapp: QApplication, tmp_path: Path) -> None:
-    """処理中は録音と設定を押せなくする（正常系）。"""
+    """処理中は録音を押せなくし、設定の 3 項目は押せるままにする（正常系）。"""
     from voice_paste.ui.tray import TrayState
 
     # 準備
@@ -90,10 +92,11 @@ def test_set_state_when_busy(qapp: QApplication, tmp_path: Path) -> None:
 
     # 検証
     start = _menu_action(tray, "録音を開始（処理中）")
-    settings = _menu_action(tray, "設定…（処理中）")
     assert not start.isEnabled()
-    assert not settings.isEnabled()
     assert not start.font().bold()
+    assert _menu_action(tray, "設定…").isEnabled()
+    assert _menu_action(tray, "用語集の設定…").isEnabled()
+    assert _menu_action(tray, "ショートカットの設定…").isEnabled()
     assert tray._icon.toolTip() == "voice-paste: 文字起こし中"
 
 
@@ -239,6 +242,34 @@ def test_show_copy_completed(
         "任意の場所に貼り付けてください。この通知を押すと、もう一度コピーします。",
         QSystemTrayIcon.MessageIcon.Information,
     )
+
+
+def test_show_glossary_preset_switched(
+    qapp: QApplication, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """切り替えの文言で情報の通知を出し、押しても再コピーしない（正常系）。"""
+    # 準備
+    tray = make_tray(tmp_path)
+    show_message = MagicMock()
+    monkeypatch.setattr(QSystemTrayIcon, "showMessage", show_message)
+    open_url = MagicMock()
+    monkeypatch.setattr(QDesktopServices, "openUrl", open_url)
+    recopied: list[str] = []
+    tray.recopy_requested.connect(recopied.append)
+    tray.show_copy_completed("テスト")
+
+    # 実行
+    tray.show_glossary_preset_switched("会議")
+    tray._icon.messageClicked.emit()
+
+    # 検証
+    assert show_message.call_args.args[:3] == (
+        "用語集のプリセットを切り替えました",
+        "次の録音から「会議」で補正します。",
+        QSystemTrayIcon.MessageIcon.Information,
+    )
+    assert recopied == []
+    open_url.assert_not_called()
 
 
 # === _on_message_clicked ===

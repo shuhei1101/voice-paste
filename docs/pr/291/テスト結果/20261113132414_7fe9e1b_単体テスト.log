@@ -1,0 +1,1012 @@
+........................................................................ [  7%]
+........................................................................ [ 15%]
+........................................................................ [ 22%]
+....................................................................ssss [ 30%]
+s....................sssssssssssssssssss................................ [ 37%]
+......................................Fsssssssssssss...sss.F..........ss [ 45%]
+ssssssssssss............................................................ [ 52%]
+.......................................................F................ [ 60%]
+...F..........................................................s......... [ 67%]
+...ss........FFFFFFFFFF.....FFFF...........F...................FFFF.FFF. [ 75%]
+..F..............................FF.......F............................. [ 83%]
+.......................................FFFFFFFFFF....................FF. [ 90%]
+.........FF............................................................. [ 98%]
+..................                                                       [100%]
+================================== FAILURES ===================================
+_____________________________ test_set_suspended ______________________________
+
+listeners = [<tests.unit.voice_paste.runtime.test_hotkey.FakeGlobalHotKeys object at 0x000001AFACADED50>]
+
+    def test_set_suspended(listeners: list[FakeGlobalHotKeys]) -> None:
+        """伝えない間は関数を呼ばず、戻すとまた呼ぶ（正常系）。"""
+        from voice_paste.runtime.hotkey import HotkeyListener
+    
+        # 準備
+        handler = CountingHandler()
+        listener = HotkeyListener()
+        listener.start({START_KEY: handler})
+        wrapped = listeners[0].hotkeys[START_KEY]
+    
+        # 実行
+>       listener.set_suspended(True)
+        ^^^^^^^^^^^^^^^^^^^^^^
+E       AttributeError: 'HotkeyListener' object has no attribute 'set_suspended'
+
+tests\unit\voice_paste\runtime\test_hotkey.py:255: AttributeError
+____________________________ test_get_when_pinned _____________________________
+
+default_settings = AppSettings(transcription=TranscriptionSettings(engine='local_whisper', local_whisper=LocalWhisperSettings(model='larg...tions=PresetOptions(browser=BrowserPresetOptions(open_delay_sec=3.0), endpoint=EndpointPresetOptions(timeout_sec=1.5)))
+make_settings = <function make_test_settings at 0x000001AFA8CFC250>
+
+    def test_get_when_pinned(default_settings: Settings, make_settings: MakeSettings) -> None:
+        """固定している間は入れ替えた設定を返さない（正常系）。"""
+        from voice_paste.runtime.settings_store import SettingsStore
+    
+        # 準備
+        store = SettingsStore(default_settings)
+        new_settings = make_settings({"recording": {"volume_percent": NEW_VOLUME_PERCENT}})
+    
+        # 実行: 固定してから入れ替え、固定を解く
+>       store.pin()
+        ^^^^^^^^^
+E       AttributeError: 'SettingsStore' object has no attribute 'pin'
+
+tests\unit\voice_paste\runtime\test_settings_store.py:38: AttributeError
+____________ test_find_hotkey_overlaps_when_glossary_preset_hotkey ____________
+
+default_settings = AppSettings(transcription=TranscriptionSettings(engine='local_whisper', local_whisper=LocalWhisperSettings(model='larg...tions=PresetOptions(browser=BrowserPresetOptions(open_delay_sec=3.0), endpoint=EndpointPresetOptions(timeout_sec=1.5)))
+
+    def test_find_hotkey_overlaps_when_glossary_preset_hotkey(default_settings: Settings) -> None:
+        """ショートカットの行のキーと既存のホットキーの重なりを返却する（正常系）。"""
+>       from voice_paste.shared.settings import GlossaryPresetHotkeySettings, find_hotkey_overlaps
+E       ImportError: cannot import name 'GlossaryPresetHotkeySettings' from 'voice_paste.shared.settings' (C:\Users\shuhe\repo\voice-paste\.claude\worktrees\pr291-red\src\voice_paste\shared\settings.py)
+
+tests\unit\voice_paste\shared\test_settings.py:1251: ImportError
+_________________ test_settings_when_glossary_preset_missing __________________
+
+settings_model = <class 'voice_paste.shared.settings.AppSettings'>
+
+    def test_settings_when_glossary_preset_missing(settings_model: type[Settings]) -> None:
+        """用語集のプリセットの一覧に無い名前を指す行を断る（異常系）。"""
+        from pydantic import ValidationError
+    
+>       from voice_paste.shared.settings import (
+            GLOSSARY_PRESET_MISSING_ERROR_TYPE,
+            list_validation_failures,
+        )
+E       ImportError: cannot import name 'GLOSSARY_PRESET_MISSING_ERROR_TYPE' from 'voice_paste.shared.settings' (C:\Users\shuhe\repo\voice-paste\.claude\worktrees\pr291-red\src\voice_paste\shared\settings.py)
+
+tests\unit\voice_paste\shared\test_settings.py:1708: ImportError
+____________________ test_build_hotkey_bindings_when_idle _____________________
+
+make_settings = <function make_test_settings at 0x000001AFA8CFC250>
+
+    def test_build_hotkey_bindings_when_idle(make_settings: Callable[..., Settings]) -> None:
+        """待機中の開始のホットキーは録音を始める（正常系）。"""
+        from voice_paste.main import build_hotkey_bindings
+    
+        # 準備
+        session_manager = MagicMock()
+        session_manager.current.return_value = None
+        start_local_session = MagicMock()
+>       bindings = build_hotkey_bindings(
+            _fixed_hotkey_settings(make_settings), session_manager, start_local_session, MagicMock(), MagicMock()
+        )
+E       TypeError: build_hotkey_bindings() takes 4 positional arguments but 5 were given
+
+tests\unit\voice_paste\test_main.py:1589: TypeError
+__________________ test_build_hotkey_bindings_when_recording __________________
+
+make_settings = <function make_test_settings at 0x000001AFA8CFC250>
+
+    def test_build_hotkey_bindings_when_recording(make_settings: Callable[..., Settings]) -> None:
+        """録音中の開始のホットキーは貼り付けて送信で確定する（正常系）。"""
+        from voice_paste.main import build_hotkey_bindings
+    
+        # 準備
+        session_manager = MagicMock()
+        session_manager.current.return_value = make_session("hotkey", "recording")
+        start_local_session = MagicMock()
+        show_recording_window = MagicMock()
+>       bindings = build_hotkey_bindings(
+            _fixed_hotkey_settings(make_settings), session_manager, start_local_session, show_recording_window, MagicMock()
+        )
+E       TypeError: build_hotkey_bindings() takes 4 positional arguments but 5 were given
+
+tests\unit\voice_paste\test_main.py:1610: TypeError
+______ test_build_hotkey_bindings_when_recording_without_confirm_output _______
+
+make_settings = <function make_test_settings at 0x000001AFA8CFC250>
+
+    def test_build_hotkey_bindings_when_recording_without_confirm_output(
+        make_settings: Callable[..., Settings],
+    ) -> None:
+        """貼り付けて送信がオフなら、録音中の開始のホットキーは録音の画面を戻す指示を出す（正常系）。"""
+        from voice_paste.main import build_hotkey_bindings
+    
+        # 準備
+        settings = _fixed_hotkey_settings(make_settings, confirm_enabled=False)
+        session_manager = MagicMock()
+        session_manager.current.return_value = make_session("hotkey", "recording")
+        start_local_session = MagicMock()
+        show_recording_window = MagicMock()
+>       bindings = build_hotkey_bindings(
+            settings, session_manager, start_local_session, show_recording_window, MagicMock()
+        )
+E       TypeError: build_hotkey_bindings() takes 4 positional arguments but 5 were given
+
+tests\unit\voice_paste\test_main.py:1635: TypeError
+___________________ test_build_hotkey_bindings_when_preset ____________________
+
+default_settings = AppSettings(transcription=TranscriptionSettings(engine='local_whisper', local_whisper=LocalWhisperSettings(model='larg...tions=PresetOptions(browser=BrowserPresetOptions(open_delay_sec=3.0), endpoint=EndpointPresetOptions(timeout_sec=1.5)))
+
+    def test_build_hotkey_bindings_when_preset(default_settings: Settings) -> None:
+        """プリセットのホットキーはそのプリセットで確定する（正常系）。"""
+        from voice_paste.main import build_hotkey_bindings
+        from voice_paste.shared.settings import BrowserPreset
+    
+        # 準備
+        preset = BrowserPreset(title="ChatGPT", url="https://chatgpt.com", hotkey="<ctrl>+<alt>+1")
+        session_manager = MagicMock()
+        start_local_session = MagicMock()
+>       bindings = build_hotkey_bindings(
+            default_settings.model_copy(update={"presets": [preset]}),
+            session_manager,
+            start_local_session,
+            MagicMock(),
+            MagicMock(),
+        )
+E       TypeError: build_hotkey_bindings() takes 4 positional arguments but 5 were given
+
+tests\unit\voice_paste\test_main.py:1657: TypeError
+______________ test_build_hotkey_bindings_when_preset_not_bound _______________
+
+default_settings = AppSettings(transcription=TranscriptionSettings(engine='local_whisper', local_whisper=LocalWhisperSettings(model='larg...tions=PresetOptions(browser=BrowserPresetOptions(open_delay_sec=3.0), endpoint=EndpointPresetOptions(timeout_sec=1.5)))
+
+    def test_build_hotkey_bindings_when_preset_not_bound(default_settings: Settings) -> None:
+        """無効のプリセットとホットキーが空のプリセットは登録しない（正常系）。"""
+        from voice_paste.main import build_hotkey_bindings
+        from voice_paste.shared.settings import BrowserPreset, EndpointPreset
+    
+        # 準備
+        settings = default_settings.model_copy(
+            update={
+                "presets": [
+                    BrowserPreset(
+                        title="ChatGPT",
+                        url="https://chatgpt.com",
+                        hotkey="<ctrl>+<alt>+7",
+                        enabled=False,
+                    ),
+                    EndpointPreset(title="受信先", url="http://127.0.0.1:9000/hook"),
+                ]
+            }
+        )
+    
+        # 実行
+>       bindings = build_hotkey_bindings(settings, MagicMock(), MagicMock(), MagicMock(), MagicMock())
+                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       TypeError: build_hotkey_bindings() takes 4 positional arguments but 5 were given
+
+tests\unit\voice_paste\test_main.py:1693: TypeError
+___________ test_build_hotkey_bindings_when_glossary_preset_hotkey ____________
+
+default_settings = AppSettings(transcription=TranscriptionSettings(engine='local_whisper', local_whisper=LocalWhisperSettings(model='larg...tions=PresetOptions(browser=BrowserPresetOptions(open_delay_sec=3.0), endpoint=EndpointPresetOptions(timeout_sec=1.5)))
+
+    def test_build_hotkey_bindings_when_glossary_preset_hotkey(default_settings: Settings) -> None:
+        """ショートカットの行のホットキーはそのプリセットへ切り替える（正常系）。"""
+        from voice_paste.main import build_hotkey_bindings
+>       from voice_paste.shared.settings import GlossaryPresetHotkeySettings
+E       ImportError: cannot import name 'GlossaryPresetHotkeySettings' from 'voice_paste.shared.settings' (C:\Users\shuhe\repo\voice-paste\.claude\worktrees\pr291-red\src\voice_paste\shared\settings.py)
+
+tests\unit\voice_paste\test_main.py:1704: ImportError
+___________________ test_build_hotkey_bindings_when_paused ____________________
+
+make_settings = <function make_test_settings at 0x000001AFA8CFC250>
+
+    def test_build_hotkey_bindings_when_paused(make_settings: Callable[..., Settings]) -> None:
+        """一時停止中の一時停止のホットキーは再開する（正常系）。"""
+        from voice_paste.main import build_hotkey_bindings
+    
+        # 準備
+        session_manager = MagicMock()
+        session_manager.current.return_value = make_session("hotkey", "paused")
+>       bindings = build_hotkey_bindings(_fixed_hotkey_settings(make_settings), session_manager, MagicMock(), MagicMock(), MagicMock())
+                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       TypeError: build_hotkey_bindings() takes 4 positional arguments but 5 were given
+
+tests\unit\voice_paste\test_main.py:1737: TypeError
+_______________ test_build_hotkey_bindings_when_output_disabled _______________
+
+make_settings = <function make_test_settings at 0x000001AFA8CFC250>
+
+    def test_build_hotkey_bindings_when_output_disabled(make_settings: Callable[..., Settings]) -> None:
+        """オフの出力先のホットキーは登録しない（正常系）。"""
+        from voice_paste.main import build_hotkey_bindings
+    
+        # 準備
+        settings = _fixed_hotkey_settings(make_settings, copy_enabled=False)
+    
+        # 実行
+>       bindings = build_hotkey_bindings(settings, MagicMock(), MagicMock(), MagicMock(), MagicMock())
+                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       TypeError: build_hotkey_bindings() takes 4 positional arguments but 5 were given
+
+tests\unit\voice_paste\test_main.py:1755: TypeError
+________________ test_build_hotkey_bindings_when_transcribing _________________
+
+make_settings = <function make_test_settings at 0x000001AFA8CFC250>
+
+    def test_build_hotkey_bindings_when_transcribing(make_settings: Callable[..., Settings]) -> None:
+        """文字起こし中の出力先のホットキーはその出力先へ差し替える（正常系）。"""
+        from voice_paste.main import build_hotkey_bindings
+    
+        # 準備
+        session_manager = MagicMock()
+        session_manager.current.return_value = make_session("hotkey", "transcribing")
+>       bindings = build_hotkey_bindings(_fixed_hotkey_settings(make_settings), session_manager, MagicMock(), MagicMock(), MagicMock())
+                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       TypeError: build_hotkey_bindings() takes 4 positional arguments but 5 were given
+
+tests\unit\voice_paste\test_main.py:1768: TypeError
+__________ test_build_hotkey_bindings_when_transcribing_start_hotkey __________
+
+make_settings = <function make_test_settings at 0x000001AFA8CFC250>
+
+    def test_build_hotkey_bindings_when_transcribing_start_hotkey(
+        make_settings: Callable[..., Settings],
+    ) -> None:
+        """文字起こし中の開始のホットキーは、同じキーの出力先へ差し替えて録音を始めない（正常系）。"""
+        from voice_paste.main import build_hotkey_bindings
+    
+        # 準備
+        session_manager = MagicMock()
+        session_manager.current.return_value = make_session("hotkey", "transcribing")
+        start_local_session = MagicMock()
+>       bindings = build_hotkey_bindings(
+            _fixed_hotkey_settings(make_settings), session_manager, start_local_session, MagicMock(), MagicMock()
+        )
+E       TypeError: build_hotkey_bindings() takes 4 positional arguments but 5 were given
+
+tests\unit\voice_paste\test_main.py:1788: TypeError
+_________________________ test_switch_glossary_preset _________________________
+
+tmp_path = WindowsPath('C:/Users/shuhe/AppData/Local/Temp/pytest-of-shuhe/pytest-2098/test_switch_glossary_preset0')
+make_settings = <function make_test_settings at 0x000001AFA8CFC250>
+
+    def test_switch_glossary_preset(
+        tmp_path: Path, make_settings: Callable[..., Settings]
+    ) -> None:
+        """補正に使用するプリセットを切り替えて保存する（正常系）。"""
+>       from voice_paste.main import switch_glossary_preset
+E       ImportError: cannot import name 'switch_glossary_preset' from 'voice_paste.main' (C:\Users\shuhe\repo\voice-paste\.claude\worktrees\pr291-red\src\voice_paste\main.py)
+
+tests\unit\voice_paste\test_main.py:2004: ImportError
+_______________ test_switch_glossary_preset_when_already_active _______________
+
+tmp_path = WindowsPath('C:/Users/shuhe/AppData/Local/Temp/pytest-of-shuhe/pytest-2098/test_switch_glossary_preset_wh0')
+make_settings = <function make_test_settings at 0x000001AFA8CFC250>
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x000001AFAF087770>
+
+    def test_switch_glossary_preset_when_already_active(
+        tmp_path: Path, make_settings: Callable[..., Settings], monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        """すでにそのプリセットなら書き込まない（正常系）。"""
+        import voice_paste.main as main_module
+>       from voice_paste.main import switch_glossary_preset
+E       ImportError: cannot import name 'switch_glossary_preset' from 'voice_paste.main' (C:\Users\shuhe\repo\voice-paste\.claude\worktrees\pr291-red\src\voice_paste\main.py)
+
+tests\unit\voice_paste\test_main.py:2030: ImportError
+________________ test_switch_glossary_preset_when_write_fails _________________
+
+tmp_path = WindowsPath('C:/Users/shuhe/AppData/Local/Temp/pytest-of-shuhe/pytest-2098/test_switch_glossary_preset_wh1')
+make_settings = <function make_test_settings at 0x000001AFA8CFC250>
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x000001AFAF086E40>
+caplog = <_pytest.logging.LogCaptureFixture object at 0x000001AFAD5B3610>
+
+    def test_switch_glossary_preset_when_write_fails(
+        tmp_path: Path,
+        make_settings: Callable[..., Settings],
+        monkeypatch: pytest.MonkeyPatch,
+        caplog: pytest.LogCaptureFixture,
+    ) -> None:
+        """書き込めなければ切り替えない（異常系）。"""
+        import voice_paste.main as main_module
+>       from voice_paste.main import switch_glossary_preset
+E       ImportError: cannot import name 'switch_glossary_preset' from 'voice_paste.main' (C:\Users\shuhe\repo\voice-paste\.claude\worktrees\pr291-red\src\voice_paste\main.py)
+
+tests\unit\voice_paste\test_main.py:2059: ImportError
+______________ test_switch_glossary_preset_after_apply_settings _______________
+
+tmp_path = WindowsPath('C:/Users/shuhe/AppData/Local/Temp/pytest-of-shuhe/pytest-2098/test_switch_glossary_preset_af0')
+make_settings = <function make_test_settings at 0x000001AFA8CFC250>
+
+    def test_switch_glossary_preset_after_apply_settings(
+        tmp_path: Path, make_settings: Callable[..., Settings]
+    ) -> None:
+        """設定画面の保存の直後に切り替えても、保存した値を失わない（正常系）。"""
+>       from voice_paste.main import apply_settings, switch_glossary_preset
+E       ImportError: cannot import name 'switch_glossary_preset' from 'voice_paste.main' (C:\Users\shuhe\repo\voice-paste\.claude\worktrees\pr291-red\src\voice_paste\main.py)
+
+tests\unit\voice_paste\test_main.py:2085: ImportError
+_____________________ test_request_glossary_preset_switch _____________________
+
+qapp = <PySide6.QtWidgets.QApplication(0x1afa98b55b0) at 0x000001AFACF67800>
+caplog = <_pytest.logging.LogCaptureFixture object at 0x000001AFACF77450>
+
+    def test_request_glossary_preset_switch(
+        qapp: QApplication, caplog: pytest.LogCaptureFixture
+    ) -> None:
+        """プリセットの名前を Signal で渡す（正常系）。"""
+>       from voice_paste.ui.bridge import UiBridge, request_glossary_preset_switch
+E       ImportError: cannot import name 'request_glossary_preset_switch' from 'voice_paste.ui.bridge' (C:\Users\shuhe\repo\voice-paste\.claude\worktrees\pr291-red\src\voice_paste\ui\bridge.py)
+
+tests\unit\voice_paste\ui\test_bridge.py:132: ImportError
+_____________________________ test_open_settings ______________________________
+
+qapp = <PySide6.QtWidgets.QApplication(0x1afa98b55b0) at 0x000001AFACF67800>
+tmp_path = WindowsPath('C:/Users/shuhe/AppData/Local/Temp/pytest-of-shuhe/pytest-2098/test_open_settings0')
+
+    def test_open_settings(qapp: QApplication, tmp_path: Path) -> None:
+        """開いてもホットキーの受付を止めない（正常系）。"""
+        # 準備
+        parts = _make_controller(tmp_path)
+    
+        # 実行: 開いて、ホットキーの欄を入力待ちにしてから出し、取り消しで閉じる
+        parts.controller.open_settings()
+        window = parts.controller._settings_window
+        assert window is not None
+>       window.hotkey_capturing.emit(True)
+        ^^^^^^^^^^^^^^^^^^^^^^^
+E       AttributeError: 'SettingsWindow' object has no attribute 'hotkey_capturing'
+
+tests\unit\voice_paste\ui\test_controller.py:422: AttributeError
+________________________ test_open_settings_with_group ________________________
+
+qapp = <PySide6.QtWidgets.QApplication(0x1afa98b55b0) at 0x000001AFACF67800>
+tmp_path = WindowsPath('C:/Users/shuhe/AppData/Local/Temp/pytest-of-shuhe/pytest-2098/test_open_settings_with_group0')
+
+    def test_open_settings_with_group(qapp: QApplication, tmp_path: Path) -> None:
+        """まとまりを指定して開き、ショートカットの行を追加する（正常系）。"""
+        # 準備
+        parts = _make_controller(tmp_path)
+    
+        # 実行
+>       parts.controller.open_settings(group="ショートカット", add_shortcut_row=True)
+E       TypeError: UiController.open_settings() got an unexpected keyword argument 'group'
+
+tests\unit\voice_paste\ui\test_controller.py:438: TypeError
+______________________ test_open_settings_when_minimized ______________________
+
+qapp = <PySide6.QtWidgets.QApplication(0x1afa98b55b0) at 0x000001AFACF67800>
+tmp_path = WindowsPath('C:/Users/shuhe/AppData/Local/Temp/pytest-of-shuhe/pytest-2098/test_open_settings_when_minimi0')
+
+    def test_open_settings_when_minimized(qapp: QApplication, tmp_path: Path) -> None:
+        """最小化した設定画面を戻し、まとまりを切り替える（正常系）。"""
+        from PySide6.QtCore import Qt
+    
+        # 準備
+        parts = _make_controller(tmp_path)
+        parts.controller.open_settings()
+        first_window = parts.controller._settings_window
+        assert first_window is not None
+        first_window.showMinimized()
+    
+        # 実行
+>       parts.controller.open_settings(group="用語集")
+E       TypeError: UiController.open_settings() got an unexpected keyword argument 'group'
+
+tests\unit\voice_paste\ui\test_controller.py:460: TypeError
+____________________ test_open_settings_when_already_open _____________________
+
+qapp = <PySide6.QtWidgets.QApplication(0x1afa98b55b0) at 0x000001AFACF67800>
+tmp_path = WindowsPath('C:/Users/shuhe/AppData/Local/Temp/pytest-of-shuhe/pytest-2098/test_open_settings_when_alread0')
+
+    def test_open_settings_when_already_open(qapp: QApplication, tmp_path: Path) -> None:
+        """開いていれば前面に出すだけ（正常系）。"""
+        # 準備
+        parts = _make_controller(tmp_path)
+        parts.controller.open_settings()
+        first_window = parts.controller._settings_window
+        assert first_window is not None
+>       first_window.show_group("表記のヒント")
+        ^^^^^^^^^^^^^^^^^^^^^^^
+E       AttributeError: 'SettingsWindow' object has no attribute 'show_group'
+
+tests\unit\voice_paste\ui\test_controller.py:476: AttributeError
+___________________________ test_on_settings_saved ____________________________
+
+qapp = <PySide6.QtWidgets.QApplication(0x1afa98b55b0) at 0x000001AFACF67800>
+tmp_path = WindowsPath('C:/Users/shuhe/AppData/Local/Temp/pytest-of-shuhe/pytest-2098/test_on_settings_saved0')
+make_settings = <function make_test_settings at 0x000001AFA8CFC250>
+
+    def test_on_settings_saved(qapp: QApplication, tmp_path: Path, make_settings: MakeSettings) -> None:
+        """保存したら明暗を当て直す（正常系）。"""
+        # 準備: ui.theme=dark の設定が効いている
+        settings = make_settings({"ui": {"theme": "dark"}})
+        apply_theme = MagicMock(return_value=None)
+        parts = _make_controller(tmp_path, settings=settings, apply_theme=apply_theme)
+    
+        # 実行
+        parts.controller.on_settings_saved()
+    
+        # 検証
+>       parts.deps.reload_hotkeys.assert_called_once_with()
+        ^^^^^^^^^^^^^^^^^^^^^^^^^
+E       AttributeError: 'UiDeps' object has no attribute 'reload_hotkeys'. Did you mean: 'resume_hotkeys'?
+
+tests\unit\voice_paste\ui\test_controller.py:546: AttributeError
+__________________ test_on_glossary_preset_switch_requested ___________________
+
+qapp = <PySide6.QtWidgets.QApplication(0x1afa98b55b0) at 0x000001AFACF67800>
+tmp_path = WindowsPath('C:/Users/shuhe/AppData/Local/Temp/pytest-of-shuhe/pytest-2098/test_on_glossary_preset_switch0')
+
+    def test_on_glossary_preset_switch_requested(qapp: QApplication, tmp_path: Path) -> None:
+        """切り替えてトレイに通知を出す（正常系）。"""
+        # 準備
+        parts = _make_controller(tmp_path)
+    
+        # 実行
+>       parts.controller.on_glossary_preset_switch_requested("会議")
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       AttributeError: 'UiController' object has no attribute 'on_glossary_preset_switch_requested'
+
+tests\unit\voice_paste\ui\test_controller.py:560: AttributeError
+____________ test_on_glossary_preset_switch_requested_when_failed _____________
+
+qapp = <PySide6.QtWidgets.QApplication(0x1afa98b55b0) at 0x000001AFACF67800>
+tmp_path = WindowsPath('C:/Users/shuhe/AppData/Local/Temp/pytest-of-shuhe/pytest-2098/test_on_glossary_preset_switch1')
+
+    def test_on_glossary_preset_switch_requested_when_failed(qapp: QApplication, tmp_path: Path) -> None:
+        """切り替えられなければ通知しない（異常系）。"""
+        # 準備
+>       parts = _make_controller(tmp_path, switch_glossary_preset=MagicMock(return_value=False))
+                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+tests\unit\voice_paste\ui\test_controller.py:570: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+tests\unit\voice_paste\ui\test_controller.py:56: in _make_controller
+    deps = make_ui_deps(tmp_path, settings=settings, **deps_overrides)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+tmp_path = WindowsPath('C:/Users/shuhe/AppData/Local/Temp/pytest-of-shuhe/pytest-2098/test_on_glossary_preset_switch1')
+settings = None
+overrides = {'switch_glossary_preset': <MagicMock id='1854076550320'>}
+
+    def make_ui_deps(
+        tmp_path: Path, *, settings: Settings | None = None, **overrides: Any
+    ) -> UiDeps:
+        """全ての関数を Mock にした UiDeps を作る。settings は get_settings が返す設定（既定は既定の設定）、overrides は項目ごとの差し替え。"""
+        from tests.unit.voice_paste.settings_helpers import load_test_default_settings
+        from voice_paste.shared.settings import GlossarySettings
+        from voice_paste.ui.controller import UiDeps as UiDepsModel
+    
+        fields: dict[str, Any] = {
+            "start": MagicMock(return_value=None),
+            "pause": MagicMock(return_value=None),
+            "resume": MagicMock(return_value=None),
+            "complete": MagicMock(return_value=None),
+            "cancel": MagicMock(return_value=None),
+            "current_session": MagicMock(return_value=None),
+            "level": MagicMock(return_value=0.0),
+            "get_settings": MagicMock(return_value=settings or load_test_default_settings()),
+            "save_settings": MagicMock(return_value=False),
+            "settings_dir": tmp_path,
+            "log_dir": tmp_path / "log",
+            "request_restart": MagicMock(return_value=None),
+            "request_quit": MagicMock(return_value=None),
+            "output_titles": OUTPUT_TITLES,
+            "list_glossaries": MagicMock(
+                return_value=[GlossarySettings(name="yogo", path=tmp_path / "yogo.csv")]
+            ),
+            "read_glossary": MagicMock(return_value=[]),
+            "new_glossary_path": MagicMock(return_value=tmp_path / "glossaries" / "glossary_1.csv"),
+            "copy": MagicMock(return_value=None),
+        }
+        for name in ("suspend_hotkeys", "resume_hotkeys", "set_hotkey_capturing", "reload_hotkeys"):
+            if name in {field.name for field in dataclasses.fields(UiDepsModel)}:
+                fields[name] = MagicMock(return_value=None)
+        if "switch_glossary_preset" in {field.name for field in dataclasses.fields(UiDepsModel)}:
+            fields["switch_glossary_preset"] = MagicMock(return_value=True)
+        if "apply_theme" in {field.name for field in dataclasses.fields(UiDepsModel)}:
+            fields["apply_theme"] = MagicMock(return_value=None)
+        if "switch_output" in {field.name for field in dataclasses.fields(UiDepsModel)}:
+            fields["switch_output"] = MagicMock(return_value=None)
+        if "list_glossary_presets" in {field.name for field in dataclasses.fields(UiDepsModel)}:
+            from voice_paste.shared.settings import GlossaryPresetSettings
+    
+            fields["list_glossary_presets"] = MagicMock(
+                return_value=[GlossaryPresetSettings(name="既定", glossaries=["yogo"])]
+            )
+        if "hidden_setting_keys" in {field.name for field in dataclasses.fields(UiDepsModel)}:
+            fields["hidden_setting_keys"] = frozenset()
+        if "reports_progress" in {field.name for field in dataclasses.fields(UiDepsModel)}:
+            fields["reports_progress"] = True
+        if "reset_settings" in {field.name for field in dataclasses.fields(UiDepsModel)}:
+            fields["reset_settings"] = MagicMock(return_value=(load_test_default_settings(), False))
+        if "default_settings" in {field.name for field in dataclasses.fields(UiDepsModel)}:
+            fields["default_settings"] = MagicMock(return_value=load_test_default_settings())
+        fields.update(overrides)
+>       return UiDepsModel(**fields)
+               ^^^^^^^^^^^^^^^^^^^^^
+E       TypeError: UiDeps.__init__() got an unexpected keyword argument 'switch_glossary_preset'. Did you mean 'list_glossary_presets'?
+
+tests\unit\voice_paste\ui\helpers.py:96: TypeError
+________________ test_event_filter_when_quit_without_settings _________________
+
+qapp = <PySide6.QtWidgets.QApplication(0x1afa98b55b0) at 0x000001AFACF67800>
+tmp_path = WindowsPath('C:/Users/shuhe/AppData/Local/Temp/pytest-of-shuhe/pytest-2098/test_event_filter_when_quit_wi1')
+
+    def test_event_filter_when_quit_without_settings(qapp: QApplication, tmp_path: Path) -> None:
+        """設定画面を開いていなければ何もしない（正常系）。"""
+        # 準備
+        parts = _make_controller(tmp_path)
+    
+        # 実行
+        result = parts.controller.eventFilter(qapp, QEvent(QEvent.Type.Quit))
+    
+        # 検証
+        assert result is False
+>       parts.deps.set_hotkey_capturing.assert_not_called()
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       AttributeError: 'UiDeps' object has no attribute 'set_hotkey_capturing'
+
+tests\unit\voice_paste\ui\test_controller.py:658: AttributeError
+________________________ test_set_state_when_starting _________________________
+
+qapp = <PySide6.QtWidgets.QApplication(0x1afa98b55b0) at 0x000001AFACF67800>
+tmp_path = WindowsPath('C:/Users/shuhe/AppData/Local/Temp/pytest-of-shuhe/pytest-2098/test_set_state_when_starting0')
+
+    def test_set_state_when_starting(qapp: QApplication, tmp_path: Path) -> None:
+        """準備中は録音と設定を押せず、再起動と終了は押せる（正常系）。"""
+        from voice_paste.ui.tray import TrayState
+    
+        # 準備
+        tray = make_tray(tmp_path)
+    
+        # 実行
+        tray.set_state(TrayState.STARTING, busy=False)
+    
+        # 検証
+        assert not _menu_action(tray, "録音を開始").isEnabled()
+        assert not _menu_action(tray, "設定…").isEnabled()
+>       assert not _menu_action(tray, "用語集の設定…").isEnabled()
+                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+tests\unit\voice_paste\ui\test_tray.py:76: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+tray = <voice_paste.ui.tray.Tray(0x1afaeac9fe0) at 0x000001AFAF2D5380>
+label = '用語集の設定…'
+
+    def _menu_action(tray: Tray, label: str) -> QAction:
+        """トレイのメニューから、表示の文言が label で始まる項目を返す（右のホットキーは `\\t` の後ろに付く）。"""
+        actions = [
+            action
+            for action in tray._icon.contextMenu().actions()
+            if action.text().split("\t")[0] == label
+        ]
+>       assert len(actions) == 1, f"{label} の項目が 1 つでない: {actions}"
+E       AssertionError: 用語集の設定… の項目が 1 つでない: []
+E       assert 0 == 1
+E        +  where 0 = len([])
+
+tests\unit\voice_paste\ui\test_tray.py:33: AssertionError
+__________________________ test_set_state_when_busy ___________________________
+
+qapp = <PySide6.QtWidgets.QApplication(0x1afa98b55b0) at 0x000001AFACF67800>
+tmp_path = WindowsPath('C:/Users/shuhe/AppData/Local/Temp/pytest-of-shuhe/pytest-2098/test_set_state_when_busy0')
+
+    def test_set_state_when_busy(qapp: QApplication, tmp_path: Path) -> None:
+        """処理中は録音を押せなくし、設定の 3 項目は押せるままにする（正常系）。"""
+        from voice_paste.ui.tray import TrayState
+    
+        # 準備
+        tray = make_tray(tmp_path)
+    
+        # 実行
+        tray.set_state(TrayState.TRANSCRIBING, busy=True)
+    
+        # 検証
+        start = _menu_action(tray, "録音を開始（処理中）")
+        assert not start.isEnabled()
+        assert not start.font().bold()
+>       assert _menu_action(tray, "設定…").isEnabled()
+               ^^^^^^^^^^^^^^^^^^^^^^^^^
+
+tests\unit\voice_paste\ui\test_tray.py:97: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+tray = <voice_paste.ui.tray.Tray(0x1afaeaca620) at 0x000001AFAF2D5180>
+label = '設定…'
+
+    def _menu_action(tray: Tray, label: str) -> QAction:
+        """トレイのメニューから、表示の文言が label で始まる項目を返す（右のホットキーは `\\t` の後ろに付く）。"""
+        actions = [
+            action
+            for action in tray._icon.contextMenu().actions()
+            if action.text().split("\t")[0] == label
+        ]
+>       assert len(actions) == 1, f"{label} の項目が 1 つでない: {actions}"
+E       AssertionError: 設定… の項目が 1 つでない: []
+E       assert 0 == 1
+E        +  where 0 = len([])
+
+tests\unit\voice_paste\ui\test_tray.py:33: AssertionError
+_____________________ test_show_glossary_preset_switched ______________________
+
+qapp = <PySide6.QtWidgets.QApplication(0x1afa98b55b0) at 0x000001AFACF67800>
+tmp_path = WindowsPath('C:/Users/shuhe/AppData/Local/Temp/pytest-of-shuhe/pytest-2098/test_show_glossary_preset_swit0')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x000001AFAF866040>
+
+    def test_show_glossary_preset_switched(
+        qapp: QApplication, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        """切り替えの文言で情報の通知を出し、押しても再コピーしない（正常系）。"""
+        # 準備
+        tray = make_tray(tmp_path)
+        show_message = MagicMock()
+        monkeypatch.setattr(QSystemTrayIcon, "showMessage", show_message)
+        open_url = MagicMock()
+        monkeypatch.setattr(QDesktopServices, "openUrl", open_url)
+        recopied: list[str] = []
+        tray.recopy_requested.connect(recopied.append)
+        tray.show_copy_completed("テスト")
+    
+        # 実行
+>       tray.show_glossary_preset_switched("会議")
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       AttributeError: 'Tray' object has no attribute 'show_glossary_preset_switched'
+
+tests\unit\voice_paste\ui\test_tray.py:262: AttributeError
+________________________ test_set_presets_when_renamed ________________________
+
+qapp = <PySide6.QtWidgets.QApplication(0x1afa98b55b0) at 0x000001AFACF67800>
+
+    def test_set_presets_when_renamed(qapp: QApplication) -> None:
+        """名前を変えたプリセットを指す行は新しい名前になる（正常系）。"""
+        # 準備
+>       panel = _make_panel()
+                ^^^^^^^^^^^^^
+
+tests\unit\voice_paste\ui\windows\test_settings_shortcuts.py:81: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+os_kind = <OsKind.WINDOWS: 'windows'>
+other_hotkeys = ('<ctrl>+<alt>+d', '<ctrl>+<alt>+z', '<ctrl>+<alt>+q')
+
+    def _make_panel(
+        *, os_kind: OsKind = OsKind.WINDOWS, other_hotkeys: Sequence[str] = OTHER_HOTKEYS
+    ) -> ShortcutPanel:
+        """OS とほかのホットキーを指定して一覧を作り、用語集のプリセットの一覧（補正に使用するのは既定）を入れる。"""
+>       from voice_paste.ui.windows.settings_shortcuts import ShortcutPanel
+E       ModuleNotFoundError: No module named 'voice_paste.ui.windows.settings_shortcuts'
+
+tests\unit\voice_paste\ui\windows\test_settings_shortcuts.py:35: ModuleNotFoundError
+________________________ test_set_presets_when_removed ________________________
+
+qapp = <PySide6.QtWidgets.QApplication(0x1afa98b55b0) at 0x000001AFACF67800>
+
+    def test_set_presets_when_removed(qapp: QApplication) -> None:
+        """削除したプリセットを指す行は一覧から削除する（正常系）。"""
+        # 準備
+>       panel = _make_panel()
+                ^^^^^^^^^^^^^
+
+tests\unit\voice_paste\ui\windows\test_settings_shortcuts.py:94: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+os_kind = <OsKind.WINDOWS: 'windows'>
+other_hotkeys = ('<ctrl>+<alt>+d', '<ctrl>+<alt>+z', '<ctrl>+<alt>+q')
+
+    def _make_panel(
+        *, os_kind: OsKind = OsKind.WINDOWS, other_hotkeys: Sequence[str] = OTHER_HOTKEYS
+    ) -> ShortcutPanel:
+        """OS とほかのホットキーを指定して一覧を作り、用語集のプリセットの一覧（補正に使用するのは既定）を入れる。"""
+>       from voice_paste.ui.windows.settings_shortcuts import ShortcutPanel
+E       ModuleNotFoundError: No module named 'voice_paste.ui.windows.settings_shortcuts'
+
+tests\unit\voice_paste\ui\windows\test_settings_shortcuts.py:35: ModuleNotFoundError
+________________________________ test_add_row _________________________________
+
+qapp = <PySide6.QtWidgets.QApplication(0x1afa98b55b0) at 0x000001AFACF67800>
+
+    def test_add_row(qapp: QApplication) -> None:
+        """初期値の入った行を追加する（正常系）。"""
+        # 準備
+>       panel = _make_panel()
+                ^^^^^^^^^^^^^
+
+tests\unit\voice_paste\ui\windows\test_settings_shortcuts.py:118: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+os_kind = <OsKind.WINDOWS: 'windows'>
+other_hotkeys = ('<ctrl>+<alt>+d', '<ctrl>+<alt>+z', '<ctrl>+<alt>+q')
+
+    def _make_panel(
+        *, os_kind: OsKind = OsKind.WINDOWS, other_hotkeys: Sequence[str] = OTHER_HOTKEYS
+    ) -> ShortcutPanel:
+        """OS とほかのホットキーを指定して一覧を作り、用語集のプリセットの一覧（補正に使用するのは既定）を入れる。"""
+>       from voice_paste.ui.windows.settings_shortcuts import ShortcutPanel
+E       ModuleNotFoundError: No module named 'voice_paste.ui.windows.settings_shortcuts'
+
+tests\unit\voice_paste\ui\windows\test_settings_shortcuts.py:35: ModuleNotFoundError
+_____________________ test_add_row_when_default_key_used ______________________
+
+qapp = <PySide6.QtWidgets.QApplication(0x1afa98b55b0) at 0x000001AFACF67800>
+
+    def test_add_row_when_default_key_used(qapp: QApplication) -> None:
+        """初期値のキーが使用されていれば空にする（正常系）。"""
+        # 準備
+>       panel = _make_panel(other_hotkeys=(*OTHER_HOTKEYS, "<ctrl>+<alt>+s"))
+                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+tests\unit\voice_paste\ui\windows\test_settings_shortcuts.py:134: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+os_kind = <OsKind.WINDOWS: 'windows'>
+other_hotkeys = ('<ctrl>+<alt>+d', '<ctrl>+<alt>+z', '<ctrl>+<alt>+q', '<ctrl>+<alt>+s')
+
+    def _make_panel(
+        *, os_kind: OsKind = OsKind.WINDOWS, other_hotkeys: Sequence[str] = OTHER_HOTKEYS
+    ) -> ShortcutPanel:
+        """OS とほかのホットキーを指定して一覧を作り、用語集のプリセットの一覧（補正に使用するのは既定）を入れる。"""
+>       from voice_paste.ui.windows.settings_shortcuts import ShortcutPanel
+E       ModuleNotFoundError: No module named 'voice_paste.ui.windows.settings_shortcuts'
+
+tests\unit\voice_paste\ui\windows\test_settings_shortcuts.py:35: ModuleNotFoundError
+___________________________ test_add_row_when_linux ___________________________
+
+qapp = <PySide6.QtWidgets.QApplication(0x1afa98b55b0) at 0x000001AFACF67800>
+
+    def test_add_row_when_linux(qapp: QApplication) -> None:
+        """Linux の初期値のキーは Super+Alt+G（正常系）。"""
+        # 準備
+>       panel = _make_panel(os_kind=OsKind.LINUX)
+                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+tests\unit\voice_paste\ui\windows\test_settings_shortcuts.py:146: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+os_kind = <OsKind.LINUX: 'linux'>
+other_hotkeys = ('<ctrl>+<alt>+d', '<ctrl>+<alt>+z', '<ctrl>+<alt>+q')
+
+    def _make_panel(
+        *, os_kind: OsKind = OsKind.WINDOWS, other_hotkeys: Sequence[str] = OTHER_HOTKEYS
+    ) -> ShortcutPanel:
+        """OS とほかのホットキーを指定して一覧を作り、用語集のプリセットの一覧（補正に使用するのは既定）を入れる。"""
+>       from voice_paste.ui.windows.settings_shortcuts import ShortcutPanel
+E       ModuleNotFoundError: No module named 'voice_paste.ui.windows.settings_shortcuts'
+
+tests\unit\voice_paste\ui\windows\test_settings_shortcuts.py:35: ModuleNotFoundError
+________________________________ test_collect _________________________________
+
+qapp = <PySide6.QtWidgets.QApplication(0x1afa98b55b0) at 0x000001AFACF67800>
+
+    def test_collect(qapp: QApplication) -> None:
+        """行を pynput の書式とそのときの名前で返却する（正常系）。"""
+        # 準備: Ctrl+Alt+S の行を入れて追加した行のキーを空にしてから、1 行目のキーを Ctrl+Alt+1 に変える
+>       panel = _make_panel()
+                ^^^^^^^^^^^^^
+
+tests\unit\voice_paste\ui\windows\test_settings_shortcuts.py:161: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+os_kind = <OsKind.WINDOWS: 'windows'>
+other_hotkeys = ('<ctrl>+<alt>+d', '<ctrl>+<alt>+z', '<ctrl>+<alt>+q')
+
+    def _make_panel(
+        *, os_kind: OsKind = OsKind.WINDOWS, other_hotkeys: Sequence[str] = OTHER_HOTKEYS
+    ) -> ShortcutPanel:
+        """OS とほかのホットキーを指定して一覧を作り、用語集のプリセットの一覧（補正に使用するのは既定）を入れる。"""
+>       from voice_paste.ui.windows.settings_shortcuts import ShortcutPanel
+E       ModuleNotFoundError: No module named 'voice_paste.ui.windows.settings_shortcuts'
+
+tests\unit\voice_paste\ui\windows\test_settings_shortcuts.py:35: ModuleNotFoundError
+______________________________ test_change_count ______________________________
+
+qapp = <PySide6.QtWidgets.QApplication(0x1afa98b55b0) at 0x000001AFACF67800>
+
+    def test_change_count(qapp: QApplication) -> None:
+        """追加・削除・キーかプリセットを変えた行を 1 件ずつ数える（正常系）。"""
+        # 準備
+>       panel = _make_panel()
+                ^^^^^^^^^^^^^
+
+tests\unit\voice_paste\ui\windows\test_settings_shortcuts.py:182: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+os_kind = <OsKind.WINDOWS: 'windows'>
+other_hotkeys = ('<ctrl>+<alt>+d', '<ctrl>+<alt>+z', '<ctrl>+<alt>+q')
+
+    def _make_panel(
+        *, os_kind: OsKind = OsKind.WINDOWS, other_hotkeys: Sequence[str] = OTHER_HOTKEYS
+    ) -> ShortcutPanel:
+        """OS とほかのホットキーを指定して一覧を作り、用語集のプリセットの一覧（補正に使用するのは既定）を入れる。"""
+>       from voice_paste.ui.windows.settings_shortcuts import ShortcutPanel
+E       ModuleNotFoundError: No module named 'voice_paste.ui.windows.settings_shortcuts'
+
+tests\unit\voice_paste\ui\windows\test_settings_shortcuts.py:35: ModuleNotFoundError
+_______________________ test_change_count_when_reverted _______________________
+
+qapp = <PySide6.QtWidgets.QApplication(0x1afa98b55b0) at 0x000001AFACF67800>
+
+    def test_change_count_when_reverted(qapp: QApplication) -> None:
+        """キーを変えてから元のキーに戻すと数えない（正常系）。"""
+        # 準備
+>       panel = _make_panel()
+                ^^^^^^^^^^^^^
+
+tests\unit\voice_paste\ui\windows\test_settings_shortcuts.py:202: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+os_kind = <OsKind.WINDOWS: 'windows'>
+other_hotkeys = ('<ctrl>+<alt>+d', '<ctrl>+<alt>+z', '<ctrl>+<alt>+q')
+
+    def _make_panel(
+        *, os_kind: OsKind = OsKind.WINDOWS, other_hotkeys: Sequence[str] = OTHER_HOTKEYS
+    ) -> ShortcutPanel:
+        """OS とほかのホットキーを指定して一覧を作り、用語集のプリセットの一覧（補正に使用するのは既定）を入れる。"""
+>       from voice_paste.ui.windows.settings_shortcuts import ShortcutPanel
+E       ModuleNotFoundError: No module named 'voice_paste.ui.windows.settings_shortcuts'
+
+tests\unit\voice_paste\ui\windows\test_settings_shortcuts.py:35: ModuleNotFoundError
+_______________________________ test_mark_saved _______________________________
+
+qapp = <PySide6.QtWidgets.QApplication(0x1afa98b55b0) at 0x000001AFACF67800>
+
+    def test_mark_saved(qapp: QApplication) -> None:
+        """保存した行を基準にし直す（正常系）。"""
+        # 準備
+>       panel = _make_panel()
+                ^^^^^^^^^^^^^
+
+tests\unit\voice_paste\ui\windows\test_settings_shortcuts.py:219: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+os_kind = <OsKind.WINDOWS: 'windows'>
+other_hotkeys = ('<ctrl>+<alt>+d', '<ctrl>+<alt>+z', '<ctrl>+<alt>+q')
+
+    def _make_panel(
+        *, os_kind: OsKind = OsKind.WINDOWS, other_hotkeys: Sequence[str] = OTHER_HOTKEYS
+    ) -> ShortcutPanel:
+        """OS とほかのホットキーを指定して一覧を作り、用語集のプリセットの一覧（補正に使用するのは既定）を入れる。"""
+>       from voice_paste.ui.windows.settings_shortcuts import ShortcutPanel
+E       ModuleNotFoundError: No module named 'voice_paste.ui.windows.settings_shortcuts'
+
+tests\unit\voice_paste\ui\windows\test_settings_shortcuts.py:35: ModuleNotFoundError
+______________________________ test_focus_field _______________________________
+
+qapp = <PySide6.QtWidgets.QApplication(0x1afa98b55b0) at 0x000001AFACF67800>
+
+    def test_focus_field(qapp: QApplication) -> None:
+        """指定の行の欄へフォーカスを移す（正常系）。"""
+        # 準備
+>       panel = _make_panel()
+                ^^^^^^^^^^^^^
+
+tests\unit\voice_paste\ui\windows\test_settings_shortcuts.py:236: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+os_kind = <OsKind.WINDOWS: 'windows'>
+other_hotkeys = ('<ctrl>+<alt>+d', '<ctrl>+<alt>+z', '<ctrl>+<alt>+q')
+
+    def _make_panel(
+        *, os_kind: OsKind = OsKind.WINDOWS, other_hotkeys: Sequence[str] = OTHER_HOTKEYS
+    ) -> ShortcutPanel:
+        """OS とほかのホットキーを指定して一覧を作り、用語集のプリセットの一覧（補正に使用するのは既定）を入れる。"""
+>       from voice_paste.ui.windows.settings_shortcuts import ShortcutPanel
+E       ModuleNotFoundError: No module named 'voice_paste.ui.windows.settings_shortcuts'
+
+tests\unit\voice_paste\ui\windows\test_settings_shortcuts.py:35: ModuleNotFoundError
+________________________ test_save_when_hotkey_changed ________________________
+
+opened = Opened(window=<voice_paste.ui.windows.settings_window.SettingsWindow(0x1afb6ab7cf0, name="settings_window") at 0x00000...1854207609888'>, switch_output=<MagicMock id='1854207611232'>, hidden_setting_keys=frozenset(), reports_progress=True))
+
+    def test_save_when_hotkey_changed(opened: Opened) -> None:
+        """ホットキーを変えた保存でも、保存したメッセージに閉じると有効になる旨を添えない（正常系）。"""
+        # 準備
+        _select_group(opened.window, "ホットキー")
+        _press_hotkey(opened.window, "hotkey_hotkeys.start")
+    
+        # 実行
+        result = opened.window.save(restart=False)
+    
+        # 検証
+        assert result is True
+>       assert _label(opened.window, "saved_notice").text() == "保存しました。"
+E       AssertionError: assert '保存しました。新しいホッ...定画面を閉じると効きます。' == '保存しました。'
+E         
+E         - 保存しました。
+E         + 保存しました。新しいホットキーは、設定画面を閉じると効きます。
+
+tests\unit\voice_paste\ui\windows\test_settings_window.py:829: AssertionError
+________________________ test_save_when_shortcut_added ________________________
+
+opened = Opened(window=<voice_paste.ui.windows.settings_window.SettingsWindow(0x1afb6fdeb60, name="settings_window") at 0x00000...1854207618624'>, switch_output=<MagicMock id='1854207619968'>, hidden_setting_keys=frozenset(), reports_progress=True))
+
+    def test_save_when_shortcut_added(opened: Opened) -> None:
+        """ショートカットの行を保存する（正常系）。"""
+>       from voice_paste.shared.settings import GlossaryPresetHotkeySettings
+E       ImportError: cannot import name 'GlossaryPresetHotkeySettings' from 'voice_paste.shared.settings' (C:\Users\shuhe\repo\voice-paste\.claude\worktrees\pr291-red\src\voice_paste\shared\settings.py)
+
+tests\unit\voice_paste\ui\windows\test_settings_window.py:834: ImportError
+_______________________________ test_show_group _______________________________
+
+opened = Opened(window=<voice_paste.ui.windows.settings_window.SettingsWindow(0x1afba330e50, name="settings_window") at 0x00000...1854268673728'>, switch_output=<MagicMock id='1854268675072'>, hidden_setting_keys=frozenset(), reports_progress=True))
+
+    def test_show_group(opened: Opened) -> None:
+        """指定のまとまりを選び、ショートカットの行を追加する（正常系）。"""
+        # 実行
+>       opened.window.show_group("ショートカット", add_shortcut_row=True)
+        ^^^^^^^^^^^^^^^^^^^^^^^^
+E       AttributeError: 'SettingsWindow' object has no attribute 'show_group'
+
+tests\unit\voice_paste\ui\windows\test_settings_window.py:1204: AttributeError
+____________________________ test_hotkey_capturing ____________________________
+
+opened = Opened(window=<voice_paste.ui.windows.settings_window.SettingsWindow(0x1afba8d68c0, name="settings_window") at 0x00000...1854049402368'>, switch_output=<MagicMock id='1854049399008'>, hidden_setting_keys=frozenset(), reports_progress=True))
+
+    def test_hotkey_capturing(opened: Opened) -> None:
+        """ホットキーの欄の入力待ちを知らせる（正常系）。"""
+        # 準備
+        capturing: list[bool] = []
+>       opened.window.hotkey_capturing.connect(capturing.append)
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       AttributeError: 'SettingsWindow' object has no attribute 'hotkey_capturing'
+
+tests\unit\voice_paste\ui\windows\test_settings_window.py:1220: AttributeError
+============================== warnings summary ===============================
+..\feat-settings-record-while-open-and-tray-shortcuts\.venv\Lib\site-packages\fastapi\testclient.py:1
+  C:\Users\shuhe\repo\voice-paste\.claude\worktrees\feat-settings-record-while-open-and-tray-shortcuts\.venv\Lib\site-packages\fastapi\testclient.py:1: StarletteDeprecationWarning: Using `httpx` with `starlette.testclient` is deprecated; install `httpx2` instead.
+    from starlette.testclient import TestClient as TestClient  # noqa
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+=========================== short test summary info ===========================
+FAILED tests/unit/voice_paste/runtime/test_hotkey.py::test_set_suspended - At...
+FAILED tests/unit/voice_paste/runtime/test_settings_store.py::test_get_when_pinned
+FAILED tests/unit/voice_paste/shared/test_settings.py::test_find_hotkey_overlaps_when_glossary_preset_hotkey
+FAILED tests/unit/voice_paste/shared/test_settings.py::test_settings_when_glossary_preset_missing
+FAILED tests/unit/voice_paste/test_main.py::test_build_hotkey_bindings_when_idle
+FAILED tests/unit/voice_paste/test_main.py::test_build_hotkey_bindings_when_recording
+FAILED tests/unit/voice_paste/test_main.py::test_build_hotkey_bindings_when_recording_without_confirm_output
+FAILED tests/unit/voice_paste/test_main.py::test_build_hotkey_bindings_when_preset
+FAILED tests/unit/voice_paste/test_main.py::test_build_hotkey_bindings_when_preset_not_bound
+FAILED tests/unit/voice_paste/test_main.py::test_build_hotkey_bindings_when_glossary_preset_hotkey
+FAILED tests/unit/voice_paste/test_main.py::test_build_hotkey_bindings_when_paused
+FAILED tests/unit/voice_paste/test_main.py::test_build_hotkey_bindings_when_output_disabled
+FAILED tests/unit/voice_paste/test_main.py::test_build_hotkey_bindings_when_transcribing
+FAILED tests/unit/voice_paste/test_main.py::test_build_hotkey_bindings_when_transcribing_start_hotkey
+FAILED tests/unit/voice_paste/test_main.py::test_switch_glossary_preset - Imp...
+FAILED tests/unit/voice_paste/test_main.py::test_switch_glossary_preset_when_already_active
+FAILED tests/unit/voice_paste/test_main.py::test_switch_glossary_preset_when_write_fails
+FAILED tests/unit/voice_paste/test_main.py::test_switch_glossary_preset_after_apply_settings
+FAILED tests/unit/voice_paste/ui/test_bridge.py::test_request_glossary_preset_switch
+FAILED tests/unit/voice_paste/ui/test_controller.py::test_open_settings - Att...
+FAILED tests/unit/voice_paste/ui/test_controller.py::test_open_settings_with_group
+FAILED tests/unit/voice_paste/ui/test_controller.py::test_open_settings_when_minimized
+FAILED tests/unit/voice_paste/ui/test_controller.py::test_open_settings_when_already_open
+FAILED tests/unit/voice_paste/ui/test_controller.py::test_on_settings_saved
+FAILED tests/unit/voice_paste/ui/test_controller.py::test_on_glossary_preset_switch_requested
+FAILED tests/unit/voice_paste/ui/test_controller.py::test_on_glossary_preset_switch_requested_when_failed
+FAILED tests/unit/voice_paste/ui/test_controller.py::test_event_filter_when_quit_without_settings
+FAILED tests/unit/voice_paste/ui/test_tray.py::test_set_state_when_starting
+FAILED tests/unit/voice_paste/ui/test_tray.py::test_set_state_when_busy - Ass...
+FAILED tests/unit/voice_paste/ui/test_tray.py::test_show_glossary_preset_switched
+FAILED tests/unit/voice_paste/ui/windows/test_settings_shortcuts.py::test_set_presets_when_renamed
+FAILED tests/unit/voice_paste/ui/windows/test_settings_shortcuts.py::test_set_presets_when_removed
+FAILED tests/unit/voice_paste/ui/windows/test_settings_shortcuts.py::test_add_row
+FAILED tests/unit/voice_paste/ui/windows/test_settings_shortcuts.py::test_add_row_when_default_key_used
+FAILED tests/unit/voice_paste/ui/windows/test_settings_shortcuts.py::test_add_row_when_linux
+FAILED tests/unit/voice_paste/ui/windows/test_settings_shortcuts.py::test_collect
+FAILED tests/unit/voice_paste/ui/windows/test_settings_shortcuts.py::test_change_count
+FAILED tests/unit/voice_paste/ui/windows/test_settings_shortcuts.py::test_change_count_when_reverted
+FAILED tests/unit/voice_paste/ui/windows/test_settings_shortcuts.py::test_mark_saved
+FAILED tests/unit/voice_paste/ui/windows/test_settings_shortcuts.py::test_focus_field
+FAILED tests/unit/voice_paste/ui/windows/test_settings_window.py::test_save_when_hotkey_changed
+FAILED tests/unit/voice_paste/ui/windows/test_settings_window.py::test_save_when_shortcut_added
+FAILED tests/unit/voice_paste/ui/windows/test_settings_window.py::test_show_group
+FAILED tests/unit/voice_paste/ui/windows/test_settings_window.py::test_hotkey_capturing
+44 failed, 853 passed, 57 skipped, 1 warning in 388.27s (0:06:28)
+exit=1

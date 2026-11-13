@@ -58,6 +58,7 @@ from voice_paste.features.recording.types import (
     RestoreVolumeFn,
 )
 from voice_paste.features.session import (
+    IDLE_DETAIL,
     Session,
     SessionApiDeps,
     SessionDeps,
@@ -135,7 +136,13 @@ from voice_paste.shared.types import (
     SendEnterFn,
     TranscriptionOutcome,
 )
-from voice_paste.ui.bridge import UiBridge, notify, notify_copied, report_progress
+from voice_paste.ui.bridge import (
+    UiBridge,
+    notify,
+    notify_copied,
+    report_progress,
+    request_glossary_preset_switch,
+)
 from voice_paste.ui.controller import UiController, UiDeps
 from voice_paste.ui.style import apply_theme
 from voice_paste.ui.tray import Tray, TrayState
@@ -569,6 +576,19 @@ def _wire_preset_kinds(
     )
 
 
+def _pin_settings_while_recording(
+    event: str, detail: str | None, *, store: SettingsStore, notify: NotifyFn
+) -> None:
+    """録音セッションが録音を始めたら設定を固定し、待機中に戻ったら固定を解いてから知らせる（録音を始めた時点の設定でその回を確定まで動かす）。"""
+    # 録音を始めた: その回の設定を固定する
+    if event == "state_changed" and detail == SessionState.RECORDING:
+        store.pin()
+    # 待機中に戻った: 固定を解く
+    elif event == "state_changed" and detail == IDLE_DETAIL:
+        store.unpin()
+    notify(event, detail)  # type: ignore[arg-type]
+
+
 def _ignore_engine_stop(_stop: Callable[[], None]) -> None:
     """エンジンを止める関数を受け取っても控えない（build_handlers の on_engine_created の既定）。"""
 
@@ -591,6 +611,7 @@ def build_handlers(
     """
     # 1. 設定を SettingsStore に入れる。以降の配線は設定を値でなく SettingsStore.get から読む
     store = SettingsStore(settings)
+    session_notify = partial(_pin_settings_while_recording, store=store, notify=notify)
 
     # 2. 設定のエンジンで、文字起こしの関数と、エンジンを止める関数を作る
     engine, stop_engine, active_engine = _build_engine(
@@ -693,7 +714,7 @@ def build_handlers(
         correct=correct,
         append_text=partial(append_text, paths=paths),
         deliver=deliver_session,
-        notify=notify,
+        notify=session_notify,
         now=_local_now,
         discard_temporary=partial(discard_temporary, paths=paths),
         report_progress=report_progress,
@@ -917,6 +938,7 @@ def build_hotkey_bindings(
     session_manager: SessionManager,
     start_local_session: Callable[[Entry], None],
     show_recording_window: Callable[[], None],
+    switch_glossary_preset: Callable[[str], None],
 ) -> dict[str, Callable[[], None]]:
     """設定のホットキーごとに、押されたときに呼ぶ関数を組む（HotkeyListener.start へ渡す）。"""
     start_hotkey = settings.hotkeys.start
@@ -988,6 +1010,9 @@ def build_hotkey_bindings(
         # 有効なプリセットのホットキー: そのプリセットで確定する
         if preset.enabled:
             bindings[preset.hotkey] = partial(session_manager.complete, preset=preset)
+    for row in settings.glossary_preset_hotkeys:
+        # 用語集のプリセットを切り替えるショートカット: 録音セッションの状態によらず、そのプリセットへの切り替えを頼む
+        bindings[row.hotkey] = partial(switch_glossary_preset, row.preset)
     # 空のホットキーは登録しない（重なりは Settings の確かめが断っている）
     return {hotkey: handler for hotkey, handler in bindings.items() if hotkey}
 
@@ -1013,16 +1038,37 @@ def apply_settings(
     for glossary_path, rows in glossary_rows.items():
         save_glossary(glossary_path, rows)
 
-    # 3. settings.yaml へ、今効いている設定から変わったキーだけを書く（書けなければ OSError のまま伝え、SettingsStore は入れ替えない）
-    restart_needed = save_settings(paths, store.get(), settings)
+    # 3. settings.yaml へ、最新の設定から変わったキーだけを書く（書けなければ OSError のまま伝え、SettingsStore は入れ替えない）
+    restart_needed = save_settings(paths, store.latest(), settings)
 
-    # 4. SettingsStore を入れ替える（ホットキーは設定画面が閉じたときに今の設定で張り直す）
+    # 4. SettingsStore を入れ替える（録音セッションが固定している間は、その回は前の値で動く。ホットキーは保存の後に UiController が張り直す）
     store.replace(settings)
     logger.info(
         f"設定を保存した（{paths.settings_file}・再起動が要る: {restart_needed}・"
         f"書いた用語集の CSV: {len(glossary_rows)} 件）"
     )
     return restart_needed
+
+
+def switch_glossary_preset(name: str, *, paths: AppPaths, store: SettingsStore) -> bool:
+    """補正に使用する用語集のプリセットを name へ切り替えて settings.yaml に保存し、切り替えられたかを返却する（メインスレッドで呼ぶ）。"""
+    # 1. 最新の設定の補正に使用するプリセットを替えた設定を作る（すでにそのプリセットなら書き込まない）
+    current = store.latest()
+    if current.active_glossary_preset == name:
+        return True
+    switched = current.model_copy(update={"active_glossary_preset": name})
+
+    # 2. settings.yaml へ変わったキーだけを書き込む（書き込めなければ入れ替えない）
+    try:
+        save_settings(paths, current, switched)
+    except OSError:
+        logger.exception(f"用語集のプリセットを切り替えられなかった（{name}）")
+        return False
+
+    # 3. SettingsStore を入れ替える（録音セッションが固定している間は、その回は前のプリセットで補正する）
+    store.replace(switched)
+    logger.info(f"用語集のプリセットを切り替えた（{name}）")
+    return True
 
 
 def reset_applied_settings(
@@ -1036,7 +1082,7 @@ def reset_applied_settings(
     settings = load_settings(paths, model)
 
     # 3. 再起動が要るかを控えてから入れ替える
-    restart_needed = has_restart_change(store.get(), settings)
+    restart_needed = has_restart_change(store.latest(), settings)
     store.replace(settings)
     logger.info(f"設定を既定に戻した（{paths.settings_file}・再起動が要る: {restart_needed}）")
     return settings, restart_needed
@@ -1056,6 +1102,7 @@ def build_ui_deps(
     request_quit: Callable[[], None],
     hotkey_listener: HotkeyListener | GnomeShortcutListener,
     show_recording_window: Callable[[], None],
+    request_glossary_preset_switch: Callable[[str], None],
     apply_theme: Callable[[], None],
 ) -> UiDeps:
     """Handlers と置き場所から、画面・トレイが呼ぶ UiDeps を組む。"""
@@ -1066,10 +1113,14 @@ def build_ui_deps(
         """固定の出力先の ID かカスタムプリセットで録音を確定する。"""
         session_manager.complete(output_id=output_id, preset=preset)
 
-    def resume_hotkeys() -> None:
-        """今の設定でホットキーの受付を始める。"""
+    def reload_hotkeys() -> None:
+        """最新の設定でホットキーの受付を張り直す。"""
         bindings = build_hotkey_bindings(
-            store.get(), session_manager, handlers.start_local_session, show_recording_window
+            store.latest(),
+            session_manager,
+            handlers.start_local_session,
+            show_recording_window,
+            request_glossary_preset_switch,
         )
         hotkey_listener.start(bindings)
 
@@ -1082,19 +1133,20 @@ def build_ui_deps(
         current_session=session_manager.current,
         switch_output=session_manager.switch_output,
         level=handlers.recorder_level,
-        get_settings=store.get,
+        get_settings=store.latest,
         save_settings=save_settings,
         settings_dir=paths.settings_file.parent,
         log_dir=paths.log_dir,
         request_restart=request_restart,
         request_quit=request_quit,
-        suspend_hotkeys=hotkey_listener.stop,
-        resume_hotkeys=resume_hotkeys,
+        set_hotkey_capturing=hotkey_listener.set_suspended,
+        reload_hotkeys=reload_hotkeys,
+        switch_glossary_preset=partial(switch_glossary_preset, paths=paths, store=store),
         output_titles=_output_titles(),
         apply_theme=apply_theme,
-        list_glossaries=lambda: resolve_glossaries(store.get(), paths.settings_file.parent),
+        list_glossaries=lambda: resolve_glossaries(store.latest(), paths.settings_file.parent),
         list_glossary_presets=lambda: resolve_glossary_presets(
-            store.get(), paths.settings_file.parent
+            store.latest(), paths.settings_file.parent
         ),
         read_glossary=read_glossary_rows,
         new_glossary_path=partial(
@@ -1148,7 +1200,7 @@ def _build_idle_ui_deps(
         current_session=lambda: None,
         switch_output=do_nothing,
         level=lambda: 0.0,
-        get_settings=store.get,
+        get_settings=store.latest,
         save_settings=partial(
             apply_settings,
             paths=paths,
@@ -1160,13 +1212,14 @@ def _build_idle_ui_deps(
         log_dir=paths.log_dir,
         request_restart=request_restart,
         request_quit=request_quit,
-        suspend_hotkeys=do_nothing,
-        resume_hotkeys=do_nothing,
+        set_hotkey_capturing=do_nothing,
+        reload_hotkeys=do_nothing,
+        switch_glossary_preset=lambda _name: False,
         output_titles=_output_titles(),
-        apply_theme=partial(_apply_current_theme, app, store.get, image_dir=paths.ui_image_dir),
-        list_glossaries=lambda: resolve_glossaries(store.get(), paths.settings_file.parent),
+        apply_theme=partial(_apply_current_theme, app, store.latest, image_dir=paths.ui_image_dir),
+        list_glossaries=lambda: resolve_glossaries(store.latest(), paths.settings_file.parent),
         list_glossary_presets=lambda: resolve_glossary_presets(
-            store.get(), paths.settings_file.parent
+            store.latest(), paths.settings_file.parent
         ),
         read_glossary=read_glossary_rows,
         new_glossary_path=partial(
@@ -1507,6 +1560,7 @@ def _finish_startup(
     adapters, lock, lock_name, _unavailable = platform
     ui_notify = partial(notify, bridge=bridge)
     show_recording_window = partial(notify, "show_recording_window", bridge=bridge)
+    ui_request_glossary_preset_switch = partial(request_glossary_preset_switch, bridge=bridge)
 
     # 7. 配線の間だけつないでいた「再起動」「終了」と知らせを外す（以降は画面の振り分けが受ける）
     bridge.notified.disconnect(tray.show_failure)
@@ -1557,10 +1611,11 @@ def _finish_startup(
         exit_request.request_quit,
         hotkey_listener,
         show_recording_window,
+        ui_request_glossary_preset_switch,
         partial(
             _apply_current_theme,
             app,
-            handlers.settings_store.get,
+            handlers.settings_store.latest,
             image_dir=paths.ui_image_dir,
         ),
     )
@@ -1591,10 +1646,11 @@ def _finish_startup(
     try:
         hotkey_listener.start(
             build_hotkey_bindings(
-                handlers.settings_store.get(),
+                handlers.settings_store.latest(),
                 handlers.session_manager,
                 handlers.start_local_session,
                 show_recording_window,
+                ui_request_glossary_preset_switch,
             )
         )
     except HotkeyError as error:
@@ -1639,5 +1695,8 @@ def _build_controller(bridge: UiBridge, tray: Tray, deps: UiDeps) -> UiControlle
     bridge.notified.connect(controller.on_notified, Qt.ConnectionType.QueuedConnection)
     bridge.progressed.connect(controller.on_progressed, Qt.ConnectionType.QueuedConnection)
     bridge.copied.connect(controller.on_copied, Qt.ConnectionType.QueuedConnection)
+    bridge.glossary_preset_switch_requested.connect(
+        controller.on_glossary_preset_switch_requested, Qt.ConnectionType.QueuedConnection
+    )
     tray.set_start_hotkey(deps.get_settings().hotkeys.start)
     return controller

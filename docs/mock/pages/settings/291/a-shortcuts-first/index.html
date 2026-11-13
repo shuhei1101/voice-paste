@@ -1,0 +1,136 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>設定画面 | voice-paste のモック</title>
+<!-- 採用スタイルの部品は #37、最小の幅は #264、まとまりのメニューは #274、ショートカットの一覧は #291 の共有 CSS に置く -->
+<link rel="stylesheet" href="../../../../refs/37/assets/style.css">
+<link rel="stylesheet" href="../../../../refs/264/assets/style.css">
+<link rel="stylesheet" href="../../../../refs/274/assets/style.css">
+<link rel="stylesheet" href="../../../../refs/291/assets/style.css">
+<script src="../../../../refs/37/assets/app.js" defer></script>
+</head>
+<body class="a-shortcuts-first">
+<nav class="mock-bar" data-mock-bar aria-label="場面の切り替え（モック専用）">
+<span class="mock-bar__label">場面</span>
+<ul><li><button type="button" data-scene="tray">トレイの「ショートカットの設定…」から開く</button></li><li><button type="button" data-scene="error">キーがほかのホットキーと重なる</button></li><li><button type="button" data-scene="empty">ショートカットが 1 つも無い</button></li></ul>
+</nav>
+<main>
+<nav class="crumb" aria-label="パンくず"><a href="../../../">pages</a> / <a href="../../">settings</a> / <a href="../">291</a> / <span>a-shortcuts-first</span></nav>
+<header class="intro">
+<h1>設定画面</h1>
+<p>まとまりのメニューの先頭に「ショートカット」を追加し、用語集のプリセットを切り替えるショートカットの行と行の追加ボタンを、まとまりの上端に配置したもの。</p>
+</header>
+<div class="desk desk--single">
+<section class="specimen" data-scene-panel="tray" aria-labelledby="h-tray">
+<h2 id="h-tray">トレイの「ショートカットの設定…」から開く</h2>
+<div class="win settings settings--full">
+<div class="titlebar"><span class="titlebar__app">voice-paste の設定</span><svg class="titlebar__close" viewBox="0 0 16 16" aria-hidden="true"><path d="M4 4l8 8M12 4l-8 8"/></svg></div>
+<div class="settings__body">
+<nav class="settings__nav" aria-label="設定のまとまり（トレイの「ショートカットの設定…」から開く）"><ul><li><a href="#tray-group" aria-current="page">ショートカット</a></li><li><a href="../../274/a-engine-tabs/index.html">出力先</a></li><li><a href="../../274/a-engine-tabs/index.html">ブラウザ添付</a></li><li><a href="../../274/a-engine-tabs/index.html">エンドポイントへ送信</a></li><li><a href="../../274/a-engine-tabs/index.html">ホットキー</a></li><li><a href="../../274/a-engine-tabs/index.html">録音</a></li><li><a href="../../274/a-engine-tabs/index.html">文字起こし</a></li><li><a href="../../274/a-engine-tabs/index.html">表記のヒント</a></li><li><a href="../../274/a-engine-tabs/index.html">用語集</a></li><li><a href="../../274/a-engine-tabs/index.html">ハルシネーション</a></li><li><a href="../../274/a-engine-tabs/index.html">画面</a></li><li><a href="../../274/a-engine-tabs/index.html">履歴とログ</a></li><li><a href="../../274/a-engine-tabs/index.html">API</a></li></ul></nav>
+<form class="settings__form" action="#" method="post" aria-label="設定（トレイの「ショートカットの設定…」から開く）">
+<fieldset id="tray-group" data-group>
+<legend>ショートカット</legend>
+<div class="shortcuts__head">
+<h3 class="subhead">用語集のプリセットを切り替える</h3>
+<button type="button" class="btn" data-add-item>行追加</button>
+</div>
+<code class="key">glossary_preset_hotkeys</code>
+<div class="targets-wrap">
+<table class="targets shortcuts">
+<caption class="sr-only">用語集のプリセットを切り替えるショートカットの一覧</caption>
+<thead><tr><th scope="col">キーの組み合わせ</th><th scope="col">切り替える用語集のプリセット</th><th scope="col"><span class="sr-only">削除</span></th></tr></thead>
+<tbody data-item-list>
+<tr data-item><td><input type="text" class="hotkey" id="tray-sc1-key" name="glossary_preset_hotkeys[].hotkey" value="Ctrl+Alt+1" aria-label="1 行目のキーの組み合わせ"></td><td><select id="tray-sc1-preset" name="glossary_preset_hotkeys[].preset" aria-label="1 行目の切り替える用語集のプリセット"><option>既定</option><option selected>会議</option><option>プログラミング</option></select></td><td><button type="button" class="btn btn--icon" data-remove-item aria-label="1 行目を削除" title="1 行目を削除"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M3 4.5h10M6.5 4.5V3h3v1.5M4.5 4.5l.7 8.5h5.6l.7-8.5"/></svg></button></td></tr><tr data-item data-added="true"><td><input type="text" class="hotkey" id="tray-sc2-key" name="glossary_preset_hotkeys[].hotkey" value="Ctrl+Alt+S" aria-label="2 行目のキーの組み合わせ"></td><td><select id="tray-sc2-preset" name="glossary_preset_hotkeys[].preset" aria-label="2 行目の切り替える用語集のプリセット"><option selected>既定</option><option>会議</option><option>プログラミング</option></select></td><td><button type="button" class="btn btn--icon" data-remove-item aria-label="2 行目を削除" title="2 行目を削除"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M3 4.5h10M6.5 4.5V3h3v1.5M4.5 4.5l.7 8.5h5.6l.7-8.5"/></svg></button></td></tr>
+</tbody>
+</table>
+</div>
+<p class="field-help">押すと、補正に使用する用語集のプリセットを切り替えます。ほかのホットキーと同じ組み合わせは登録できません。</p>
+</fieldset>
+</form>
+</div>
+<div class="settings__foot">
+<div class="settings__actions">
+<a class="btn" href="../../../settings-reset-dialog/37/a-standard/index.html">既定に戻す</a>
+<span class="spacer"></span>
+<a class="btn" href="../../../settings-discard-dialog/37/a-standard/index.html">キャンセル</a>
+<a class="btn btn--primary" href="#tray-group">保存</a>
+</div>
+</div>
+</div>
+<p class="scene-note">「ショートカット」のまとまりを選んだ状態で開き、末尾に行を 1 つ追加する（背景を変えて示す）。キーの欄の初期値は Windows は Ctrl+Alt+S（Linux は Super+Alt+G）、用語集のプリセットの欄の初期値は補正に使用するプリセット。設定画面が既に開いていれば、窓を最前面に戻してこのまとまりへ切り替える。</p>
+</section>
+<section class="specimen" data-scene-panel="error" aria-labelledby="h-error">
+<h2 id="h-error">キーがほかのホットキーと重なる</h2>
+<div class="win settings settings--full">
+<div class="titlebar"><span class="titlebar__app">voice-paste の設定</span><svg class="titlebar__close" viewBox="0 0 16 16" aria-hidden="true"><path d="M4 4l8 8M12 4l-8 8"/></svg></div>
+<div class="settings__body">
+<nav class="settings__nav" aria-label="設定のまとまり（キーがほかのホットキーと重なる）"><ul><li><a href="#error-group" aria-current="page">ショートカット</a></li><li><a href="../../274/a-engine-tabs/index.html">出力先</a></li><li><a href="../../274/a-engine-tabs/index.html">ブラウザ添付</a></li><li><a href="../../274/a-engine-tabs/index.html">エンドポイントへ送信</a></li><li><a href="../../274/a-engine-tabs/index.html">ホットキー</a></li><li><a href="../../274/a-engine-tabs/index.html">録音</a></li><li><a href="../../274/a-engine-tabs/index.html">文字起こし</a></li><li><a href="../../274/a-engine-tabs/index.html">表記のヒント</a></li><li><a href="../../274/a-engine-tabs/index.html">用語集</a></li><li><a href="../../274/a-engine-tabs/index.html">ハルシネーション</a></li><li><a href="../../274/a-engine-tabs/index.html">画面</a></li><li><a href="../../274/a-engine-tabs/index.html">履歴とログ</a></li><li><a href="../../274/a-engine-tabs/index.html">API</a></li></ul></nav>
+<form class="settings__form" action="#" method="post" aria-label="設定（キーがほかのホットキーと重なる）">
+<div class="error-summary" role="alert" tabindex="-1">保存できませんでした。1 件の欄を修正してください。<ul><li><a href="#error-sc1-key">ショートカット 1 行目のキーの組み合わせ: 「録音開始のホットキー」と同じホットキーです。別のキーにしてください。</a></li></ul></div>
+<fieldset id="error-group" data-group>
+<legend>ショートカット</legend>
+<div class="shortcuts__head">
+<h3 class="subhead">用語集のプリセットを切り替える</h3>
+<button type="button" class="btn" data-add-item>行追加</button>
+</div>
+<code class="key">glossary_preset_hotkeys</code>
+<div class="targets-wrap">
+<table class="targets shortcuts">
+<caption class="sr-only">用語集のプリセットを切り替えるショートカットの一覧</caption>
+<thead><tr><th scope="col">キーの組み合わせ</th><th scope="col">切り替える用語集のプリセット</th><th scope="col"><span class="sr-only">削除</span></th></tr></thead>
+<tbody data-item-list>
+<tr data-item><td><input type="text" class="hotkey" id="error-sc1-key" name="glossary_preset_hotkeys[].hotkey" value="Ctrl+Alt+D" aria-label="1 行目のキーの組み合わせ" aria-invalid="true" aria-describedby="error-sc1-key-err"><p class="field-error" id="error-sc1-key-err">「録音開始のホットキー」と同じホットキーです。別のキーにしてください。</p></td><td><select id="error-sc1-preset" name="glossary_preset_hotkeys[].preset" aria-label="1 行目の切り替える用語集のプリセット"><option>既定</option><option selected>会議</option><option>プログラミング</option></select></td><td><button type="button" class="btn btn--icon" data-remove-item aria-label="1 行目を削除" title="1 行目を削除"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M3 4.5h10M6.5 4.5V3h3v1.5M4.5 4.5l.7 8.5h5.6l.7-8.5"/></svg></button></td></tr>
+</tbody>
+</table>
+</div>
+<p class="field-help">押すと、補正に使用する用語集のプリセットを切り替えます。ほかのホットキーと同じ組み合わせは登録できません。</p>
+</fieldset>
+</form>
+</div>
+<div class="settings__foot">
+<div class="settings__actions">
+<a class="btn" href="../../../settings-reset-dialog/37/a-standard/index.html">既定に戻す</a>
+<span class="spacer"></span>
+<a class="btn" href="../../../settings-discard-dialog/37/a-standard/index.html">キャンセル</a>
+<a class="btn btn--primary" href="#error-group">保存</a>
+</div>
+</div>
+</div>
+<p class="scene-note">保存を押したときに確かめ、エラーの一覧と欄の下に理由を出す。入れた値は削除しない。</p>
+</section>
+<section class="specimen" data-scene-panel="empty" aria-labelledby="h-empty">
+<h2 id="h-empty">ショートカットが 1 つも無い</h2>
+<div class="win settings settings--full">
+<div class="titlebar"><span class="titlebar__app">voice-paste の設定</span><svg class="titlebar__close" viewBox="0 0 16 16" aria-hidden="true"><path d="M4 4l8 8M12 4l-8 8"/></svg></div>
+<div class="settings__body">
+<nav class="settings__nav" aria-label="設定のまとまり（ショートカットが 1 つも無い）"><ul><li><a href="#empty-group" aria-current="page">ショートカット</a></li><li><a href="../../274/a-engine-tabs/index.html">出力先</a></li><li><a href="../../274/a-engine-tabs/index.html">ブラウザ添付</a></li><li><a href="../../274/a-engine-tabs/index.html">エンドポイントへ送信</a></li><li><a href="../../274/a-engine-tabs/index.html">ホットキー</a></li><li><a href="../../274/a-engine-tabs/index.html">録音</a></li><li><a href="../../274/a-engine-tabs/index.html">文字起こし</a></li><li><a href="../../274/a-engine-tabs/index.html">表記のヒント</a></li><li><a href="../../274/a-engine-tabs/index.html">用語集</a></li><li><a href="../../274/a-engine-tabs/index.html">ハルシネーション</a></li><li><a href="../../274/a-engine-tabs/index.html">画面</a></li><li><a href="../../274/a-engine-tabs/index.html">履歴とログ</a></li><li><a href="../../274/a-engine-tabs/index.html">API</a></li></ul></nav>
+<form class="settings__form" action="#" method="post" aria-label="設定（ショートカットが 1 つも無い）">
+<fieldset id="empty-group" data-group>
+<legend>ショートカット</legend>
+<div class="shortcuts__head">
+<h3 class="subhead">用語集のプリセットを切り替える</h3>
+<button type="button" class="btn" data-add-item>行追加</button>
+</div>
+<code class="key">glossary_preset_hotkeys</code>
+<p class="shortcuts__empty" data-empty>ショートカットはありません。</p>
+<p class="field-help">押すと、補正に使用する用語集のプリセットを切り替えます。ほかのホットキーと同じ組み合わせは登録できません。</p>
+</fieldset>
+</form>
+</div>
+<div class="settings__foot">
+<div class="settings__actions">
+<a class="btn" href="../../../settings-reset-dialog/37/a-standard/index.html">既定に戻す</a>
+<span class="spacer"></span>
+<a class="btn" href="../../../settings-discard-dialog/37/a-standard/index.html">キャンセル</a>
+<a class="btn btn--primary" href="#empty-group">保存</a>
+</div>
+</div>
+</div>
+<p class="scene-note">「設定…」から開いてこのまとまりを選んだとき。行の追加ボタンは見出しの右にあり、一覧が長くなってもスクロールせずに押せる。</p>
+</section>
+</div>
+</main>
+</body>
+</html>

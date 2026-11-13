@@ -23,6 +23,10 @@ classes:
         type: threading.Lock
         access: 内部 (_)
         description: start・stop を 1 つずつにする
+      - name: _suspended
+        type: threading.Event
+        access: 内部 (_)
+        description: 押されたホットキーを関数へ伝えない間は立てる（設定画面のホットキーの欄が入力待ちの間）
     methods:
       - name: start
         title: 受付の開始
@@ -41,7 +45,7 @@ classes:
           description: なし
         process: |-
           1. ロックを取る
-          2. 各関数を例外を握る関数で包む
+          2. 各関数を、_suspended が立っていれば呼ばずに戻り、例外を握る関数で包む
              - 呼んだ関数が例外を出した場合、握って受付を続ける
                - `[ERROR]` ホットキーの処理で想定外の例外（ホットキー。logger.exception）
           3. 新しい受付を先に作る（`GlobalHotKeys(包んだ組)`。作るときに pynput が書式を確認する）
@@ -107,6 +111,31 @@ classes:
             condition: start の後、差し替えた GlobalHotKeys の join が戻っても is_alive が True を返却する状態で stop を呼ぶ
             mock: keyboard.GlobalHotKeys
             expected: join に timeout=HOTKEY_STOP_TIMEOUT_SEC が渡り、例外が出ず、WARNING のログが 1 行出て、もう一度 start すると新しい受付だけが動いている
+      - name: set_suspended
+        title: 伝えるかの切り替え
+        summary: 押されたホットキーを関数へ伝えるかを切り替える。受付は止めない（設定画面のホットキーの欄が入力待ちに入る・出るときに UiDeps.set_hotkey_capturing が呼ぶ）
+        kind: メソッド
+        scope: public
+        thread_safe: true
+        args:
+          - name: suspended
+            type: bool
+            required: true
+            passing: positional
+            description: 伝えないなら True
+        returns:
+          type: None
+          description: なし
+        unit_tests:
+          - name: test_set_suspended
+            case: 正常
+            summary: 伝えない間は関数を呼ばず、戻すとまた呼ぶ
+            condition: '{"<ctrl>+<alt>+d": 関数} で始め、set_suspended(True) の後に包んだ関数を呼び、set_suspended(False) の後にもう一度呼ぶ'
+            mock: keyboard.GlobalHotKeys
+            expected: 関数が 2 回目だけ 1 回呼ばれ、受付の stop が呼ばれない
+        status: planned
+        introduced:
+          pr: 291
       - name: __init__
         title: 受付の用意
         summary: 受付はまだ始めない

@@ -1,0 +1,51 @@
+$ .venv/Scripts/python.exe -m pytest tests/integration
+============================= test session starts =============================
+platform win32 -- Python 3.14.3, pytest-9.1.1, pluggy-1.7.0
+rootdir: C:\Users\shuhe\repo\voice-paste\.claude\worktrees\feat-settings-record-while-open-and-tray-shortcuts
+configfile: pyproject.toml
+plugins: anyio-4.15.1, platformdirs-4.13.3
+collected 802 items
+
+tests\integration\haas_server\test_health.py ..                          [  0%]
+tests\integration\haas_server\test_shutdown.py ...                       [  0%]
+tests\integration\haas_server\test_transcribe.py ..............          [  2%]
+tests\integration\test_accept_web_audio.py ..............                [  4%]
+tests\integration\test_complete_session.py .........                     [  5%]
+tests\integration\test_deliver_to_caller.py ...........                  [  6%]
+tests\integration\test_deliver_to_endpoint.py ...                        [  6%]
+tests\integration\test_deliver_to_output.py ......                       [  7%]
+tests\integration\test_get_web_transcription.py ........                 [  8%]
+tests\integration\test_list_web_glossary_presets.py .....                [  9%]
+tests\integration\test_serve_web_page.py ........                        [ 10%]
+tests\integration\test_settings_layers.py ..                             [ 10%]
+tests\integration\test_settings_migration.py ..                          [ 10%]
+tests\integration\test_start_session.py ...........                      [ 12%]
+tests\integration\test_stop_session.py ........                          [ 13%]
+tests\integration\test_transcribe_web_audio.py .....                     [ 13%]
+tests\integration\test_truncate_session.py ...                           [ 14%]
+tests\integration\ui\test_busy_dialog.py ..........                      [ 15%]
+tests\integration\ui\test_recording_window.py .......................... [ 18%]
+........................................................................ [ 27%]
+                                                                         [ 27%]
+tests\integration\ui\test_settings_window.py ........................... [ 31%]
+...........................s............................................ [ 40%]
+........................................................................ [ 49%]
+........................................................................ [ 57%]
+........................................................................ [ 66%]
+........................................................................ [ 75%]
+...........                                                              [ 77%]
+tests\integration\ui\test_transcribing_indicator.py .................... [ 79%]
+.....................................................................    [ 88%]
+tests\integration\ui\test_tray.py ...................................... [ 93%]
+.................                                                        [ 95%]
+tests\integration\ui\test_tray_notification.py ......................... [ 98%]
+.............                                                            [100%]
+
+============================== warnings summary ===============================
+.venv\Lib\site-packages\fastapi\testclient.py:1
+  C:\Users\shuhe\repo\voice-paste\.claude\worktrees\feat-settings-record-while-open-and-tray-shortcuts\.venv\Lib\site-packages\fastapi\testclient.py:1: StarletteDeprecationWarning: Using `httpx` with `starlette.testclient` is deprecated; install `httpx2` instead.
+    from starlette.testclient import TestClient as TestClient  # noqa
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+============ 801 passed, 1 skipped, 1 warning in 119.09s (0:01:59) ============
+exit=0

@@ -6,8 +6,8 @@ elements:
     id: settings_window
     kind: window
     position: 窓
-    description: 設定画面の窓。ウィンドウのタイトルは「voice-paste の設定」。左にまとまりのメニュー、右に欄、下にフッターを配置する。窓の閉じる・Esc は「キャンセル」と同じ。開いている間はホットキーを受け付けず（ホットキーの欄で押したキーで録音や確定が動かない）、閉じると今の設定で受付を始める
-    visible_when: トレイの「設定…」を選んだとき。開いていれば前面に出す
+    description: 設定画面の窓。ウィンドウのタイトルは「voice-paste の設定」。左にまとまりのメニュー、右に欄、下にフッターを配置する。窓の閉じる・Esc は「キャンセル」と同じ。開いている間もホットキーを受け付け、設定画面と録音を同時に使用できる（ホットキーの欄が入力待ちの間に押したキーだけは、録音・確定・一時停止・取り消し・ショートカットに伝えない）
+    visible_when: トレイの「設定…」「用語集の設定…」「ショートカットの設定…」を選んだとき。開いていれば、新しい窓を作らずに最小化を戻して最前面に出し、フォーカスを移す（「用語集の設定…」「ショートカットの設定…」はそのまとまりへ切り替える）
     width: 最小 720px（欄の名前と設定のキーが単語の途中で折り返さない幅）
     initial_value: 開いたときの設定の値（補足の「設定のレイヤー」）
     source: Settings（設定のモデル）
@@ -18,7 +18,7 @@ elements:
     description: まとまりを選ぶと、右の欄をそのまとまりに切り替える。切り替えても入れた値は削除しない
     io: 入力
     visible_when: 常時
-    options: 出力先・ブラウザ添付・エンドポイントへ送信・ホットキー・録音・文字起こし・表記のヒント・用語集・ハルシネーション・画面・履歴とログ・API の順。既定は出力先
+    options: ショートカット・出力先・ブラウザ添付・エンドポイントへ送信・ホットキー・録音・文字起こし・表記のヒント・用語集・ハルシネーション・画面・履歴とログ・API の順。既定は出力先（トレイの「用語集の設定…」は用語集、「ショートカットの設定…」はショートカット）
     initial_value: 出力先
     action: 右の欄を選んだまとまりに切り替える
     width: 160px を下限にし、最も長い項目の文字幅に余白を加えた幅（縦のスクロールバーが出ているときはその幅も加える）が収まらないときだけ広げる。横のスクロールバーは出さない（Linux のフォントでは「エンドポイントへ送信」が 160px に収まらない。Windows は縦のスクロールバーが出ていなければ 160px のままで、実測は 155px）
@@ -56,13 +56,13 @@ elements:
     id: hotkey_{key}
     kind: input
     position: 窓 > 右 > 出力先・ホットキー・ブラウザ添付・エンドポイントへ送信
-    description: 押すと入力待ちになり、次に押したキーの組み合わせが入る。Tab と Esc は欄の移動と画面の取り消しに残し、組み合わせには入れない。欄の幅を超える組み合わせは欄の中で横に流す
+    description: 押すと入力待ちになり、次に押したキーの組み合わせが入る。入力待ちの間に押したキーは、登録済みのホットキーと同じ組み合わせでも録音・確定・一時停止・取り消し・ショートカットに伝えない（Linux の Wayland のセッションでは、入力待ちの間だけ GNOME の登録を除外する）。Tab と Esc は欄の移動と画面の取り消しに残し、組み合わせには入れない。欄の幅を超える組み合わせは欄の中で横に流す
     io: 入出力
     type: 文字列
     visible_when: その欄のまとまりを選んだとき
     display_format: 画面では `Ctrl+Alt+D` の形で出し（`<cmd>` は Windows で `Win`、Linux で `Super` と出す）、保存では pynput の書式（`<ctrl>+<alt>+d`）で書く
     initial_value: 設定の値
-    source: Settings.hotkeys.*・Settings.keyboard.paste_key・Settings.outputs[].hotkey・Settings.presets[].hotkey
+    source: Settings.hotkeys.*・Settings.keyboard.paste_key・Settings.outputs[].hotkey・Settings.presets[].hotkey・Settings.glossary_preset_hotkeys[].hotkey
     target: 同じキー（pynput の書式へ変える）
     refs:
       - CFG-1#settings[hotkeys.start]
@@ -117,7 +117,7 @@ elements:
     id: save_button
     kind: button
     position: 窓 > フッター > 右端
-    description: 全ての欄を設定のモデルで確認し、ホットキーを受け付けられることも確認してから settings.yaml へ書き込み、設定画面を開いたまま保存したメッセージを出す。入れた値・選んでいたまとまり・欄のフォーカスは保つ。反映が immediate の設定（出力先のオン・オフ・`ui.*` を含む）は動いている常駐アプリに適用し、ホットキーは設定画面を閉じたときに新しい設定で受付を張り直す。保存した値を「変えていない」の基準にし、保存の後に欄を変えずに閉じると変えた値を捨てる確認を出さない。書き込めたら、前の保存で出したエラーの一覧と欄の下のエラーを非表示にする。通らなければ書き込まず、エラーの一覧と欄の下のエラーを出し、入れた値は削除しない
+    description: 全ての欄を設定のモデルで確認し、ホットキーを受け付けられることも確認してから settings.yaml へ書き込み、設定画面を開いたまま保存したメッセージを出す。入れた値・選んでいたまとまり・欄のフォーカスは保つ。反映が immediate の設定（出力先のオン・オフ・`ui.*` を含む）は動いている常駐アプリに適用し、ホットキーも保存した時点で新しい設定で受付を張り直す。保存した値を「変えていない」の基準にし、保存の後に欄を変えずに閉じると変えた値を捨てる確認を出さない。書き込めたら、前の保存で出したエラーの一覧と欄の下のエラーを非表示にする。通らなければ書き込まず、エラーの一覧と欄の下のエラーを出し、入れた値は削除しない
     label: 保存
     visible_when: 常時
     action: 確認して保存し、開いたまま保存したメッセージを出す
@@ -664,8 +664,8 @@ elements:
     id: saved_notice
     kind: label
     position: 窓 > フッターの上
-    description: 「保存」で書き込めたことを伝える。ホットキーの欄（`hotkeys.*`・`outputs[].hotkey`・`presets[].hotkey`。`keyboard.paste_key` は含めない）のどれかが開いたときの値から変わっていれば、設定画面を閉じると有効になることを添える。反映が restart の欄が開いたときの値から変わっていれば、その件数と再起動するまで前の値で動くことを添え、右に今すぐ再起動のボタンを出す。読み上げにも伝える（role=status）
-    label: 保存しました。（ホットキーの欄が開いたときの値から変わっているとき「新しいホットキーは、設定画面を閉じると効きます。」、反映が restart の欄が変わっているとき「「再起動で反映」の設定 {件数} 件は、再起動するまで前の値で動きます。」をこの順に続ける）
+    description: 「保存」で書き込めたことを伝える。反映が restart の欄が開いたときの値から変わっていれば、その件数と再起動するまで前の値で動くことを添え、右に今すぐ再起動のボタンを出す。読み上げにも伝える（role=status）
+    label: 保存しました。（反映が restart の欄が変わっているとき「「再起動で反映」の設定 {件数} 件は、再起動するまで前の値で動きます。」を続ける）
     visible_when: 「保存」で確認に通って書き込めた後。欄を変えると非表示にする
     refs:
       - CFG-1#
@@ -1039,6 +1039,97 @@ elements:
     label: エラー {件数} 件
     visible_when: 保存を押して、そのタブに確認に通らない欄があったとき。エラーの一覧と同じときに出し、同じときに閉じる
     status: planned
+  - name: ショートカットの見出しの行
+    id: shortcut_head
+    kind: label
+    position: 窓 > 右 > ショートカット > 上端
+    description: 見出し「用語集のプリセットを切り替える」と、右に行の追加ボタンを並べる。行が増えても、まとまりを開いたときにスクロールせずに見える位置に置く
+    label: 用語集のプリセットを切り替える
+    visible_when: ショートカットのまとまりを選んだとき
+    status: planned
+    introduced:
+      pr: 291
+  - name: ショートカットの一覧
+    id: shortcut_list
+    kind: table
+    position: 窓 > 右 > ショートカット > 見出しの行の下
+    description: 用語集のプリセットを切り替えるショートカットを 1 行ずつ並べる。列は「キーの組み合わせ」「切り替える用語集のプリセット」と削除ボタン。トレイの「ショートカットの設定…」で追加した行は、背景を変えて示す。一覧の下に補助文「押すと、補正に使用する用語集のプリセットを切り替えます。ほかのホットキーと同じ組み合わせは登録できません。」を出す。読み上げの表の名前は「用語集のプリセットを切り替えるショートカットの一覧」
+    io: 入出力
+    visible_when: ショートカットのまとまりを選んだとき（行が 1 つ以上あるとき）
+    initial_value: 設定の `glossary_preset_hotkeys[]`。キーが無いときは空
+    sorting: 並べ替えない。設定の並びで、追加した行は末尾
+    source: Settings.glossary_preset_hotkeys[]
+    target: Settings.glossary_preset_hotkeys[]（保存で settings.yaml へ書き込む）
+    refs:
+      - CFG-1#settings[glossary_preset_hotkeys[].hotkey]
+    status: planned
+    introduced:
+      pr: 291
+  - name: ショートカットのキーの欄
+    id: shortcut_hotkey_{n}
+    kind: input
+    position: 窓 > 右 > ショートカットの一覧 > 行 > 左
+    description: ホットキーの欄と同じく押したキーの組み合わせが入る。読み上げの名前は「{何行目か} 行目のキーの組み合わせ」
+    io: 入出力
+    type: 文字列
+    visible_when: 行ごと
+    required: true
+    initial_value: 設定の値（追加した行は 行の追加ボタン の初期値）
+    source: Settings.glossary_preset_hotkeys[].hotkey
+    target: Settings.glossary_preset_hotkeys[].hotkey
+    refs:
+      - CFG-1#settings[glossary_preset_hotkeys[].hotkey]
+    status: planned
+    introduced:
+      pr: 291
+  - name: 切り替える用語集のプリセットの選択
+    id: shortcut_preset_{n}
+    kind: select
+    position: 窓 > 右 > ショートカットの一覧 > 行 > キーの欄の右
+    description: キーを押したときに切り替える用語集のプリセットを選ぶ。選択肢は用語集のプリセットの一覧の名前（画面で追加・名前を変えたプリセットも保存の前から選べる）。読み上げの名前は「{何行目か} 行目の切り替える用語集のプリセット」
+    io: 入出力
+    visible_when: 行ごと
+    required: true
+    options: 用語集のプリセットの一覧の名前の並び
+    initial_value: 設定の値（追加した行は 行の追加ボタン の初期値）
+    source: Settings.glossary_preset_hotkeys[].preset
+    target: Settings.glossary_preset_hotkeys[].preset
+    refs:
+      - CFG-1#settings[glossary_preset_hotkeys[].preset]
+    status: planned
+    introduced:
+      pr: 291
+  - name: ショートカットの行の削除ボタン
+    id: shortcut_remove_{n}
+    kind: button
+    position: 窓 > 右 > ショートカットの一覧 > 行 > 右端
+    description: その行を一覧から削除する。アイコンだけのボタンで、読み上げの名前とツールチップは「{何行目か} 行目を削除」
+    visible_when: 行ごと
+    action: 行を削除する
+    status: planned
+    introduced:
+      pr: 291
+  - name: ショートカットの行の追加ボタン
+    id: add_shortcut_button
+    kind: button
+    position: 窓 > 右 > ショートカット > 見出しの行 > 見出しの右
+    description: ショートカットの一覧の末尾に行を 1 つ追加し、キーの欄にフォーカスを移す。追加した行のキーの欄の初期値は、Windows は `Ctrl+Alt+S`、Linux は `Super+Alt+G`（ほかのホットキーか、ほかの行が同じ組み合わせを使用しているときは空）。切り替える用語集のプリセットの初期値は、補正に使うプリセットの選択（画面の今の選択）。トレイの「ショートカットの設定…」で開いたときも、このボタンと同じ行を追加する
+    label: 行追加
+    visible_when: ショートカットのまとまりを選んだとき
+    action: 行を追加する
+    status: planned
+    introduced:
+      pr: 291
+  - name: ショートカットが無いときの文
+    id: shortcut_empty
+    kind: label
+    position: 窓 > 右 > ショートカット > 見出しの行の下
+    description: ショートカットの一覧の代わりに出す
+    label: ショートカットはありません。
+    visible_when: ショートカットのまとまりを選び、行が 1 つも無いとき
+    status: planned
+    introduced:
+      pr: 291
 input_checks:
   - element: 設定の欄
     violation: 数値の欄に数値でない文字が入っている
@@ -1070,6 +1161,16 @@ input_checks:
     trigger: 保存・保存して再起動のボタンのクリック
     message: ホットキーを受け付けられませんでした（{理由}）。別のキーにしてください。
     position: エラーの一覧
+  - element: ショートカットのキーの欄
+    violation: 空
+    trigger: 保存・保存して再起動のボタンのクリック
+    message: キーの組み合わせを押してください。
+    position: その欄の下とエラーの一覧
+  - element: ショートカットのキーの欄
+    violation: ほかのホットキーの欄（`hotkeys.*`・`keyboard.paste_key`・`outputs[].hotkey`・`presets[].hotkey`）か、ほかのショートカットの行と同じ組み合わせ
+    trigger: 保存・保存して再起動のボタンのクリック
+    message: 「{重なった欄の名前}」と同じホットキーです。別のキーにしてください。（ほかのショートカットの行なら「ショートカット {何行目か} 行目と同じホットキーです。別のキーにしてください。」）
+    position: その欄の下とエラーの一覧
   - element: プリセットのタイトルの欄
     violation: 空
     trigger: 保存・保存して再起動のボタンのクリック
@@ -1186,8 +1287,8 @@ input_checks:
     message: 16 文字以内で入れてください。
     position: '`transcription.haas.separator` の欄の下とエラーの一覧'
 screen: src/voice_paste/ui/windows/settings_window.py
-mock: docs/mock/pages/settings/173/b-picked-list/
-lead: トレイの「設定…」から開く画面。設定の全てのキーをまとまりに並べ、設定のモデルで確認してから保存する。
+mock: docs/mock/pages/settings/291/a-shortcuts-first/
+lead: トレイの「設定…」「用語集の設定…」「ショートカットの設定…」から開く画面。設定の全てのキーをまとまりに並べ、設定のモデルで確認してから保存する。
 refs:
   - SC-6#
   - CFG-1#
@@ -1197,6 +1298,7 @@ notes:
   まとまりと欄: |-
     | まとまり | キー | 欄の部品 |
     | --- | --- | --- |
+    | ショートカット | `glossary_preset_hotkeys[]`（hotkey・preset） | 見出しの行（見出しと行の追加ボタン）と、ショートカットの一覧 |
     | 出力先 | `outputs[].enabled`（paste_and_send・paste_only・copy_only） | チェックボックス。右に `outputs[].hotkey` のホットキーの欄 |
     | 出力先（送信するまでの間） | `outputs[paste_and_send].enter_delay_sec` | 数値の欄。補助文「「貼り付けて送信」と、「ブラウザ添付」の Enter まで送信するプリセットで使用する。」 |
     | 出力先（Enter と一緒に押す修飾キー） | `outputs[paste_and_send].enter_modifiers` | 欄の名前「Enter と一緒に押す修飾キー」の下の行に、「Ctrl」「Alt」「Shift」のチェックボックスを横に並べる（オンにしたものを一覧に入れる） |

@@ -69,6 +69,10 @@ COPY_COMPLETED_TITLE: str = "コピーしました"
 COPY_COMPLETED_BODY: str = "任意の場所に貼り付けてください。この通知を押すと、もう一度コピーします。"
 """コピーの完了の通知の本文（固定の文）。"""
 
+GLOSSARY_PRESET_SWITCHED_TITLE: str = "用語集のプリセットを切り替えました"
+GLOSSARY_PRESET_SWITCHED_BODY: str = "次の録音から「{name}」で補正します。"
+"""ショートカットで用語集のプリセットを切り替えたときの通知の見出しと本文（{name} はプリセットの名前）。"""
+
 STARTUP_BODY_FORMATS: dict[str, str] = {
     "engine_unavailable": "文字起こしのエンジンを準備できませんでした（{reason}）。設定を修正して再起動してください。",
     "engine_fallback": "{reason}",
@@ -130,9 +134,11 @@ class RecordingWindowState(StrEnum):
 START_TEXT: str = "録音を開始"
 SHOW_WINDOW_TEXT: str = "録音の画面を表示"
 SETTINGS_TEXT: str = "設定…"
+SETTINGS_GLOSSARY_TEXT: str = "用語集の設定…"
+SETTINGS_SHORTCUTS_TEXT: str = "ショートカットの設定…"
 BUSY_SUFFIX: str = "（処理中）"
 FAILED_SUFFIX: str = "（準備に失敗）"
-"""メニューの「録音を開始」「録音の画面を表示」「設定…」の文言と、押せない理由の添え字。"""
+"""メニューの「録音を開始」「録音の画面を表示」と設定の 3 項目の文言と、押せない理由の添え字。"""
 
 SHOW_WINDOW_REASONS: dict[RecordingWindowState, str] = {
     RecordingWindowState.SHOWN: "（表示中）",
@@ -150,6 +156,12 @@ class Tray(QObject):
 
     settings_requested = Signal()
     """「設定…」。"""
+
+    settings_glossary_requested = Signal()
+    """「用語集の設定…」。"""
+
+    settings_shortcuts_requested = Signal()
+    """「ショートカットの設定…」。"""
 
     restart_requested = Signal()
     """「再起動」。"""
@@ -171,6 +183,7 @@ class Tray(QObject):
         self._failed = False
         self._failed_settings_enabled = True
         self._copied_text: str | None = None
+        self._message_opens_log = False
         self._start_hotkey = ""
         self._start_label = START_TEXT
         self._window_state = RecordingWindowState.NOT_RECORDING
@@ -183,6 +196,12 @@ class Tray(QObject):
         self._show_window_action = self._add_item(menu, "menu_show_window", SHOW_WINDOW_TEXT)
         menu.addSeparator()
         self._settings_action = self._add_item(menu, "menu_settings", SETTINGS_TEXT)
+        self._settings_glossary_action = self._add_item(
+            menu, "menu_settings_glossary", SETTINGS_GLOSSARY_TEXT
+        )
+        self._settings_shortcuts_action = self._add_item(
+            menu, "menu_settings_shortcuts", SETTINGS_SHORTCUTS_TEXT
+        )
         open_settings_folder = self._add_item(
             menu, "menu_open_settings_folder", "設定フォルダを開く"
         )
@@ -194,6 +213,8 @@ class Tray(QObject):
         self._start_action.triggered.connect(self.start_requested)
         self._show_window_action.triggered.connect(self.show_window_requested)
         self._settings_action.triggered.connect(self.settings_requested)
+        self._settings_glossary_action.triggered.connect(self.settings_glossary_requested)
+        self._settings_shortcuts_action.triggered.connect(self.settings_shortcuts_requested)
         open_settings_folder.triggered.connect(lambda: self._open_folder(self._settings_dir))
         open_log_folder.triggered.connect(self._open_log_folder)
         restart_action.triggered.connect(self.restart_requested)
@@ -211,25 +232,23 @@ class Tray(QObject):
 
     def set_state(self, state: TrayState, *, busy: bool) -> None:
         """アイコン・ヒント・メニューの押せる項目と文言を状態に合わせる。"""
-        # 1. 失敗の起動なら、状態を失敗のままにし、録音を押せなくする。設定は settings_enabled のときだけ押せるままにする
+        # 1. 失敗の起動なら、状態を失敗のままにし、録音を押せなくする。設定の 3 項目は settings_enabled のときだけ押せるままにする
         if self._failed:
             self._apply(
                 TrayState.FAILED,
                 start_text=START_TEXT + FAILED_SUFFIX,
-                settings_text=SETTINGS_TEXT,
                 start_enabled=False,
                 settings_enabled=self._failed_settings_enabled,
             )
             return
 
-        # 2. それ以外は、状態の画像とヒントに替え、処理中なら録音と設定を押せなくする。
-        #    準備中も、配線が終わるまで受け手が無いため録音と設定を押せなくする
+        # 2. それ以外は、状態の画像とヒントに替え、処理中なら録音を押せなくする（設定の 3 項目は押せるまま）。
+        #    準備中は、配線が終わるまで受け手が無いため録音と設定の 3 項目を押せなくする
         self._apply(
             state,
             start_text=START_TEXT + (BUSY_SUFFIX if busy else ""),
-            settings_text=SETTINGS_TEXT + (BUSY_SUFFIX if busy else ""),
             start_enabled=state is TrayState.IDLE and not busy,
-            settings_enabled=state is not TrayState.STARTING and not busy,
+            settings_enabled=state is not TrayState.STARTING,
         )
 
     def set_failed(self, *, settings_enabled: bool) -> None:
@@ -264,6 +283,7 @@ class Tray(QObject):
         """知らせの種類の見出しと本文で、警告のアイコンの Windows の通知を出す。通知を押すとログフォルダを開く。"""
         # 押されたときにログフォルダを開くよう、コピーの完了の起こした文字を手放す
         self._copied_text = None
+        self._message_opens_log = True
         title = FAILURE_TITLES[event]
         if event == "microphone_unavailable":
             body = MICROPHONE_BODY
@@ -282,9 +302,21 @@ class Tray(QObject):
         """コピーの完了の見出しと本文で、情報のアイコンの Windows の通知を出す。通知を押すと起こした文字をもう一度コピーする。"""
         # 押されたときにコピーし直せるよう、起こした文字を持つ（通知には出さない）
         self._copied_text = text
+        self._message_opens_log = False
         self._icon.showMessage(
             COPY_COMPLETED_TITLE,
             COPY_COMPLETED_BODY,
+            QSystemTrayIcon.MessageIcon.Information,
+            MESSAGE_MSEC,
+        )
+
+    def show_glossary_preset_switched(self, name: str) -> None:
+        """用語集のプリセットを切り替えた見出しと本文で、情報のアイコンの Windows の通知を出す。通知を押しても何もしない。"""
+        self._copied_text = None
+        self._message_opens_log = False
+        self._icon.showMessage(
+            GLOSSARY_PRESET_SWITCHED_TITLE,
+            GLOSSARY_PRESET_SWITCHED_BODY.format(name=name),
             QSystemTrayIcon.MessageIcon.Information,
             MESSAGE_MSEC,
         )
@@ -307,7 +339,6 @@ class Tray(QObject):
         state: TrayState,
         *,
         start_text: str,
-        settings_text: str,
         start_enabled: bool,
         settings_enabled: bool,
     ) -> None:
@@ -316,9 +347,13 @@ class Tray(QObject):
         self._icon.setToolTip(f"{TOOLTIP_PREFIX}{STATE_NAMES[state]}")
         self._start_label = start_text
         self._apply_start_text()
-        self._settings_action.setText(settings_text)
         self._start_action.setEnabled(start_enabled)
-        self._settings_action.setEnabled(settings_enabled)
+        for action in (
+            self._settings_action,
+            self._settings_glossary_action,
+            self._settings_shortcuts_action,
+        ):
+            action.setEnabled(settings_enabled)
         # 「録音を開始」は押せるときだけ太字にする（既定の項目）
         font = self._start_action.font()
         font.setBold(start_enabled)
@@ -341,13 +376,14 @@ class Tray(QObject):
             self.start_requested.emit()
 
     def _on_message_clicked(self) -> None:
-        """通知を押したとき、最後に出した通知がコピーの完了ならコピーし直しを頼み、そうでなければログフォルダを開く。"""
+        """通知を押したとき、最後に出した通知がコピーの完了ならコピーし直しを頼み、失敗ならログフォルダを開く。"""
         # コピーの完了: 通知のときに起こした文字でもう一度コピーする
         if self._copied_text is not None:
             self.recopy_requested.emit(self._copied_text)
         # 失敗の通知: ログフォルダを開く
-        else:
+        elif self._message_opens_log:
             self._open_log_folder()
+        # 用語集のプリセットの切り替えの通知: 何もしない
 
     def _open_log_folder(self) -> None:
         """ログのフォルダをエクスプローラーで開く。"""

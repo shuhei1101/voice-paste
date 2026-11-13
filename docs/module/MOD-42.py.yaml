@@ -139,6 +139,37 @@ classes:
             condition: start の後、gsettings が FileNotFoundError を送出する状態で stop を呼ぶ
             mock: subprocess.run（gsettings）
             expected: 例外が出ず、WARNING のログが 1 行出る
+      - name: set_suspended
+        title: 伝えるかの切り替え
+        summary: HotkeyListener.set_suspended と同じ。伝えない間は常駐サービスのカスタムショートカットの登録を解除し（GNOME が押したキーを受けず、設定画面のホットキーの欄へ届く）、戻すと _bindings の組で登録し直す
+        kind: メソッド
+        scope: public
+        thread_safe: true
+        args:
+          - name: suspended
+            type: bool
+            required: true
+            passing: positional
+            description: 伝えないなら True
+        returns:
+          type: None
+          description: なし
+        process: |-
+          1. ロックを取る
+          2. True なら、常駐サービスの登録を gsettings の custom-keybindings の一覧から除外する（_bindings は残す）
+          3. False なら、_bindings の組で登録し直す（start の登録と同じ手順）
+             - gsettings が失敗した場合、HotkeyError にせずログに書き込んで戻る
+               - `[ERROR]` ショートカットを登録し直せなかった（理由）
+        unit_tests:
+          - name: test_set_suspended
+            case: 正常
+            summary: 伝えない間は登録を除外し、戻すと同じ組で登録し直す
+            condition: '{"<ctrl>+<alt>+d": 関数} で start した後に set_suspended(True)、続けて set_suspended(False)'
+            mock: gsettings を呼ぶ関数（呼ばれた引数を記録する）
+            expected: True の後は custom-keybindings に常駐サービスのパスが無く、False の後は <Primary><Alt>d の登録が 1 つある
+        status: planned
+        introduced:
+          pr: 291
     refs:
       - SC-5#
     status: planned

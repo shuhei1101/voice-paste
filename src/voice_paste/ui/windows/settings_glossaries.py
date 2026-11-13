@@ -255,6 +255,9 @@ class GlossaryPanel(QWidget):
     changed = Signal()
     """用語集・行・プリセットを追加する・削除する、補正に使うプリセットの切り替え、プリセットの用語集の追加・外し・並べ替え、欄の入力、行のオン・オフで値が変わった。"""
 
+    presets_changed = Signal(list, object)
+    """用語集のプリセットの一覧か補正に使うプリセットの選択が変わった（プリセットの識別子と名前の組の並び、補正に使うプリセットの識別子）。"""
+
     def __init__(
         self,
         read_glossary: Callable[[Path], list[GlossaryEntry]],
@@ -384,6 +387,7 @@ class GlossaryPanel(QWidget):
         self._rebuild_preset_detail()
         self._rebuild_list()
         self._rebuild_detail()
+        self._emit_presets()
 
     def collect(self) -> list[dict[str, Any]]:
         """今の並びの用語集を、設定と同じ構造の dict（name・path）の並びにする。name は前後の空白を除く。"""
@@ -489,6 +493,7 @@ class GlossaryPanel(QWidget):
         self._rebuild_list()
         if self._preset_name_edit is not None:
             self._preset_name_edit.setFocus()
+        self._emit_presets()
         self.changed.emit()
 
     def focus_field(self, position: int, field: GlossaryField, *, row: int | None = None) -> None:
@@ -605,6 +610,13 @@ class GlossaryPanel(QWidget):
             )
             self._sync_preset_row(index)
 
+    def _emit_presets(self) -> None:
+        """プリセットの識別子と今の名前（前後の空白を除く）の組の並びと、補正に使うプリセットの識別子を presets_changed で知らせる。"""
+        self.presets_changed.emit(
+            [(preset.ident, preset.name.strip()) for preset in self._presets],
+            self._presets[self._active_preset].ident,
+        )
+
     def _sync_preset_row(self, index: int) -> None:
         """プリセットの一覧の 1 行の表示（名前・用語集の数・読み上げの名前・削除ボタンの扱い）を、今の入力に合わせる。"""
         preset = self._presets[index]
@@ -630,6 +642,7 @@ class GlossaryPanel(QWidget):
         self._active_preset = position
         for index in range(len(self._presets)):
             self._sync_preset_row(index)
+        self._emit_presets()
         self.changed.emit()
 
     def _show_preset(self, position: int) -> None:
@@ -656,6 +669,7 @@ class GlossaryPanel(QWidget):
         self._rebuild_preset_list()
         self._rebuild_preset_detail()
         self._rebuild_list()
+        self._emit_presets()
         self.changed.emit()
 
     def _rebuild_preset_detail(self) -> None:
@@ -739,6 +753,7 @@ class GlossaryPanel(QWidget):
         self._sync_preset_row(self._presets.index(preset))
         for index in range(len(self._glossaries)):
             self._sync_list_row(index)
+        self._emit_presets()
         self.changed.emit()
 
     def _build_uses(self, preset: _PresetState) -> QFrame:

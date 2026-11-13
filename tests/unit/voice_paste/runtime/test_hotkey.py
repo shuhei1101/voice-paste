@@ -236,3 +236,29 @@ def test_validate_hotkeys_when_invalid() -> None:
     # 実行・検証
     with pytest.raises(HotkeyError, match=re.escape(INVALID_KEY)):
         validate_hotkeys([INVALID_KEY])
+
+
+# === HotkeyListener.set_suspended ===
+
+
+def test_set_suspended(listeners: list[FakeGlobalHotKeys]) -> None:
+    """伝えない間は関数を呼ばず、戻すとまた呼ぶ（正常系）。"""
+    from voice_paste.runtime.hotkey import HotkeyListener
+
+    # 準備
+    handler = CountingHandler()
+    listener = HotkeyListener()
+    listener.start({START_KEY: handler})
+    wrapped = listeners[0].hotkeys[START_KEY]
+
+    # 実行
+    listener.set_suspended(True)
+    wrapped()
+    count_while_suspended = handler.count
+    listener.set_suspended(False)
+    wrapped()
+
+    # 検証
+    assert count_while_suspended == 0
+    assert handler.count == 1
+    assert "stop" not in listeners[0].calls

@@ -125,6 +125,30 @@ def test_notify_copied(qapp: QApplication, caplog: pytest.LogCaptureFixture) -> 
     assert all("テストの文字" not in record.getMessage() for record in caplog.records)
 
 
+def test_request_glossary_preset_switch(
+    qapp: QApplication, caplog: pytest.LogCaptureFixture
+) -> None:
+    """プリセットの名前を Signal で渡す（正常系）。"""
+    from voice_paste.ui.bridge import UiBridge, request_glossary_preset_switch
+
+    # 準備
+    caplog.set_level(logging.INFO)
+    bridge = UiBridge()
+    receiver = Receiver()
+    bridge.glossary_preset_switch_requested.connect(
+        receiver.on_copied, Qt.ConnectionType.QueuedConnection
+    )
+
+    # 実行
+    request_glossary_preset_switch("会議", bridge=bridge)
+    _process_events_until(lambda: receiver.received)
+
+    # 検証
+    assert receiver.received == [("会議",)]
+    infos = [record for record in caplog.records if record.levelno == logging.INFO]
+    assert len(infos) == 1
+
+
 # === report_progress ===
 
 

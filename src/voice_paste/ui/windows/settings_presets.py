@@ -70,6 +70,9 @@ class PresetListPanel(QWidget):
     changed = Signal()
     """追加・削除・並べ替え・欄の入力で値が変わった（設定画面が変えた欄の数えに使う）。"""
 
+    capturing = Signal(bool)
+    """確定のホットキーの欄が入力待ちに入った（True）・抜けた（False）。"""
+
     def __init__(self, kind: str, parent: QWidget | None = None) -> None:
         """この一覧が受け持つプリセットの種類で、空の一覧を作る。"""
         super().__init__(parent)
@@ -285,6 +288,7 @@ class PresetListPanel(QWidget):
         for attribute in self._extra_attributes():
             widgets[attribute] = self._extra_widget(attribute, value[attribute])
         hotkey_edit = HotkeyEdit(str(value["hotkey"]))
+        hotkey_edit.capturing.connect(self.capturing)
         widgets["hotkey"] = hotkey_edit
         clear_button = QPushButton("空にする")
         clear_button.setObjectName(f"preset_hotkey_clear_{position}")

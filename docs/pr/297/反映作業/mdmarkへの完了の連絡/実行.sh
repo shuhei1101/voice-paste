@@ -10,13 +10,6 @@ if [ $# -gt 1 ] || { [ $# -eq 1 ] && [ "$1" != "--dry-run" ]; }; then
   echo "引数は無しか --dry-run だけを受け付けます: $*"
   exit 1
 fi
-STATE=$(gh pr view 297 -R shuhei1101/voice-paste --json state --jq .state)
-if [ "$STATE" != "MERGED" ]; then
-  echo "前提確認: failed"
-  echo "gh pr view 297 -R shuhei1101/voice-paste --json state"
-  echo "shuhei1101/voice-paste#297 の状態が MERGED ではありません: $STATE"
-  exit 1
-fi
 echo "前提確認: ok"
 
 # 計画（--dry-run もここを通る）

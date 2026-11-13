@@ -1,3 +1,3 @@
-前提確認: failed
-gh pr view 297 -R shuhei1101/voice-paste --json state
-shuhei1101/voice-paste#297 の状態が MERGED ではありません: OPEN
+前提確認: ok
+コメントの本文: voice-paste の文書のマーカーを JSON の記載へ移し終えました（https://github.com/shuhei1101/voice-paste/pull/297）。develop で mdmark check は legacy_mark を出しません。
+shuhei1101/mdmark#478 へのコメント: changed

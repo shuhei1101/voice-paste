@@ -28,8 +28,10 @@ use_cases:
 docs:
   - page: docs/config/CFG-1.yaml
     new: false
-    change: 用語集のプリセットを切り替えるショートカットの設定のキーを追加する
-    status: todo
+    change: 用語集のプリセットを切り替えるショートカットの設定のキー（`glossary_preset_hotkeys[].hotkey`・`glossary_preset_hotkeys[].preset`）を追加する
+    status: done
+    updated_by: planner
+    updated_at: '2026-11-13T02:05:06.725899+00:00'
   - page: docs/guide/起動と設定.md
     new: false
     change: 「設定画面を開いている間は登録が解除される」の説明を新しい動きに修正し、トレイのメニューの表に設定画面の「用語集」「ショートカット」を開く項目を追加する

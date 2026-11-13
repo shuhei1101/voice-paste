@@ -927,7 +927,7 @@ def test_field_cancel_grace_sec(open_window: Callable[..., Opened]) -> None:
     window = open_window().window
 
     # 実行
-    find(window, QListWidget, "group_menu").setCurrentRow(4)
+    find(window, QListWidget, "group_menu").setCurrentRow(5)
 
     # 検証
     field = _field(window, "recording.cancel_grace_sec", QLineEdit)

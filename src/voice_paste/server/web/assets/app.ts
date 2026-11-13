@@ -28,6 +28,12 @@ const API_PATH = 'transcriptions';
 const PRESETS_PATH = 'glossary-presets';
 /** 選んだ用語集のプリセットの名前を残す localStorage のキー。 */
 const PRESET_STORAGE_KEY = 'voice-paste.glossary_preset';
+/** 「録音中は画面を暗くしない」の選択を残す localStorage のキー（ER図『ブラウザの端末のデータ』）。値はオンが `1`、オフが `0`。 */
+const KEEP_SCREEN_STORAGE_KEY = 'voice-paste.keep_screen_on';
+/** 「録音中は画面を暗くしない」のオフを残す値（キーが無い・ほかの値はオンとして扱う）。 */
+const KEEP_SCREEN_OFF = '0';
+/** 「録音中は画面を暗くしない」のオンを残す値。 */
+const KEEP_SCREEN_ON = '1';
 /** 選択欄の「設定に従う」の値。常駐アプリでは指定なしとして扱う。 */
 const FOLLOW_SETTINGS = '';
 /** IndexedDB の名前・ストア・固定のキー。 */
@@ -192,6 +198,10 @@ interface AppState {
   sendError: SendError | null;
   /** 上限で録音が止まってから、その送信が終わるまで真。 */
   limitNotice: boolean;
+  /** 「録音中は画面を暗くしない」がオンか。 */
+  keepScreenOn: boolean;
+  /** 録音の間に取得している Screen Wake Lock（取得していなければ null）。 */
+  wakeLock: WakeLockSentinel | null;
   /** 結果の一覧（新しい件が先頭）。 */
   results: ResultEntry[];
   /** 削除の確認を開いている件。 */
@@ -212,6 +222,8 @@ const state: AppState = {
   fileSending: null,
   sendError: null,
   limitNotice: false,
+  keepScreenOn: true,
+  wakeLock: null,
   results: [],
   pendingDelete: null,
 };
@@ -629,6 +641,7 @@ async function startRecording(): Promise<void> {
   state.recording = recording;
   recorder.start();
   render();
+  void acquireWakeLock();
 }
 
 /** 1 秒ごとに経過時間を進め、上限に達したら録音を止めて送信する。 */
@@ -655,6 +668,7 @@ function stopRecording(): void {
 /** 止まった録音を端末（IndexedDB）に残して送信する。前の 1 件は置き換わる。 */
 async function finishRecording(recorder: MediaRecorder, chunks: Blob[]): Promise<void> {
   const recording = present(state.recording, 'recording');
+  releaseWakeLock();
   if (recording.timer !== null) clearInterval(recording.timer);
   const blob = new Blob(chunks, { type: recorder.mimeType });
   state.recording = null;
@@ -670,6 +684,57 @@ async function finishRecording(recorder: MediaRecorder, chunks: Blob[]): Promise
   state.kept = kept;
   await saveKept(kept);
   await sendKept();
+}
+
+// ===== 画面の消灯の抑止 =====
+
+/** ブラウザが Screen Wake Lock に対応しているか。 */
+function isWakeLockSupported(): boolean {
+  return 'wakeLock' in navigator;
+}
+
+/** 端末に残した「録音中は画面を暗くしない」の選択を読む。キーが無ければオン、対応しないブラウザではオフ。 */
+function loadStoredKeepScreen(): boolean {
+  if (!isWakeLockSupported()) return false;
+  return localStorage.getItem(KEEP_SCREEN_STORAGE_KEY) !== KEEP_SCREEN_OFF;
+}
+
+/** 「録音中は画面を暗くしない」の選択を端末に残す。 */
+function saveStoredKeepScreen(on: boolean): void {
+  localStorage.setItem(KEEP_SCREEN_STORAGE_KEY, on ? KEEP_SCREEN_ON : KEEP_SCREEN_OFF);
+}
+
+/**
+ * オンで録音中・画面が見えていれば Screen Wake Lock を取得する（取得済みなら何もしない）。
+ * 取得できなければ（拒否）抑止せずに録音を続け、コンソールに警告を出す。
+ */
+async function acquireWakeLock(): Promise<void> {
+  if (!state.keepScreenOn || !isWakeLockSupported()) return;
+  if (state.recording === null || document.visibilityState !== 'visible') return;
+  if (state.wakeLock !== null && !state.wakeLock.released) return;
+  let sentinel: WakeLockSentinel;
+  try {
+    sentinel = await navigator.wakeLock.request('screen');
+  } catch (error) {
+    console.warn('画面の消灯を抑止できなかった', error);
+    return;
+  }
+  // 取得を待つ間に録音が終わっていれば、すぐ解放する
+  if (state.recording === null) {
+    void sentinel.release();
+    return;
+  }
+  state.wakeLock = sentinel;
+}
+
+/** 取得している Screen Wake Lock を解放する（取得していなければ何もしない）。 */
+function releaseWakeLock(): void {
+  const sentinel = state.wakeLock;
+  state.wakeLock = null;
+  if (sentinel === null || sentinel.released) return;
+  sentinel.release().catch((error: unknown) => {
+    console.warn('画面の消灯の抑止を解除できなかった', error);
+  });
 }
 
 // ===== 結果の取得 =====
@@ -736,6 +801,7 @@ async function markNotTranscribed(jobId: string): Promise<void> {
 function render(): void {
   renderSend();
   renderPreset();
+  renderKeepScreen();
   renderRecording();
   renderFileSending();
   renderKept();
@@ -771,6 +837,20 @@ function renderSend(): void {
   const fileInput = $<HTMLInputElement>('file_input');
   fileInput.disabled = sending;
   byId('file-label').setAttribute('aria-disabled', String(sending));
+}
+
+/** 「録音中は画面を暗くしない」のチェックの値・押せるか・対応しないことの補足を描く。 */
+function renderKeepScreen(): void {
+  const check = $<HTMLInputElement>('keep_screen_check');
+  const supported = isWakeLockSupported();
+  check.checked = state.keepScreenOn;
+  check.disabled = state.recording !== null || !supported;
+  $('keep_screen_unsupported').hidden = supported;
+  if (supported) {
+    check.removeAttribute('aria-describedby');
+  } else {
+    check.setAttribute('aria-describedby', 'keep-screen-unsupported');
+  }
 }
 
 /** 選択欄の選択肢を、取得した一覧に合わせて並べ直す。先頭は「設定に従う」。 */
@@ -1083,6 +1163,15 @@ async function init(): Promise<void> {
   $<HTMLSelectElement>('preset_select').addEventListener('change', (event) => {
     state.selectedPreset = (event.currentTarget as HTMLSelectElement).value;
     saveStoredPreset(state.selectedPreset);
+  });
+  state.keepScreenOn = loadStoredKeepScreen();
+  $<HTMLInputElement>('keep_screen_check').addEventListener('change', (event) => {
+    state.keepScreenOn = (event.currentTarget as HTMLInputElement).checked;
+    saveStoredKeepScreen(state.keepScreenOn);
+  });
+  // 画面が隠れるとブラウザが Screen Wake Lock を解放するため、録音中に画面へ戻ったら取得し直す
+  document.addEventListener('visibilitychange', () => {
+    if (document.visibilityState === 'visible') void acquireWakeLock();
   });
   $('download_button').addEventListener('click', downloadKept);
   $('resend_button').addEventListener('click', () => void resendKept());

@@ -1,0 +1,40 @@
+id: LIB-32
+visibility: internal
+title: "gnome-session-inhibit"
+kind: "CLI"
+version:
+  current: Ubuntu 24.04 の gnome-session-bin のバージョン（バージョンを指定していない）
+  checked_on: '2026-11-13'
+  pinning: 固定しない。Ubuntu の GNOME のデスクトップに入っている
+catalogs:
+  - name: コマンド
+    version: Ubuntu 24.04 の gnome-session-bin
+    entries:
+      - name: gnome-session-inhibit --inhibit idle --app-id {名前} --reason {理由} {COMMAND}
+        kind: コマンド
+        purpose: 録音の間、GNOME のセッションのアイドル（画面の消灯・画面のロック・アイドルによるサスペンド）を抑止する
+        description: gnome-session の `Inhibit()` を呼んでから COMMAND を起動し、COMMAND が終わるまで抑止を持ち続け、終わると抑止を解いて自分も終わる。常駐アプリは COMMAND に `cat` を指定し、`cat` の標準入力を常駐アプリとのパイプにする。パイプを閉じると（解除・常駐アプリの終了・強制終了のどれでも）`cat` が終わり、抑止が解ける。`--inhibit-only` は COMMAND を起動せず待ち続け、自分からは終わらないため使用しない
+        returns:
+          - name: 終了コード
+            type: int
+            description: COMMAND の終了コード。gnome-session に届かない（GNOME のセッションでない）ときは 0 以外で終わる
+      - name: gnome-session-inhibit --list
+        kind: コマンド
+        purpose: 今の抑止の一覧を確かめる（PoC と検証環境の VM での確認で使用する。常駐アプリは呼ばない）
+        description: 抑止を持つアプリの名前・理由・抑止の種類を 1 行ずつ出す。無ければ `No inhibitors` を出す
+lead: GNOME のセッションに、アイドル・ログアウト・サスペンドなどの抑止を依頼する gnome-session のコマンド。抑止は起動した COMMAND が動いている間だけ続く。
+supplier: GNOME
+dependency_scope: 任意
+adoption: 採用
+used_in:
+  - src/voice_paste/integrations/display/adapter_linux.py
+upstream: GNOME/gnome-session
+verification:
+  state: 済
+  date: '2026-11-13'
+  detail: 'PoC [#293](https://github.com/shuhei1101/voice-paste/pull/293) で、Ubuntu 24.04 の VM の Xorg のセッションに SSH でつなぎ、`gnome-session-inhibit --inhibit idle --app-id voice-paste --reason recording cat` を、起動したスレッドが終わった後も生かした。抑止中は `--list` に `voice-paste: recording (idle)` が 1 件載り、パイプを閉じる・子プロセスの強制終了・親の `kill -9` のどれでも `No inhibitors` に戻った（[検証コード](https://github.com/shuhei1101/voice-paste/blob/93b1ef1/poc/keep-display-on/linux_inhibit.py)）。Wayland のセッションは、同じ gnome-session の API のため Xorg の結果で代えた'
+license: GPL-2.0-or-later（常駐アプリに同梱せず、子プロセスで起動するだけ）
+official_url: https://manpages.ubuntu.com/manpages/noble/man1/gnome-session-inhibit.1.html
+install: Ubuntu 24.04 の GNOME のデスクトップには gnome-session-bin として入っている。無い環境では起動できず、常駐アプリは画面の消灯を抑止せずに録音を続ける
+refs:
+  - SC-8#

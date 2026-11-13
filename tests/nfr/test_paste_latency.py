@@ -142,6 +142,8 @@ def test_paste_latency(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
         ),
         lower_volume=lambda _ratio, _sec: 1.0,
         restore_volume=lambda _volume, _sec: None,
+        inhibit_display=lambda: None,
+        release_display=lambda: None,
         send_paste=_send_paste,
     )
     handlers = main_module.build_handlers(

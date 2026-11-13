@@ -307,6 +307,30 @@ elements:
     label: 録音中は変更不可
     visible_when: 録音中
     status: planned
+  - name: 画面を暗くしないかのチェック
+    id: keep_screen_check
+    kind: checkbox
+    position: 音声送信 > 画面を暗くしない
+    description: 画面で録っている間、Screen Wake Lock で端末の画面の消灯を抑止するか。用語集のプリセットの選択欄のすぐ下、録音開始ボタンの上に配置する。オンなら録音を始めるときに `navigator.wakeLock.request("screen")` を取得し、録音の停止・上限での停止で解放する。録音中に画面が隠れるとブラウザが解放し、画面へ戻ったとき（visibilitychange）に録音中なら取得し直す。取得できないとき（拒否）は抑止せずに録音を続け、ブラウザのコンソールに警告を出す。ファイルの送信では抑止しない（モック `docs/mock/pages/web-transcription/292/a-below-preset/`）
+    label: 録音中は画面を暗くしない
+    io: 入力
+    type: 真偽値
+    visible_when: 常時
+    enabled_when: 録音中でなく、ブラウザが Screen Wake Lock に対応しているとき（`navigator.wakeLock` がある）
+    required: false
+    initial_value: 端末（localStorage voice-paste.keep_screen_on）に覚えた値。無いときはオン。対応しないブラウザではオフ
+    action: 変えたら、その値を端末（localStorage voice-paste.keep_screen_on）に覚える
+    refs:
+      - ER-1#tables[localStorage voice-paste.keep_screen_on]
+    status: planned
+  - name: 画面を暗くしない機能に対応しないことの補足
+    id: keep_screen_unsupported
+    kind: label
+    position: 音声送信 > 画面を暗くしない
+    description: ブラウザが Screen Wake Lock に対応しないため、チェックを押せないこと。チェックの aria-describedby で読み上げにも伝える。録音中にチェックが押せない理由は、用語集のプリセットの選択欄の「録音中は変更不可」で伝わるため出さない
+    label: このブラウザでは使えません。録音はできます
+    visible_when: '`navigator.wakeLock` が無いとき'
+    status: planned
   - name: 一覧の取得失敗のメッセージ
     id: preset_fetch_notice
     kind: label

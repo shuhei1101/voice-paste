@@ -187,9 +187,13 @@ data_models:
     container: shared/settings.py
     usecase: 共通
     role: 設定のモデル
-    summary: 録音中のシステム音量と、画面を出さない設定
+    summary: 録音中のシステム音量・画面の消灯の抑止と、画面を出さない設定
     inherits: pydantic.BaseModel
     properties:
+      - name: keep_display_on
+        type: bool
+        default: 'True'
+        description: 録音中に画面を暗くしないか（録音の間、画面の消灯とアイドルによるスリープを抑止する）。Windows と Linux のどちらでも使用する。反映は immediate
       - name: lower_volume
         type: bool
         default: True（Linux は False。os_overrides）

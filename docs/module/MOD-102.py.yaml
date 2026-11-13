@@ -1,0 +1,134 @@
+id: MOD-102
+visibility: internal
+title: 常駐アプリ / 外部連携 / display/adapter.py
+test_files:
+  - tests/unit/voice_paste/integrations/display/test_adapter.py
+external_test_files:
+  - tests/external/voice_paste/integrations/display/test_adapter.py
+constants:
+  - name: POWER_REQUEST_REASON
+    title: 電源要求の理由
+    container: integrations/display/adapter.py
+    usecase: 録音する
+    summary: PowerCreateRequest に引き渡す理由の文字列。`powercfg /requests` の表示に出る
+    value: '"voice-paste: recording"'
+    status: planned
+functions:
+  - name: inhibit_display
+    title: 画面の消灯を抑止する
+    kind: 関数
+    container: integrations/display/adapter.py
+    usecase: 録音する
+    scope: public
+    inherits: InhibitDisplayFn
+    thread_safe: true
+    side_effects: Windows の電源要求を作り、画面の消灯とアイドルによるスリープを抑止する（スクリーンセーバーも動かない）
+    summary: PowerCreateRequest で電源要求を作り、PowerSetRequest で PowerRequestDisplayRequired と PowerRequestSystemRequired を設定して、ハンドルをモジュール変数に持つ
+    returns:
+      type: None
+      description: なし
+    process: |-
+      1. 抑止のロックを取り、以降をその中で行う
+      2. 持っているハンドルがあれば何もしない（抑止は 1 つだけ持つ）
+      3. POWER_REQUEST_REASON を理由にした REASON_CONTEXT で PowerCreateRequest を呼ぶ（ctypes の kernel32）
+         - INVALID_HANDLE_VALUE が返った場合、DisplayInhibitError を送出する（理由に GetLastError を残す）
+      4. PowerRequestDisplayRequired と PowerRequestSystemRequired の順に PowerSetRequest を呼ぶ
+         - 0 が返った場合、設定できた分を PowerClearRequest で解いてハンドルを閉じ、DisplayInhibitError を送出する
+      5. ハンドルを持つ
+    exceptions:
+      - name: DisplayInhibitError
+        condition: PowerCreateRequest・PowerSetRequest が失敗した
+    unit_tests:
+      - name: test_inhibit_display
+        case: 正常
+        summary: 電源要求を作って 2 つの種類を設定する
+        condition: 抑止していない状態で呼ぶ
+        mock: _kernel32（PowerCreateRequest がハンドルを返却し、PowerSetRequest・PowerClearRequest・CloseHandle の呼び出しを記録する偽物）
+        expected: PowerSetRequest に (ハンドル, 0)・(ハンドル, 1) の順で渡り、PowerClearRequest が呼ばれない
+      - name: test_inhibit_display_when_already_inhibited
+        case: 正常
+        summary: 抑止中にもう一度呼んでも電源要求を作り直さない
+        condition: inhibit_display を 2 回呼ぶ
+        mock: _kernel32
+        expected: PowerCreateRequest が 1 回だけ呼ばれる
+      - name: test_inhibit_display_when_create_failed
+        case: 異常
+        summary: 電源要求を作れなければ DisplayInhibitError
+        condition: PowerCreateRequest が INVALID_HANDLE_VALUE を返却する
+        mock: _kernel32
+        expected: DisplayInhibitError が送出され、PowerSetRequest が呼ばれず、続く release_display が何もしない
+        exception: PowerCreateRequest・PowerSetRequest が失敗した
+      - name: test_inhibit_display_when_set_failed
+        case: 異常
+        summary: 種類を設定できなければ設定した分を解いてハンドルを閉じる
+        condition: 2 回目の PowerSetRequest が 0 を返却する
+        mock: _kernel32
+        expected: DisplayInhibitError が送出され、PowerClearRequest に (ハンドル, 0) が渡り、CloseHandle が 1 回呼ばれる
+        exception: PowerCreateRequest・PowerSetRequest が失敗した
+    connectivity_tests:
+      - name: test_ext_inhibit_display
+        api: kernel32 の PowerCreateRequest・PowerSetRequest・PowerClearRequest と、powrprof の CallNtPowerInformation(SystemExecutionState)
+        summary: 実機の Windows で、抑止を依頼したスレッドが終わった後も抑止が残り、解除で消える
+        checks: 呼ぶ前の SystemExecutionState が ES_DISPLAY_REQUIRED を含まないことを確かめ、別のスレッドで inhibit_display を呼んでスレッドを終えた後に ES_DISPLAY_REQUIRED を含み、release_display の後に含まない
+        cost: 料金なし。実行中は画面が消灯しない
+        notes: 呼ぶ前にほかのプロセスが ES_DISPLAY_REQUIRED を持っていれば skip する（PoC #293 で確かめた観測の方法）
+    refs:
+      - LIB-33#
+    status: planned
+  - name: release_display
+    title: 画面の消灯の抑止を解除する
+    kind: 関数
+    container: integrations/display/adapter.py
+    usecase: 録音する
+    scope: public
+    inherits: ReleaseDisplayFn
+    thread_safe: true
+    side_effects: Windows の電源要求を解いて閉じる
+    summary: 持っているハンドルの PowerRequestDisplayRequired と PowerRequestSystemRequired を PowerClearRequest で解き、CloseHandle で閉じる。抑止していなければ何もしない
+    returns:
+      type: None
+      description: なし
+    process: |-
+      1. 抑止のロックを取り、以降をその中で行う
+      2. ハンドルが無ければ何もしない
+      3. ハンドルを手放し（モジュール変数を None にする）、2 つの種類の PowerClearRequest と CloseHandle を呼ぶ
+         - どれかが 0 を返却した場合、残りも呼んでから DisplayInhibitError を送出する（ハンドルは手放したまま）
+    exceptions:
+      - name: DisplayInhibitError
+        condition: PowerClearRequest・CloseHandle が失敗した
+    unit_tests:
+      - name: test_release_display
+        case: 正常
+        summary: 2 つの種類を解いてハンドルを閉じる
+        condition: inhibit_display の後に呼ぶ
+        mock: _kernel32
+        expected: PowerClearRequest に (ハンドル, 0)・(ハンドル, 1) が渡り、CloseHandle が 1 回呼ばれ、続く release_display が何もしない
+      - name: test_release_display_when_not_inhibited
+        case: 正常
+        summary: 抑止していなければ何もしない
+        condition: inhibit_display の前に呼ぶ
+        mock: _kernel32
+        expected: PowerClearRequest・CloseHandle が呼ばれない
+      - name: test_release_display_when_clear_failed
+        case: 異常
+        summary: 解けなくてもハンドルを閉じて手放す
+        condition: 1 回目の PowerClearRequest が 0 を返却する
+        mock: _kernel32
+        expected: DisplayInhibitError が送出され、CloseHandle が 1 回呼ばれ、続く inhibit_display が新しい電源要求を作る
+        exception: PowerClearRequest・CloseHandle が失敗した
+    status: planned
+  - name: _kernel32
+    title: kernel32 を引く
+    kind: 関数
+    container: integrations/display/adapter.py
+    usecase: 録音する
+    scope: internal
+    summary: ctypes.WinDLL("kernel32", use_last_error=True) に PowerCreateRequest・PowerSetRequest・PowerClearRequest・CloseHandle の argtypes・restype を設定して返却する（初回だけ作る）。ctypes の Win32 に触れるのはこの関数だけにする
+    returns:
+      type: ctypes.WinDLL
+      description: 4 つの関数の型を設定した kernel32
+    refs:
+      - LIB-33#
+    status: planned
+notes:
+  ハンドルの持ち方: ハンドルとロックは _ 付きのモジュール変数で持ち、inhibit_display・release_display だけが触る（音量のアダプタと同じ持ち方）。要求はハンドルに紐づき、呼んだスレッドに紐づかないため、録音を始めたスレッドが終わっても抑止は続く。プロセスが終わると OS が解くため、異常終了で抑止は残らない。

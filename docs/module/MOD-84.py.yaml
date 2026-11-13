@@ -53,7 +53,7 @@ data_models:
     container: main.py
     usecase: 常駐アプリを起動する
     role: DTO
-    summary: 動いている OS とデスクトップのセッションに合わせて選んだ、単一インスタンス・音量・ブラウザ・貼り付けのキーと Enter の送信・ホットキーの受付・Qt のプラットフォーム・文字起こしワーカーの起動・再起動の実装
+    summary: 動いている OS とデスクトップのセッションに合わせて選んだ、単一インスタンス・音量・画面の消灯の抑止・ブラウザ・貼り付けのキーと Enter の送信・ホットキーの受付・Qt のプラットフォーム・文字起こしワーカーの起動・再起動の実装
     description: |-
       select_platform_adapters が作る。OS を確認して実装を選ぶのはここだけで、各モジュールは sys.platform を確認しない。
       `@dataclass(frozen=True, slots=True, kw_only=True)`。
@@ -67,6 +67,12 @@ data_models:
       - name: restore_volume
         type: RestoreVolumeFn | None
         description: 下げた音量を戻す（Windows）。Linux は None
+      - name: inhibit_display
+        type: InhibitDisplayFn
+        description: 録音の間、画面の消灯を抑止する（Windows は display/adapter.py の inhibit_display、Linux は display/adapter_linux.py の inhibit_display_linux）
+      - name: release_display
+        type: ReleaseDisplayFn
+        description: 画面の消灯の抑止を解除する（Windows は release_display、Linux は release_display_linux）
       - name: open_app_window
         type: Callable[[str], None]
         description: ブラウザ添付のプリセットの画面を開く
@@ -381,7 +387,7 @@ functions:
            - EngineError の場合、ローカルの Whisper へ切り戻す。notify（engine_fallback）で「Haas のサーバーへ接続できないため、ローカルの Whisper で起こします。」を通知し、上の local_whisper の場合と同じ流れで作る。動いているエンジンは local_whisper
              - `[WARNING]` Haas のサーバーへ接続できないためローカルの Whisper で起こす（理由）
       3. 連続録音の話し声の判定に使用する VAD のセッションを 1 回だけ読む（load_vad_session。StartupError はそのまま送出する）
-      4. Recorder に音量の関数（unavailable に Feature.LOWER_VOLUME があれば integrations/volume/noop.py の lower_volume_noop・restore_volume_noop、無ければ adapters の lower_volume・restore_volume）と、SettingsStore から録音の設定を返却する関数と、VAD のセッションを部分適用した StreamingVad（話し声の判定を作る）を引き渡す
+      4. Recorder に音量の関数（unavailable に Feature.LOWER_VOLUME があれば integrations/volume/noop.py の lower_volume_noop・restore_volume_noop、無ければ adapters の lower_volume・restore_volume）と、画面の消灯の抑止の関数（adapters の inhibit_display・release_display）と、SettingsStore から録音の設定を返却する関数と、VAD のセッションを部分適用した StreamingVad（話し声の判定を作る）を引き渡す
       5. 出力先の deliver に、配線した OUTPUTS（_wire_outputs）・配線した PRESET_KINDS（_wire_preset_kinds。open_window に adapters.open_app_window、send_paste に adapters.send_paste、send_enter_fn に adapters.send_enter）と、届けるたびに SettingsStore からオンの出力先の ID を取得する関数を部分適用し、Session を入口・出力先の ID・選んだプリセット・コールバック先に分けて引き渡すアダプタを作る
          - 出力先には OutputDeps（copy_to_clipboard・設定の keyboard.paste_key で adapters.send_paste を呼ぶ関数・adapters.send_enter・time.sleep・random.uniform(0, x)・post_json・SettingsStore.get・notify_copied）を引き渡し、各出力先の inject が選ぶ
          - ブラウザ添付（種類）: copy_to_clipboard・adapters.open_app_window・adapters.send_paste を呼ぶ関数・adapters.send_enter・time.sleep・設定の preset_options.browser.open_delay_sec を返却する関数・貼り付けて送信の enter_delay_sec を返却する関数（read_enter_delay_sec）
@@ -1155,8 +1161,8 @@ functions:
       description: OS ごとの実装
     process: |-
       1. os_kind で分ける
-         - OsKind.WINDOWS の場合、integrations/volume/adapter.py（comtypes・pycaw を読み込む）をここで import し、acquire_single_instance・lower_volume・restore_volume・open_app_window・send_paste・send_enter・HotkeyListener() を返却する関数・validate_hotkeys・qt_platform None・何もしない open_key_sender と close_key_sender・CREATE_NO_WINDOW・relaunch(os_kind=WINDOWS) をまとめる
-         - OsKind.LINUX の場合、runtime/single_instance_linux.py（fcntl を読み込む）をここで import し、acquire_single_instance_linux（functools.partial で lock_file を部分適用）・lower_volume と restore_volume に None・open_app_window_linux・0・relaunch(os_kind=LINUX) に、display_session で分けた実装を加えてまとめる
+         - OsKind.WINDOWS の場合、integrations/volume/adapter.py（comtypes・pycaw を読み込む）と integrations/display/adapter.py（ctypes の Win32 を読み込む）をここで import し、acquire_single_instance・lower_volume・restore_volume・inhibit_display・release_display・open_app_window・send_paste・send_enter・HotkeyListener() を返却する関数・validate_hotkeys・qt_platform None・何もしない open_key_sender と close_key_sender・CREATE_NO_WINDOW・relaunch(os_kind=WINDOWS) をまとめる
+         - OsKind.LINUX の場合、runtime/single_instance_linux.py（fcntl を読み込む）と integrations/display/adapter_linux.py をここで import し、acquire_single_instance_linux（functools.partial で lock_file を部分適用）・lower_volume と restore_volume に None・inhibit_display_linux・release_display_linux・open_app_window_linux・0・relaunch(os_kind=LINUX) に、display_session で分けた実装を加えてまとめる
            - DisplaySession.X11 の場合、integrations/keyboard/sender_linux.py（python-xlib を読み込む）をここで import し、send_paste_linux・send_enter・HotkeyListener() を返却する関数・validate_hotkeys・qt_platform None・何もしない open_key_sender と close_key_sender
            - DisplaySession.WAYLAND の場合、integrations/keyboard/sender_wayland.py（python-evdev を読み込む）と runtime/hotkey_gnome.py をここで import する。pyperclip の書き込み先を xclip にし（use_xclip_clipboard）、まだ開かない UInputKeyboard を 1 つ作って、その send_paste・send_enter・open・close と、GnomeShortcutListener(name, lock) を返却する関数・validate_gnome_hotkeys・qt_platform `xcb` をまとめる
     unit_tests:
@@ -1165,13 +1171,13 @@ functions:
         summary: Windows は pycaw の音量・Edge・Win32 の排他を選ぶ
         condition: os_kind=OsKind.WINDOWS（Linux では skip）
         mock: なし
-        expected: lower_volume が integrations/volume/adapter.py の lower_volume、open_app_window が opener.py の open_app_window、acquire_single_instance が single_instance.py の acquire_single_instance、send_paste が sender.py の send_paste、worker_creationflags が CREATE_NO_WINDOW、send_enter が sender.py の send_enter、create_hotkey_listener が HotkeyListener を返却し、qt_platform が None
+        expected: lower_volume が integrations/volume/adapter.py の lower_volume、inhibit_display・release_display が integrations/display/adapter.py の inhibit_display・release_display、open_app_window が opener.py の open_app_window、acquire_single_instance が single_instance.py の acquire_single_instance、send_paste が sender.py の send_paste、worker_creationflags が CREATE_NO_WINDOW、send_enter が sender.py の send_enter、create_hotkey_listener が HotkeyListener を返却し、qt_platform が None
       - name: test_select_platform_adapters_when_linux
         case: 正常
         summary: Linux の Xorg のセッションは何もしない音量・Chromium 系・flock の排他・XTEST の貼り付けを選ぶ
         condition: os_kind=OsKind.LINUX・display_session=DisplaySession.X11（Windows では skip）
         mock: なし
-        expected: lower_volume と restore_volume が None、validate_hotkeys が hotkey.py の validate_hotkeys、open_app_window が open_app_window_linux、send_paste が send_paste_linux、acquire_single_instance が lock_file を部分適用した acquire_single_instance_linux（func と keywords で確認する）、worker_creationflags が 0。voice_paste.integrations.volume.adapter が sys.modules に無い。send_enter が sender.py の send_enter、create_hotkey_listener が HotkeyListener を返却し、qt_platform が None。voice_paste.integrations.keyboard.sender_wayland が sys.modules に無い
+        expected: lower_volume と restore_volume が None、inhibit_display・release_display が adapter_linux.py の inhibit_display_linux・release_display_linux、voice_paste.integrations.display.adapter が sys.modules に無い、validate_hotkeys が hotkey.py の validate_hotkeys、open_app_window が open_app_window_linux、send_paste が send_paste_linux、acquire_single_instance が lock_file を部分適用した acquire_single_instance_linux（func と keywords で確認する）、worker_creationflags が 0。voice_paste.integrations.volume.adapter が sys.modules に無い。send_enter が sender.py の send_enter、create_hotkey_listener が HotkeyListener を返却し、qt_platform が None。voice_paste.integrations.keyboard.sender_wayland が sys.modules に無い
       - name: test_select_platform_adapters_when_wayland
         case: 正常
         summary: Wayland のセッションは uinput のキーの送信・GNOME のショートカット・xcb を選ぶ

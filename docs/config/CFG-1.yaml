@@ -180,6 +180,16 @@ settings:
     status: implemented
     implementation: src/voice_paste/shared/settings.py
     allowed: 0〜1
+  - key: recording.keep_display_on
+    title: 録音中に画面を暗くしないか
+    file: settings.yaml
+    type: bool
+    default: 'true'
+    description: '`true` のとき、録音を始めてから確定・取り消し・失敗で録音を終えるまで、画面の消灯とアイドルによるスリープを抑止する（Windows はスクリーンセーバーも動かない）。'
+    reload: immediate
+    status: planned
+    implementation: src/voice_paste/shared/settings.py
+    per_env: 'Windows・Linux（Xorg と Wayland の GNOME のセッション）とも同じ既定値で、設定画面に出す'
   - key: recording.lower_volume
     title: 録音中に音量を下げるか
     file: settings.yaml

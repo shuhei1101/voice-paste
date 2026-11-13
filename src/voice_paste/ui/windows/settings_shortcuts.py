@@ -211,7 +211,11 @@ class ShortcutPanel(QWidget):
         self._hotkey_edits = []
         self._preset_combos = []
         for index, row in enumerate(self._rows):
-            self._rows_layout.addWidget(self._build_row(index, row))
+            frame = self._build_row(index, row)
+            self._rows_layout.addWidget(frame)
+            # 出ている一覧へ足した行は、次のイベントを待たずに出す（すぐにフォーカスを移せるようにする）
+            if self.isVisible():
+                frame.show()
         self._empty_label.setVisible(not self._rows)
         self._list.setVisible(bool(self._rows))
 

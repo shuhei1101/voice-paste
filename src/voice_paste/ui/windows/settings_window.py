@@ -596,9 +596,12 @@ def to_field_message(
         return "http:// か https:// で始まる URL を入れてください。"
     if error_type == HOTKEY_OVERLAP_ERROR_TYPE:
         other = error["ctx"]["other"]
-        # 重なった先がプリセットかショートカットの行なら、その呼び方で示す
-        if other.startswith((f"{PRESETS_FIELD_NAME}[", f"{GLOSSARY_PRESET_HOTKEYS_FIELD_NAME}[")):
+        # 重なった先がプリセットなら、プリセットの呼び方で示す
+        if other.startswith(f"{PRESETS_FIELD_NAME}["):
             return f"{name_of(other)}と同じキーです。別のキーにしてください。"
+        # 重なった先がショートカットの行なら、何行目かで示す
+        if other.startswith(f"{GLOSSARY_PRESET_HOTKEYS_FIELD_NAME}["):
+            return f"{name_of(other)}と同じホットキーです。別のキーにしてください。"
         return f"「{name_of(other)}」と同じホットキーです。別のキーにしてください。"
     return str(error["msg"])
 

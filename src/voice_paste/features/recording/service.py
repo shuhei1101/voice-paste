@@ -214,6 +214,36 @@ class Recorder:
         self._stop_segment_thread(flush=False)
         logger.info("録音を捨てた")
 
+    def restore_volume(self) -> None:
+        """入力は開いたまま、下げた音量があれば録音前の値に戻す（取り消しの猶予の間）。"""
+        self._restore_volume_once()
+
+    def lower_volume(self) -> None:
+        """入力は開いたまま、今の設定が音量を下げるなら下げる（猶予の間に始め直したとき）。録音していなければ何もしない。"""
+        # 1. 録音していなければ何もしない
+        if self._stream is None:
+            return
+
+        # 2. 設定を読み直し、音量を下げる設定で、まだ下げていなければ下げる
+        settings = self._get_settings()
+        if not settings.lower_volume or self._volume_before is not None:
+            return
+        self._fade_sec = settings.fade_sec
+        try:
+            self._volume_before = self._lower_volume(
+                settings.volume_percent / PERCENT_DIVISOR, settings.fade_sec
+            )
+        except VolumeControlError as error:
+            # 音量を操作できなくても録音は止めない
+            logger.warning(f"音量を下げられなかった（{error}）")
+
+    def clear(self) -> None:
+        """入力は開いたまま、貯めた音と直近の音を捨て、一時停止を解く（猶予の間に始め直したとき）。"""
+        with self._lock:
+            self._frames = []
+            self._latest_frame = None
+            self._paused = False
+
     def level(self) -> float:
         """直近に届いた音の RMS を int16 の最大で割り、0.0〜1.0 で返す。届いていなければ 0.0 を返す。"""
         with self._lock:

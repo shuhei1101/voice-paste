@@ -222,6 +222,16 @@ settings:
     implementation: src/voice_paste/shared/settings.py
     allowed: '>= 0'
     per_env: Linux では使用せず、設定画面にも出さない（settings.yaml の値は保つ）
+  - key: recording.cancel_grace_sec
+    title: 取り消しの猶予の秒数
+    file: settings.yaml
+    type: float（秒）
+    default: '5.0'
+    description: 録音を始めてからこの秒数の間に取り消すと、録音の画面をすぐ閉じ、録音はこの秒数が経ってから捨てる。0 にすると、取り消したその場で捨てる。
+    reload: immediate
+    status: implemented
+    implementation: src/voice_paste/shared/settings.py
+    allowed: '>= 0'
   - key: recording.hide_window
     title: 録音中に画面を出さないか
     file: settings.yaml

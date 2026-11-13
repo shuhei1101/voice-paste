@@ -37,6 +37,7 @@ if TYPE_CHECKING:
     from tests.unit.voice_paste.runtime.helpers import BackgroundAcquire
     from voice_paste.features.outputs import OutputSpec, PresetKindSpec
     from voice_paste.features.outputs.types import OutputDeps
+    from voice_paste.features.session.types import Session
     from voice_paste.shared.constants import AppPaths
     from voice_paste.main import Handlers
     from voice_paste.shared.os_kind import DisplaySession, Feature, OsKind
@@ -1276,21 +1277,56 @@ def test_select_platform_adapters_when_wayland(
 # === start_local_session ===
 
 
-def test_start_local_session_when_busy() -> None:
-    """処理中なら busy を知らせる（正常系）。"""
+def test_start_local_session_when_busy_with_api() -> None:
+    """API の録音の処理中なら、その理由で busy を通知する（正常系）。"""
     from voice_paste.main import start_local_session
     from voice_paste.shared.errors import SessionBusyError
+    from voice_paste.ui.windows.busy_dialog import BUSY_REASON_API
 
     # 準備
     session_manager = MagicMock()
     session_manager.start.side_effect = SessionBusyError("処理中")
+    session_manager.current.return_value = make_session("api", "recording")
     notify = MagicMock()
 
     # 実行
     start_local_session("hotkey", session_manager=session_manager, notify=notify)
 
     # 検証
-    assert [c.args[0] for c in notify.call_args_list] == ["busy"]
+    assert [c.args for c in notify.call_args_list] == [("busy", BUSY_REASON_API)]
+
+
+def _hotkey_transcribing() -> Session:
+    """ホットキーの録音セッションで、文字起こし中のものを作る。"""
+    return make_session("hotkey", "transcribing")
+
+
+@pytest.mark.parametrize(
+    "current_factory",
+    [
+        pytest.param(_hotkey_transcribing, id="hotkey-transcribing"),
+        pytest.param(lambda: None, id="idle"),
+    ],
+)
+def test_start_local_session_when_busy_finishing(
+    current_factory: Callable[[], Session | None],
+) -> None:
+    """ホットキー・トレイの録音の終了の処理中なら、その理由で busy を通知する（正常系）。"""
+    from voice_paste.main import start_local_session
+    from voice_paste.shared.errors import SessionBusyError
+    from voice_paste.ui.windows.busy_dialog import BUSY_REASON_FINISHING
+
+    # 準備
+    session_manager = MagicMock()
+    session_manager.start.side_effect = SessionBusyError("処理中")
+    session_manager.current.return_value = current_factory()
+    notify = MagicMock()
+
+    # 実行
+    start_local_session("hotkey", session_manager=session_manager, notify=notify)
+
+    # 検証
+    assert [c.args for c in notify.call_args_list] == [("busy", BUSY_REASON_FINISHING)]
 
 
 def test_start_local_session_when_microphone_unavailable() -> None:
@@ -1324,6 +1360,68 @@ def test_start_local_session_when_unexpected_error(caplog: pytest.LogCaptureFixt
 
     # 検証
     assert len([record for record in caplog.records if record.levelno == logging.ERROR]) == 1
+
+
+# === _pin_settings_while_recording ===
+
+
+PINNED_VOLUME_PERCENT = 30
+"""固定を確かめるために、録音を始めた後に入れ替える設定の音量。"""
+
+RESTARTED_VOLUME_PERCENT = 40
+"""始め直した後に入れ替える設定の音量（始め直した録音で使用しない値）。"""
+
+
+def test_pin_settings_while_recording_when_cancel_pending(
+    default_settings: Settings, make_settings: Callable[..., Settings]
+) -> None:
+    """取り消しの猶予にしたら設定の固定を解く（正常系）。"""
+    from voice_paste.features.session.types import SessionState
+    from voice_paste.main import _pin_settings_while_recording
+    from voice_paste.runtime.settings_store import SettingsStore
+
+    # 準備
+    store = SettingsStore(default_settings)
+    notify = MagicMock()
+    new_settings = make_settings({"recording": {"volume_percent": PINNED_VOLUME_PERCENT}})
+
+    # 実行: 録音を始めて設定を入れ替えてから、取り消しの猶予にする
+    _pin_settings_while_recording("state_changed", str(SessionState.RECORDING), store=store, notify=notify)
+    store.replace(new_settings)
+    _pin_settings_while_recording(
+        "state_changed", str(SessionState.CANCEL_PENDING), store=store, notify=notify
+    )
+
+    # 検証
+    assert store.get().recording.volume_percent == PINNED_VOLUME_PERCENT
+    assert notify.call_args_list[-1] == call("state_changed", str(SessionState.CANCEL_PENDING))
+
+
+def test_pin_settings_while_recording_when_restart_within_grace(
+    default_settings: Settings, make_settings: Callable[..., Settings]
+) -> None:
+    """猶予の間に始め直したら最新の設定に固定し直す（正常系）。"""
+    from voice_paste.features.session.types import SessionState
+    from voice_paste.main import _pin_settings_while_recording
+    from voice_paste.runtime.settings_store import SettingsStore
+
+    # 準備
+    store = SettingsStore(default_settings)
+    notify = MagicMock()
+    saved_in_grace = make_settings({"recording": {"volume_percent": PINNED_VOLUME_PERCENT}})
+    saved_after_restart = make_settings({"recording": {"volume_percent": RESTARTED_VOLUME_PERCENT}})
+
+    # 実行: 録音を始めて猶予にし、猶予の間に設定を入れ替えてから始め直し、もう一度入れ替える
+    _pin_settings_while_recording("state_changed", str(SessionState.RECORDING), store=store, notify=notify)
+    _pin_settings_while_recording(
+        "state_changed", str(SessionState.CANCEL_PENDING), store=store, notify=notify
+    )
+    store.replace(saved_in_grace)
+    _pin_settings_while_recording("state_changed", str(SessionState.RECORDING), store=store, notify=notify)
+    store.replace(saved_after_restart)
+
+    # 検証
+    assert store.get().recording.volume_percent == PINNED_VOLUME_PERCENT
 
 
 # === _wire_outputs ===

@@ -348,22 +348,73 @@ def test_complete_when_save_failed_from_hotkey(
     assert str(h.manager.start("hotkey").state) == "recording"
 
 
-# === cancel ===
+# === cancel・_cancel・_expire_cancel ===
 
 
-def test_cancel_when_recording(audio_path: Path) -> None:
-    """録音を捨てて待機中に戻す（正常系）。"""
+def test_cancel_returns_without_waiting(audio_path: Path) -> None:
+    """取り消しの終わりを待たずに戻る（正常系）。"""
     # 準備
     h = make_harness(audio_path)
     h.manager.start("hotkey")
+    h.manager._lock.acquire()
 
     # 実行
     h.manager.cancel()
+    returned_while_locked = h.state() == "recording"
+    h.manager._lock.release()
+
+    # 検証
+    assert returned_while_locked
+    assert h.wait_for(lambda: h.state() == "cancel_pending")
+
+
+def test_cancel_within_grace(audio_path: Path) -> None:
+    """猶予の間の取り消しは画面だけを待機中にして猶予の終わりを予約する（正常系）。"""
+    # 準備
+    h = make_harness(audio_path)
+    h.manager.start("hotkey")
+    h.clock.current = START + timedelta(seconds=1)
+
+    # 実行
+    h.manager._cancel()
+
+    # 検証
+    assert h.state() == "cancel_pending"
+    h.restore_recording_volume.assert_called_once()
+    assert h.start_cancel_timer.call_args.args[0] == 4.0
+    h.discard_recording.assert_not_called()
+    assert h.notify.call_args_list[-1].args == ("state_changed", "cancel_pending")
+
+
+def test_cancel_after_grace(audio_path: Path) -> None:
+    """猶予の後の取り消しはその場で捨てる（正常系）。"""
+    # 準備
+    h = make_harness(audio_path)
+    h.manager.start("hotkey")
+    h.clock.current = START + timedelta(seconds=6)
+
+    # 実行
+    h.manager._cancel()
 
     # 検証
     h.discard_recording.assert_called_once()
-    h.save_recording.assert_not_called()
     assert h.state() is None
+    h.start_cancel_timer.assert_not_called()
+
+
+def test_cancel_when_grace_zero(audio_path: Path) -> None:
+    """猶予が 0 ならその場で捨てる（正常系）。"""
+    # 準備
+    h = make_harness(audio_path)
+    h.get_cancel_grace.return_value = timedelta(0)
+    h.manager.start("hotkey")
+
+    # 実行
+    h.manager._cancel()
+
+    # 検証
+    h.discard_recording.assert_called_once()
+    h.start_cancel_timer.assert_not_called()
 
 
 def test_cancel_when_api_session(audio_path: Path) -> None:
@@ -373,11 +424,150 @@ def test_cancel_when_api_session(audio_path: Path) -> None:
     h.manager.start("api", callback_url=CALLBACK_URL)
 
     # 実行
-    h.manager.cancel()
+    h.manager._cancel()
 
     # 検証
     h.discard_recording.assert_not_called()
     assert h.state() == "recording"
+
+
+def test_expire_cancel_when_pending(audio_path: Path) -> None:
+    """猶予が終わったら捨てる（正常系）。"""
+    # 準備
+    h = make_harness(audio_path)
+    h.manager.start("hotkey")
+    h.manager._cancel()
+
+    # 実行
+    h.fire_cancel_timer()
+
+    # 検証
+    h.discard_recording.assert_called_once()
+    assert h.state() is None
+    assert h.notify.call_args_list[-1].args == ("state_changed", "idle")
+
+
+def test_expire_cancel_after_restart(audio_path: Path) -> None:
+    """始め直した後の古いタイマーでは捨てない（正常系）。"""
+    # 準備
+    h = make_harness(audio_path)
+    h.manager.start("hotkey")
+    h.manager._cancel()
+    h.manager.start("hotkey")
+
+    # 実行
+    h.fire_cancel_timer()
+
+    # 検証
+    h.discard_recording.assert_not_called()
+    assert h.state() == "recording"
+
+
+def test_expire_cancel_after_recancel(audio_path: Path) -> None:
+    """始め直した後にもう一度取り消したとき、古いタイマーでは捨てない（正常系）。"""
+    # 準備
+    h = make_harness(audio_path)
+    h.manager.start("hotkey")
+    h.manager._cancel()
+    h.manager.start("hotkey")
+    h.manager._cancel()
+
+    # 実行
+    h.fire_cancel_timer(0)
+
+    # 検証
+    h.discard_recording.assert_not_called()
+    assert h.state() == "cancel_pending"
+
+
+# === 猶予中の録音セッションへの操作 ===
+
+
+def test_start_when_cancel_pending(audio_path: Path) -> None:
+    """猶予の間の開始は内部の録音を引き継いで始め直す（正常系）。"""
+    # 準備
+    h = make_harness(audio_path)
+    first = h.manager.start("hotkey")
+    h.manager._cancel()
+    h.clock.current = START + timedelta(seconds=2)
+
+    # 実行
+    session = h.manager.start("tray")
+
+    # 検証
+    assert session.id == first.id
+    assert str(session.state) == "recording"
+    assert str(session.entry) == "tray"
+    assert session.started_at == START + timedelta(seconds=2)
+    h.start_recording.assert_called_once()
+    h.clear_recording.assert_called_once()
+    h.lower_recording_volume.assert_called_once()
+    h.cancel_timer.assert_called_once()
+
+
+def test_start_api_when_cancel_pending(audio_path: Path) -> None:
+    """猶予の間の API の開始は内部の録音を捨ててから始める（正常系）。"""
+    # 準備
+    h = make_harness(audio_path)
+    first = h.manager.start("hotkey")
+    h.manager._cancel()
+
+    # 実行
+    session = h.manager.start("api", callback_url=CALLBACK_URL)
+
+    # 検証
+    assert session.id != first.id
+    assert str(session.entry) == "api"
+    h.discard_recording.assert_called_once()
+    h.cancel_timer.assert_called_once()
+    assert h.call_names()[-3:-1] == ["discard_recording", "start_recording"]
+
+
+def test_complete_when_cancel_pending(audio_path: Path) -> None:
+    """猶予中の録音は確定しない（正常系）。"""
+    # 準備
+    h = make_harness(audio_path)
+    h.manager.start("hotkey")
+    h.manager._cancel()
+
+    # 実行
+    h.manager.complete(output_id="paste_and_send")
+
+    # 検証
+    h.stop_recording.assert_not_called()
+    h.save_recording.assert_not_called()
+    assert h.state() == "cancel_pending"
+
+
+def test_pause_when_cancel_pending(audio_path: Path) -> None:
+    """猶予中の録音は一時停止しない（正常系）。"""
+    # 準備
+    h = make_harness(audio_path)
+    h.manager.start("hotkey")
+    h.manager._cancel()
+
+    # 実行
+    h.manager.pause()
+
+    # 検証
+    h.pause_recording.assert_not_called()
+    assert h.state() == "cancel_pending"
+
+
+def test_close_when_cancel_pending(audio_path: Path) -> None:
+    """猶予中の録音は猶予を待たずに捨てる（正常系）。"""
+    # 準備
+    h = make_harness(audio_path)
+    h.manager.start("hotkey")
+    h.manager._cancel()
+
+    # 実行
+    h.manager.close()
+
+    # 検証
+    h.discard_recording.assert_called_once()
+    h.cancel_timer.assert_called_once()
+    assert h.state() is None
 
 
 # === truncate_if_expired ===

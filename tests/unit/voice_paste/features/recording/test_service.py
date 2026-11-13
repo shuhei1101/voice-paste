@@ -629,3 +629,52 @@ def test_stop_continuous_when_not_recording(harness_factory: Callable[..., Harne
     # 実行・検証
     with pytest.raises(RuntimeError, match="連続録音"):
         harness.recorder.stop_continuous()
+
+
+# === restore_volume・lower_volume・clear（取り消しの猶予） ===
+
+
+def test_restore_volume_keeps_input(harness_factory: Callable[..., Harness]) -> None:
+    """入力を閉じずに音量だけを戻す（正常系）。"""
+    # 準備
+    harness = harness_factory()
+    harness.recorder.start()
+
+    # 実行
+    harness.recorder.restore_volume()
+
+    # 検証
+    assert harness.restore_calls == [(VOLUME_BEFORE, FADE_SEC)]
+    assert harness.streams[-1].stop_calls == 0
+    assert harness.streams[-1].close_calls == 0
+
+
+def test_lower_volume_after_restore(harness_factory: Callable[..., Harness]) -> None:
+    """戻した音量を下げ直す（正常系）。"""
+    # 準備
+    harness = harness_factory()
+    harness.recorder.start()
+    harness.recorder.restore_volume()
+
+    # 実行
+    harness.recorder.lower_volume()
+
+    # 検証
+    assert len(harness.lower_calls) == 2
+    assert len(harness.streams) == 1
+
+
+def test_clear_drops_frames(harness_factory: Callable[..., Harness]) -> None:
+    """それまでの音を捨て、その後の音だけを残す（正常系）。"""
+    # 準備
+    harness = harness_factory()
+    harness.recorder.start()
+    harness.feed(1.0)
+
+    # 実行
+    harness.recorder.clear()
+    harness.feed(0.5)
+    recording = harness.recorder.stop()
+
+    # 検証
+    assert recording.duration_sec == 0.5

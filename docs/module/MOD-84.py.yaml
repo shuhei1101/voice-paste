@@ -378,7 +378,7 @@ functions:
       description: 配線済みの関数の束
     process: |-
       1. 設定を SettingsStore に入れる。以降の配線は設定を値でなく SettingsStore.get から読み込む（保存した immediate の項目を次の回から有効にする）
-         - SessionDeps.notify には、`state_changed` の `recording` で SettingsStore.pin、`idle` で SettingsStore.unpin を呼んでから notify を呼ぶ関数を引き渡す（録音を始めた時点の設定でその回を確定まで動かす。設計書『設定を変える』の補足『録音中の設定画面』）
+         - SessionDeps.notify には、`state_changed` の `recording` で SettingsStore.pin、`idle`・`cancel_pending` で SettingsStore.unpin を呼んでから notify を呼ぶ関数を引き渡す（録音を始めた時点の設定でその回を確定まで動かす。取り消しの猶予の間は待機中と同じく固定を解き、猶予の間に始め直すと `recording` でその時点の最新の設定に固定し直す。設計書『設定を変える』の補足『録音中の設定画面』）
       2. 設定のエンジンで文字起こしの engine と stop_engine を作り、engine を文字起こしに引き渡す。get_hint には、SettingsStore.get の hint_presets を join_hint_words でつなぎ、空なら None を返却する関数を引き渡す
          - local_whisper の場合、ensure_local_whisper_installed で確認（StartupError はそのまま送出する）、WhisperWorkerClient を adapters.worker_creationflags で作り、on_engine_created にその stop を引き渡してから起動する。engine はその transcribe、stop_engine はその stop
            - EngineError の場合、StartupError を送出する
@@ -395,7 +395,7 @@ functions:
          - エンドポイントへ送信（種類）: post_json・設定の preset_options.endpoint.timeout_sec を返却する関数
       6. 文字起こしのたびに、SettingsStore の設定の edge_phrases で文頭・文末の文言を削除してから（strip_edge_phrases）用語集を読み込み直して置き換える correct（起こした文字と用語集のプリセットの名前か None を受ける）を作る。そのたびに、SettingsStore の設定と settings.yaml のフォルダから pick_glossary_preset（requested に受けた名前）でプリセットを引き、list_preset_glossaries（用語集の一覧は resolve_glossaries）の順に load_glossary した行を 1 本の並びにつないで apply_glossary を適用する（読み込めない CSV は load_glossary が空を返却するので飛ばされる。使用する用語集が無ければ置き換えない）
          - `[INFO]` 用語集で補正する（用語集のプリセットの名前・用語集ごとの名前と補正に使用する行数）
-      7. SessionDeps を組み（report_progress、起動時の設定の api.continuous.min_silence_sec を部分適用した Recorder.start_continuous、Recorder.stop_continuous を含む）、API の録音セッションの上限時間と、起動時の設定の api.continuous.session_limit_sec の連続録音の上限時間と共に SessionManager を作る（api.continuous.* は再起動で有効になる）
+      7. SessionDeps を組み（report_progress、起動時の設定の api.continuous.min_silence_sec を部分適用した Recorder.start_continuous、Recorder.stop_continuous、Recorder.restore_volume・lower_volume・clear、SettingsStore.get の recording.cancel_grace_sec を秒数にする get_cancel_grace、threading.Timer を daemon で始めて cancel を返す start_cancel_timer を含む）、API の録音セッションの上限時間と、起動時の設定の api.continuous.session_limit_sec の連続録音の上限時間と共に SessionManager を作る（api.continuous.* は再起動で有効になる）
       8. SessionManager と、設定の許可ホストを部分適用した is_callback_allowed と、SettingsStore の設定と settings.yaml のフォルダで resolve_glossary_presets した一覧にその名前があるかを返却する glossary_preset_exists を SessionApiDeps にまとめる
       9. start_local_session に SessionManager と notify を部分適用する
       10. unavailable に Feature.WEB_TRANSCRIPTION があれば、ブラウザの文字起こしを配線せず web_api を None にする。無ければブラウザの文字起こしを配線する。WebTranscriptionDeps に、履歴を残すかをそのたびに SettingsStore.get から取得して引き渡す store_web_audio、7 と同じ transcribe、6 の correct（ジョブの用語集のプリセットの名前を受ける）・append_text・discard_temporary を部分適用して引き渡し、WebJobQueue を作る。WebJobQueue・probe_audio・`{tmp_dir}/web`・8 と同じ glossary_preset_exists・そのたびに SettingsStore の設定と settings.yaml のフォルダで resolve_glossary_presets した名前の一覧と pick_glossary_preset（requested なし）の名前を GlossaryPresetChoices で返却する list_glossary_preset_choices・2 で決まった動いているエンジンが local_whisper か（reports_progress。build_ui_deps の reports_progress と同じ判定）を WebApiDeps にまとめる（ワーカースレッドはまだ起動しない）
@@ -428,6 +428,18 @@ functions:
         condition: transcription.engine=haas、HaasServer.ensure_started が ("dtype", "device") を返却する
         mock: HaasServer・WhisperWorkerClient・notify
         expected: notify に engine_settings_mismatch と「計算の精度・装置」が渡り、active_engine が haas
+      - name: test_pin_settings_while_recording_when_cancel_pending
+        case: 正常
+        summary: 取り消しの猶予にしたら設定の固定を解く
+        condition: '`state_changed` の `recording` を通知してから設定を replace し、`state_changed` の `cancel_pending` を通知する'
+        mock: notify
+        expected: '`cancel_pending` の後の SettingsStore.get が replace した設定を返却し、notify に `state_changed` と `cancel_pending` が渡る'
+      - name: test_pin_settings_while_recording_when_restart_within_grace
+        case: 正常
+        summary: 猶予の間に始め直したら最新の設定に固定し直す
+        condition: '`recording`・`cancel_pending` を通知し、設定を replace してから `recording` を通知し、もう一度 replace する'
+        mock: notify
+        expected: 2 回目の `recording` の後の SettingsStore.get が 1 回目の replace の設定を返却する（2 回目の replace の設定ではない）
   - name: main
     title: 起動
     kind: 関数
@@ -614,17 +626,23 @@ functions:
       description: なし
     process: |-
       1. SessionManager.start(entry) を呼ぶ
-         - SessionBusyError の場合、busy を通知する（ダイアログ）
+         - SessionBusyError の場合、今の録音セッション（SessionManager.current）の入口が api なら BUSY_REASON_API、それ以外（ホットキー・トレイの録音の確定後。断った後に待機中へ戻った場合も含む）なら BUSY_REASON_FINISHING を detail にして busy を通知する（ダイアログ）
          - MicrophoneUnavailableError の場合、microphone_unavailable を通知する（トレイ）
          - それ以外の例外の場合、ログに書き込んで握る
            - `[ERROR]` 録音を始められなかった（logger.exception）
     unit_tests:
-      - name: test_start_local_session_when_busy
+      - name: test_start_local_session_when_busy_with_api
         case: 正常
-        summary: 処理中なら busy を通知する
-        condition: start が SessionBusyError を送出する
+        summary: API の録音の処理中なら、その理由で busy を通知する
+        condition: start が SessionBusyError を送出し、current が入口 api の録音セッションを返す
         mock: session_manager・notify
-        expected: notify に busy が渡り、例外が出ない
+        expected: notify が (busy, BUSY_REASON_API) で呼ばれ、例外が出ない
+      - name: test_start_local_session_when_busy_finishing
+        case: 正常
+        summary: ホットキー・トレイの録音の終了の処理中なら、その理由で busy を通知する
+        condition: start が SessionBusyError を送出し、current が入口 hotkey・transcribing の録音セッションを返す。None を返す場合も確認する（parametrize）
+        mock: session_manager・notify
+        expected: notify が (busy, BUSY_REASON_FINISHING) で呼ばれ、例外が出ない
       - name: test_start_local_session_when_microphone_unavailable
         case: 正常
         summary: マイクを開けなければ microphone_unavailable を通知する

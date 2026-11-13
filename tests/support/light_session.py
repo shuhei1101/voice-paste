@@ -7,7 +7,9 @@
 
 from __future__ import annotations
 
+import threading
 import time
+from collections.abc import Callable
 from dataclasses import replace
 from datetime import UTC, datetime, timedelta
 from functools import partial
@@ -37,6 +39,14 @@ from voice_paste.integrations.vad.adapter import StreamingVad, load_vad_session
 from voice_paste.shared.constants import resolve_app_paths
 from voice_paste.shared.errors import EngineError
 from voice_paste.shared.types import TranscriptionOutcome
+
+
+def _start_cancel_timer(delay_sec: float, callback: Callable[[], None]) -> Callable[[], None]:
+    """猶予の終わりを daemon の threading.Timer で予約し、予約を取りやめる関数を返す（取り消しの猶予を 0 にしているため使われない）。"""
+    timer = threading.Timer(delay_sec, callback)
+    timer.daemon = True
+    timer.start()
+    return timer.cancel
 
 
 def _no_engine(*_args: object, **_kwargs: object) -> list[str]:
@@ -123,6 +133,11 @@ def build_light_manager(
             recorder.start_continuous, min_silence_sec=settings.api.continuous.min_silence_sec
         ),
         stop_continuous_recording=recorder.stop_continuous,
+        restore_recording_volume=recorder.restore_volume,
+        lower_recording_volume=recorder.lower_volume,
+        clear_recording=recorder.clear,
+        get_cancel_grace=lambda: timedelta(0),
+        start_cancel_timer=_start_cancel_timer,
     )
     continuous_limit_sec = (
         settings.api.continuous.session_limit_sec

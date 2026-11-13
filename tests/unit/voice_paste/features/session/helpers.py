@@ -24,6 +24,7 @@ if TYPE_CHECKING:
     from voice_paste.shared.types import Segment, TranscriptionOutcome
 
 SAMPLE_RATE = 16000
+CANCEL_GRACE = timedelta(seconds=5)
 START = datetime(2026, 10, 1, 12, 0, tzinfo=UTC)
 LIMIT = timedelta(seconds=600)
 CONTINUOUS_LIMIT = timedelta(seconds=3600)
@@ -113,6 +114,12 @@ class Harness:
     discard_temporary: MagicMock
     start_continuous_recording: MagicMock
     stop_continuous_recording: MagicMock
+    restore_recording_volume: MagicMock
+    lower_recording_volume: MagicMock
+    clear_recording: MagicMock
+    get_cancel_grace: MagicMock
+    start_cancel_timer: MagicMock
+    cancel_timer: MagicMock
 
     def call_names(self) -> list[str]:
         """SessionDeps の関数が呼ばれた順に、関数の名前を返す。"""
@@ -167,6 +174,10 @@ class Harness:
         assert session is not None
         return session
 
+    def fire_cancel_timer(self, index: int = -1) -> None:
+        """start_cancel_timer に予約された猶予の終わりの関数を、その場で呼ぶ（index 番目の予約。既定は最後）。"""
+        self.start_cancel_timer.call_args_list[index].args[1]()
+
     def state(self) -> str | None:
         """今の録音セッションの状態を返す。録音セッションが無ければ None。"""
         session = self.manager._session
@@ -203,7 +214,14 @@ def make_harness(audio_path: Path, *, report_progress: MagicMock | None = None) 
         "discard_temporary": MagicMock(return_value=None),
         "start_continuous_recording": MagicMock(return_value=None),
         "stop_continuous_recording": MagicMock(return_value=None),
+        "restore_recording_volume": MagicMock(return_value=None),
+        "lower_recording_volume": MagicMock(return_value=None),
+        "clear_recording": MagicMock(return_value=None),
+        "get_cancel_grace": MagicMock(return_value=CANCEL_GRACE),
     }
+    # 猶予のタイマーは予約を覚えるだけにし、予約を取りやめる関数（cancel_timer）を返す
+    cancel_timer = MagicMock(return_value=None)
+    mocks["start_cancel_timer"] = MagicMock(return_value=cancel_timer)
     # 呼ばれた順を 1 本の列で見られるよう、1 つの親にぶら下げる
     parent = MagicMock()
     for name, mock in mocks.items():
@@ -221,6 +239,7 @@ def make_harness(audio_path: Path, *, report_progress: MagicMock | None = None) 
         clock=clock,
         audio_path=audio_path,
         parent=parent,
+        cancel_timer=cancel_timer,
         **mocks,
     )
 

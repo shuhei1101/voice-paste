@@ -1,0 +1,49 @@
+confirmations:
+  - topic: 終了の処理の間に録音を始められない理由の示し方
+    decision: 録音を始める操作を受けたとき、処理中のダイアログで示す（推奨案 A）
+    decided_by: thumbs_up
+    approver: shuhei1101
+    commit:
+    thread: https://github.com/shuhei1101/voice-paste/pull/288#discussion_r4553453385
+  - topic: 前の録音の終了の処理中に出す処理中のダイアログの本文
+    decision: 前の録音を文字に起こして届けています。終わってから、もう一度録音開始のホットキーを押してください。（推奨案 A）
+    decided_by: thumbs_up
+    approver: shuhei1101
+    commit:
+    thread: https://github.com/shuhei1101/voice-paste/pull/288#discussion_r4553455028
+  - topic: 猶予の間にもう一度録音開始を押したときの動き
+    decision: 内部で続いている録音を引き継ぎ、貯めた音を捨てて経過時間を 0 に戻し、録音の画面を開き直す（推奨案 A）
+    decided_by: thumbs_up
+    approver: shuhei1101
+    commit:
+    thread: https://github.com/shuhei1101/voice-paste/pull/288#discussion_r4554237018
+  - topic: 猶予の間に API の開始が届いたときの動き
+    decision: 内部の録音をその場で捨ててから、API の録音を始める（推奨案 A）
+    decided_by: thumbs_up
+    approver: shuhei1101
+    commit:
+    thread: https://github.com/shuhei1101/voice-paste/pull/288#discussion_r4554238351
+  - topic: 猶予を適用する取り消しの操作
+    decision: 録音の画面の「×」・「取り消し」のボタンと、取り消しのホットキーの全てに適用する（推奨案 A）
+    decided_by: thumbs_up
+    approver: shuhei1101
+    commit:
+    thread: https://github.com/shuhei1101/voice-paste/pull/288#discussion_r4554239610
+  - topic: 猶予の間のトレイの表示
+    decision: 取り消した時点でトレイを待機中のアイコンにし、「録音開始」も押せるようにする（推奨案 A）
+    decided_by: thumbs_up
+    approver: shuhei1101
+    commit:
+    thread: https://github.com/shuhei1101/voice-paste/pull/288#discussion_r4554240565
+  - topic: 猶予の間のシステム音量
+    decision: 取り消した時点で音量だけを録音前の値に戻し、入力は猶予が終わるまで開いたままにする。猶予の間に始め直したら音量をもう一度下げる（推奨案 A）
+    decided_by: thumbs_up
+    approver: shuhei1101
+    commit:
+    thread: https://github.com/shuhei1101/voice-paste/pull/288#discussion_r4554448351
+  - topic: 設定画面の取り消しの猶予の秒数の欄の見出しと補足の文
+    decision: 見出し「取り消しの猶予の秒数」、補足「録音を始めてからこの秒数の間に取り消すと、録音の画面をすぐ閉じ、録音はこの秒数が経ってから捨てる。0 にすると、取り消したその場で捨てる。」（推奨案 A）
+    decided_by: thumbs_up
+    approver: shuhei1101
+    commit:
+    thread: https://github.com/shuhei1101/voice-paste/pull/288#discussion_r4554690442

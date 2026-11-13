@@ -35,11 +35,11 @@ def close_dialogs(qapp: QApplication) -> Iterator[None]:
     dispose_windows_since(before)
 
 
-def _shown_dialog() -> QMessageBox:
-    """処理中のダイアログを出して、出たダイアログを返す。"""
-    from voice_paste.ui.windows.busy_dialog import show_busy_dialog
+def _shown_dialog(reason: str | None = None) -> QMessageBox:
+    """処理中のダイアログを出して、出たダイアログを返す（理由を省くと API の録音の処理中）。"""
+    from voice_paste.ui.windows.busy_dialog import BUSY_REASON_API, show_busy_dialog
 
-    show_busy_dialog()
+    show_busy_dialog(reason or BUSY_REASON_API)
     dialogs = _dialogs()
     assert len(dialogs) == 1
     return dialogs[0]
@@ -73,13 +73,13 @@ def test_busy_dialog_properties() -> None:
 
 def test_busy_dialog_when_shown_twice() -> None:
     """既に出ていれば、もう 1 つは出さず前面に出すだけにする。"""
-    from voice_paste.ui.windows.busy_dialog import show_busy_dialog
+    from voice_paste.ui.windows.busy_dialog import BUSY_REASON_API, show_busy_dialog
 
     # 準備
     _shown_dialog()
 
     # 実行
-    show_busy_dialog()
+    show_busy_dialog(BUSY_REASON_API)
 
     # 検証
     assert len(_dialogs()) == 1
@@ -87,20 +87,20 @@ def test_busy_dialog_when_shown_twice() -> None:
 
 def test_busy_dialog_when_reopened() -> None:
     """閉じた後は、次の知らせでまた出る。"""
-    from voice_paste.ui.windows.busy_dialog import show_busy_dialog
+    from voice_paste.ui.windows.busy_dialog import BUSY_REASON_API, show_busy_dialog
 
     # 準備
     _shown_dialog().close()
     QApplication.processEvents()
 
     # 実行
-    show_busy_dialog()
+    show_busy_dialog(BUSY_REASON_API)
 
     # 検証
     assert len(_dialogs()) == 1
 
 
-# === busy_title・busy_body ===
+# === busy_title・busy_body・busy_body_finishing ===
 
 
 def test_busy_title() -> None:
@@ -112,16 +112,83 @@ def test_busy_title() -> None:
     assert dialog.text() == "録音を開始できませんでした"
 
 
+BODY_API = (
+    "ほかのシステムから始めた録音を処理しています。"
+    "終わってから、もう一度録音開始のホットキーを押してください。"
+)
+"""API の録音の処理中の本文。"""
+
+BODY_FINISHING = (
+    "前の録音を文字に起こして届けています。"
+    "終わってから、もう一度録音開始のホットキーを押してください。"
+)
+"""前の録音の終了の処理中の本文。"""
+
+
+def test_busy_title_when_finishing() -> None:
+    """前の録音の終了の処理中でも、見出しは同じ。"""
+    from voice_paste.ui.windows.busy_dialog import BUSY_REASON_FINISHING
+
+    # 実行
+    dialog = _shown_dialog(BUSY_REASON_FINISHING)
+
+    # 検証
+    assert dialog.text() == "録音を開始できませんでした"
+
+
 def test_busy_body() -> None:
-    """理由と次にすることを伝える。"""
+    """処理中の録音の入口が api なら、API の録音の処理中の理由と次にすることを伝える。"""
     # 実行
     dialog = _shown_dialog()
 
     # 検証
-    assert dialog.informativeText() == (
-        "ほかのシステムから始めた録音を処理しています。"
-        "終わってから、もう一度録音開始のホットキーを押してください。"
-    )
+    assert dialog.informativeText() == BODY_API
+
+
+def test_busy_body_finishing() -> None:
+    """ホットキー・トレイの録音の確定後の処理中なら、前の録音の終了の処理中の理由と次にすることを伝える。"""
+    from voice_paste.ui.windows.busy_dialog import BUSY_REASON_FINISHING
+
+    # 実行
+    dialog = _shown_dialog(BUSY_REASON_FINISHING)
+
+    # 検証
+    assert dialog.informativeText() == BODY_FINISHING
+
+
+@pytest.mark.parametrize(
+    ("reason", "body"),
+    [("api", BODY_API), ("finishing", BODY_FINISHING)],
+    ids=["api", "finishing"],
+)
+def test_busy_body_when_notified(make_ui: Callable[..., Ui], reason: str, body: str) -> None:
+    """busy の知らせの理由（detail）に合わせた本文を出す。"""
+    # 準備
+    ui = make_ui()
+
+    # 実行
+    ui.controller.on_notified("busy", reason)
+
+    # 検証
+    dialogs = _dialogs()
+    assert len(dialogs) == 1
+    assert dialogs[0].informativeText() == body
+
+
+def test_busy_body_when_shown_twice_with_other_reason() -> None:
+    """既に出ているときに別の理由で知らせを受けたら、本文を今の理由に替える。"""
+    from voice_paste.ui.windows.busy_dialog import BUSY_REASON_FINISHING, show_busy_dialog
+
+    # 準備
+    _shown_dialog()
+
+    # 実行
+    show_busy_dialog(BUSY_REASON_FINISHING)
+
+    # 検証
+    dialogs = _dialogs()
+    assert len(dialogs) == 1
+    assert dialogs[0].informativeText() == BODY_FINISHING
 
 
 # === close_button ===

@@ -299,6 +299,61 @@ classes:
             condition: 話し声の判定が常に 0.9 を返却する。start_continuous で 1 秒分の音を供給して discard
             mock: lower_volume・restore_volume・inhibit_display・release_display・open_input・get_settings・create_speech_detector・on_segment
             expected: on_segment が呼ばれず、restore_volume が呼ばれ、区切りのスレッドが残らず、続く start が通る
+      - name: restore_volume
+        title: 音量だけを戻す
+        kind: メソッド
+        scope: public
+        summary: 入力は開いたまま、下げた音量があれば録音前の値に戻す（取り消しの猶予の間）
+        returns:
+          type: None
+          description: なし
+        process: |-
+          1. 下げる前の音量があれば戻し、持っていた音量を捨てる（_restore_volume_once）
+             - 下げていなければ何もしない
+        unit_tests:
+          - name: test_restore_volume_keeps_input
+            case: 正常
+            summary: 入力を閉じずに音量だけを戻す
+            condition: lower_volume が 0.8 を返却する。start の後に restore_volume
+            mock: lower_volume・restore_volume・open_input・get_settings
+            expected: restore_volume に (0.8, fade_sec) が渡り、入力の stop・close が呼ばれない
+      - name: lower_volume
+        title: 音量を下げ直す
+        kind: メソッド
+        scope: public
+        summary: 入力は開いたまま、今の設定が音量を下げるなら下げる（猶予の間に始め直したとき）
+        returns:
+          type: None
+          description: なし
+        process: |-
+          1. 録音していなければ何もしない
+          2. 設定を読み直し、音量を下げる設定で、下げる前の音量を持っていなければ下げて、下げる前の音量を持つ
+             - 音量を操作できなければ録音は止めない
+               - `[WARNING]` 音量を下げられなかった（理由）
+        unit_tests:
+          - name: test_lower_volume_after_restore
+            case: 正常
+            summary: 戻した音量を下げ直す
+            condition: start → restore_volume → lower_volume
+            mock: lower_volume・restore_volume・open_input・get_settings
+            expected: lower_volume が 2 回呼ばれ、入力の open_input は 1 回だけ
+      - name: clear
+        title: 貯めた音を捨てる
+        kind: メソッド
+        scope: public
+        summary: 入力は開いたまま、貯めた音と直近の音を捨てる（猶予の間に始め直したとき）
+        returns:
+          type: None
+          description: なし
+        process: |-
+          1. ロックを取り、貯めた音を空にし、直近の音を捨てて、一時停止を解く
+        unit_tests:
+          - name: test_clear_drops_frames
+            case: 正常
+            summary: それまでの音を捨て、その後の音だけを残す
+            condition: 1 秒供給 → clear → 0.5 秒供給 → stop
+            mock: lower_volume・restore_volume・open_input・get_settings
+            expected: stop の duration_sec が 0.5
       - name: level
         title: 音の大きさ
         kind: メソッド

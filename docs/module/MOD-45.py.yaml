@@ -6,7 +6,7 @@ functions:
     title: 処理中のダイアログ
     container: ui/windows/busy_dialog.py
     usecase: 録音する
-    summary: 「常に手前に表示」の QMessageBox で、処理中のため録音を始められないことを通知する。既に出ていれば前面に出すだけにする
+    summary: 「常に手前に表示」の QMessageBox で、録音を始められないことを理由ごとの本文で通知する。既に出ていれば本文を今の理由に替えて前面に出す
     kind: 関数
     scope: public
     returns:
@@ -14,4 +14,25 @@ functions:
       description: なし（モーダルを open で開いてすぐ戻る。exec でメインスレッドを止めない）
     refs:
       - SCR-3#
+    status: implemented
+    args:
+      - name: reason
+        type: str | None
+        required: true
+        passing: positional
+        description: 始められない理由（BUSY_REASON_API か BUSY_REASON_FINISHING。busy の通知の detail）。それ以外は BUSY_REASON_API として扱う
+constants:
+  - name: BUSY_REASON_API
+    title: API の録音の処理中
+    container: ui/windows/busy_dialog.py
+    usecase: 録音する
+    summary: 録音を始められない理由のうち、API から始めた録音の処理中。busy の通知の detail に使用する
+    value: "'api'"
+    status: implemented
+  - name: BUSY_REASON_FINISHING
+    title: 前の録音の終了の処理中
+    container: ui/windows/busy_dialog.py
+    usecase: 録音する
+    summary: 録音を始められない理由のうち、ホットキー・トレイから始めた録音の確定後の文字起こし中・届け中。busy の通知の detail に使用する
+    value: "'finishing'"
     status: implemented

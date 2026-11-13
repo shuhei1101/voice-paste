@@ -1,0 +1,261 @@
+$ .venv/Scripts/python.exe -m pytest tests/unit/voice_paste/features/session/test_service.py tests/unit/voice_paste/features/recording/test_service.py tests/unit/voice_paste/ui/test_controller.py tests/unit/voice_paste/test_main.py -p no:cacheprovider --tb=line
+# Red（実装の前）。fail は SessionDeps の新しい項目・SessionState の cancel_pending・Recorder の restore_volume / lower_volume / clear・busy_dialog の理由の定数・show_busy_dialog への理由の引き渡しが無いことによるもの
+============================= test session starts =============================
+platform win32 -- Python 3.14.3, pytest-9.1.1, pluggy-1.7.0
+rootdir: C:\Users\shuhe\repo\voice-paste\.claude\worktrees\bug-session-cancel-right-after-start
+configfile: pyproject.toml
+plugins: anyio-4.15.1, platformdirs-4.13.3
+collected 184 items
+
+tests\unit\voice_paste\features\session\test_service.py FFFFFFFFFFFFFFFF [  8%]
+FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFEEEEEEEEEEEEEEE                   [ 38%]
+tests\unit\voice_paste\features\recording\test_service.py .............. [ 45%]
+........FFF                                                              [ 51%]
+tests\unit\voice_paste\ui\test_controller.py ....FF.............F....... [ 66%]
+.                                                                        [ 66%]
+tests\unit\voice_paste\test_main.py ..............s............ssFFF.... [ 86%]
+.........................                                                [100%]
+
+=================================== ERRORS ====================================
+__________ ERROR at setup of test_start_when_glossary_preset[single] __________
+E   TypeError: SessionDeps.__init__() got an unexpected keyword argument 'restore_recording_volume'
+________ ERROR at setup of test_start_when_glossary_preset[continuous] ________
+E   TypeError: SessionDeps.__init__() got an unexpected keyword argument 'restore_recording_volume'
+_________ ERROR at setup of test_start_when_glossary_preset[omitted] __________
+E   TypeError: SessionDeps.__init__() got an unexpected keyword argument 'restore_recording_volume'
+________________ ERROR at setup of test_start_when_continuous _________________
+E   TypeError: SessionDeps.__init__() got an unexpected keyword argument 'restore_recording_volume'
+_________________ ERROR at setup of test_stop_when_continuous _________________
+E   TypeError: SessionDeps.__init__() got an unexpected keyword argument 'restore_recording_volume'
+_______________ ERROR at setup of test_complete_when_continuous _______________
+E   TypeError: SessionDeps.__init__() got an unexpected keyword argument 'restore_recording_volume'
+______ ERROR at setup of test_complete_when_continuous_without_segments _______
+E   TypeError: SessionDeps.__init__() got an unexpected keyword argument 'restore_recording_volume'
+_________ ERROR at setup of test_truncate_if_expired_when_continuous __________
+E   TypeError: SessionDeps.__init__() got an unexpected keyword argument 'restore_recording_volume'
+________________ ERROR at setup of test_close_when_continuous _________________
+E   TypeError: SessionDeps.__init__() got an unexpected keyword argument 'restore_recording_volume'
+_____________ ERROR at setup of test_on_segment_numbers_in_order ______________
+E   TypeError: SessionDeps.__init__() got an unexpected keyword argument 'restore_recording_volume'
+____________ ERROR at setup of test_on_segment_when_not_continuous ____________
+E   TypeError: SessionDeps.__init__() got an unexpected keyword argument 'restore_recording_volume'
+________ ERROR at setup of test_run_segments_when_transcription_failed ________
+E   TypeError: SessionDeps.__init__() got an unexpected keyword argument 'restore_recording_volume'
+___________ ERROR at setup of test_run_segments_when_deliver_blocks ___________
+E   TypeError: SessionDeps.__init__() got an unexpected keyword argument 'restore_recording_volume'
+___________ ERROR at setup of test_run_segments_when_deliver_raised ___________
+E   TypeError: SessionDeps.__init__() got an unexpected keyword argument 'restore_recording_volume'
+_________________ ERROR at setup of test_on_continuous_failed _________________
+E   TypeError: SessionDeps.__init__() got an unexpected keyword argument 'restore_recording_volume'
+================================== FAILURES ===================================
+E   TypeError: SessionDeps.__init__() got an unexpected keyword argument 'restore_recording_volume'
+C:\Users\shuhe\repo\voice-paste\.claude\worktrees\bug-session-cancel-right-after-start\tests\unit\voice_paste\features\session\helpers.py:230: TypeError: SessionDeps.__init__() got an unexpected keyword argument 'restore_recording_volume'
+E   TypeError: SessionDeps.__init__() got an unexpected keyword argument 'restore_recording_volume'
+C:\Users\shuhe\repo\voice-paste\.claude\worktrees\bug-session-cancel-right-after-start\tests\unit\voice_paste\features\session\helpers.py:230: TypeError: SessionDeps.__init__() got an unexpected keyword argument 'restore_recording_volume'
+E   TypeError: SessionDeps.__init__() got an unexpected keyword argument 'restore_recording_volume'
+C:\Users\shuhe\repo\voice-paste\.claude\worktrees\bug-session-cancel-right-after-start\tests\unit\voice_paste\features\session\helpers.py:230: TypeError: SessionDeps.__init__() got an unexpected keyword argument 'restore_recording_volume'
+E   TypeError: SessionDeps.__init__() got an unexpected keyword argument 'restore_recording_volume'
+C:\Users\shuhe\repo\voice-paste\.claude\worktrees\bug-session-cancel-right-after-start\tests\unit\voice_paste\features\session\helpers.py:230: TypeError: SessionDeps.__init__() got an unexpected keyword argument 'restore_recording_volume'
+E   TypeError: SessionDeps.__init__() got an unexpected keyword argument 'restore_recording_volume'
+C:\Users\shuhe\repo\voice-paste\.claude\worktrees\bug-session-cancel-right-after-start\tests\unit\voice_paste\features\session\helpers.py:230: TypeError: SessionDeps.__init__() got an unexpected keyword argument 'restore_recording_volume'
+E   TypeError: SessionDeps.__init__() got an unexpected keyword argument 'restore_recording_volume'
+C:\Users\shuhe\repo\voice-paste\.claude\worktrees\bug-session-cancel-right-after-start\tests\unit\voice_paste\features\session\helpers.py:230: TypeError: SessionDeps.__init__() got an unexpected keyword argument 'restore_recording_volume'
+E   TypeError: SessionDeps.__init__() got an unexpected keyword argument 'restore_recording_volume'
+C:\Users\shuhe\repo\voice-paste\.claude\worktrees\bug-session-cancel-right-after-start\tests\unit\voice_paste\features\session\helpers.py:230: TypeError: SessionDeps.__init__() got an unexpected keyword argument 'restore_recording_volume'
+E   TypeError: SessionDeps.__init__() got an unexpected keyword argument 'restore_recording_volume'
+C:\Users\shuhe\repo\voice-paste\.claude\worktrees\bug-session-cancel-right-after-start\tests\unit\voice_paste\features\session\helpers.py:230: TypeError: SessionDeps.__init__() got an unexpected keyword argument 'restore_recording_volume'
+E   TypeError: SessionDeps.__init__() got an unexpected keyword argument 'restore_recording_volume'
+C:\Users\shuhe\repo\voice-paste\.claude\worktrees\bug-session-cancel-right-after-start\tests\unit\voice_paste\features\session\helpers.py:230: TypeError: SessionDeps.__init__() got an unexpected keyword argument 'restore_recording_volume'
+E   TypeError: SessionDeps.__init__() got an unexpected keyword argument 'restore_recording_volume'
+C:\Users\shuhe\repo\voice-paste\.claude\worktrees\bug-session-cancel-right-after-start\tests\unit\voice_paste\features\session\helpers.py:230: TypeError: SessionDeps.__init__() got an unexpected keyword argument 'restore_recording_volume'
+E   TypeError: SessionDeps.__init__() got an unexpected keyword argument 'restore_recording_volume'
+C:\Users\shuhe\repo\voice-paste\.claude\worktrees\bug-session-cancel-right-after-start\tests\unit\voice_paste\features\session\helpers.py:230: TypeError: SessionDeps.__init__() got an unexpected keyword argument 'restore_recording_volume'
+E   TypeError: SessionDeps.__init__() got an unexpected keyword argument 'restore_recording_volume'
+C:\Users\shuhe\repo\voice-paste\.claude\worktrees\bug-session-cancel-right-after-start\tests\unit\voice_paste\features\session\helpers.py:230: TypeError: SessionDeps.__init__() got an unexpected keyword argument 'restore_recording_volume'
+E   TypeError: SessionDeps.__init__() got an unexpected keyword argument 'restore_recording_volume'
+C:\Users\shuhe\repo\voice-paste\.claude\worktrees\bug-session-cancel-right-after-start\tests\unit\voice_paste\features\session\helpers.py:230: TypeError: SessionDeps.__init__() got an unexpected keyword argument 'restore_recording_volume'
+E   TypeError: SessionDeps.__init__() got an unexpected keyword argument 'restore_recording_volume'
+C:\Users\shuhe\repo\voice-paste\.claude\worktrees\bug-session-cancel-right-after-start\tests\unit\voice_paste\features\session\helpers.py:230: TypeError: SessionDeps.__init__() got an unexpected keyword argument 'restore_recording_volume'
+E   TypeError: SessionDeps.__init__() got an unexpected keyword argument 'restore_recording_volume'
+C:\Users\shuhe\repo\voice-paste\.claude\worktrees\bug-session-cancel-right-after-start\tests\unit\voice_paste\features\session\helpers.py:230: TypeError: SessionDeps.__init__() got an unexpected keyword argument 'restore_recording_volume'
+E   TypeError: SessionDeps.__init__() got an unexpected keyword argument 'restore_recording_volume'
+C:\Users\shuhe\repo\voice-paste\.claude\worktrees\bug-session-cancel-right-after-start\tests\unit\voice_paste\features\session\helpers.py:230: TypeError: SessionDeps.__init__() got an unexpected keyword argument 'restore_recording_volume'
+E   TypeError: SessionDeps.__init__() got an unexpected keyword argument 'restore_recording_volume'
+C:\Users\shuhe\repo\voice-paste\.claude\worktrees\bug-session-cancel-right-after-start\tests\unit\voice_paste\features\session\helpers.py:230: TypeError: SessionDeps.__init__() got an unexpected keyword argument 'restore_recording_volume'
+E   TypeError: SessionDeps.__init__() got an unexpected keyword argument 'restore_recording_volume'
+C:\Users\shuhe\repo\voice-paste\.claude\worktrees\bug-session-cancel-right-after-start\tests\unit\voice_paste\features\session\helpers.py:230: TypeError: SessionDeps.__init__() got an unexpected keyword argument 'restore_recording_volume'
+E   TypeError: SessionDeps.__init__() got an unexpected keyword argument 'restore_recording_volume'
+C:\Users\shuhe\repo\voice-paste\.claude\worktrees\bug-session-cancel-right-after-start\tests\unit\voice_paste\features\session\helpers.py:230: TypeError: SessionDeps.__init__() got an unexpected keyword argument 'restore_recording_volume'
+E   TypeError: SessionDeps.__init__() got an unexpected keyword argument 'restore_recording_volume'
+C:\Users\shuhe\repo\voice-paste\.claude\worktrees\bug-session-cancel-right-after-start\tests\unit\voice_paste\features\session\helpers.py:230: TypeError: SessionDeps.__init__() got an unexpected keyword argument 'restore_recording_volume'
+E   TypeError: SessionDeps.__init__() got an unexpected keyword argument 'restore_recording_volume'
+C:\Users\shuhe\repo\voice-paste\.claude\worktrees\bug-session-cancel-right-after-start\tests\unit\voice_paste\features\session\helpers.py:230: TypeError: SessionDeps.__init__() got an unexpected keyword argument 'restore_recording_volume'
+E   TypeError: SessionDeps.__init__() got an unexpected keyword argument 'restore_recording_volume'
+C:\Users\shuhe\repo\voice-paste\.claude\worktrees\bug-session-cancel-right-after-start\tests\unit\voice_paste\features\session\helpers.py:230: TypeError: SessionDeps.__init__() got an unexpected keyword argument 'restore_recording_volume'
+E   TypeError: SessionDeps.__init__() got an unexpected keyword argument 'restore_recording_volume'
+C:\Users\shuhe\repo\voice-paste\.claude\worktrees\bug-session-cancel-right-after-start\tests\unit\voice_paste\features\session\helpers.py:230: TypeError: SessionDeps.__init__() got an unexpected keyword argument 'restore_recording_volume'
+E   TypeError: SessionDeps.__init__() got an unexpected keyword argument 'restore_recording_volume'
+C:\Users\shuhe\repo\voice-paste\.claude\worktrees\bug-session-cancel-right-after-start\tests\unit\voice_paste\features\session\helpers.py:230: TypeError: SessionDeps.__init__() got an unexpected keyword argument 'restore_recording_volume'
+E   TypeError: SessionDeps.__init__() got an unexpected keyword argument 'restore_recording_volume'
+C:\Users\shuhe\repo\voice-paste\.claude\worktrees\bug-session-cancel-right-after-start\tests\unit\voice_paste\features\session\helpers.py:230: TypeError: SessionDeps.__init__() got an unexpected keyword argument 'restore_recording_volume'
+E   TypeError: SessionDeps.__init__() got an unexpected keyword argument 'restore_recording_volume'
+C:\Users\shuhe\repo\voice-paste\.claude\worktrees\bug-session-cancel-right-after-start\tests\unit\voice_paste\features\session\helpers.py:230: TypeError: SessionDeps.__init__() got an unexpected keyword argument 'restore_recording_volume'
+E   TypeError: SessionDeps.__init__() got an unexpected keyword argument 'restore_recording_volume'
+C:\Users\shuhe\repo\voice-paste\.claude\worktrees\bug-session-cancel-right-after-start\tests\unit\voice_paste\features\session\helpers.py:230: TypeError: SessionDeps.__init__() got an unexpected keyword argument 'restore_recording_volume'
+E   TypeError: SessionDeps.__init__() got an unexpected keyword argument 'restore_recording_volume'
+C:\Users\shuhe\repo\voice-paste\.claude\worktrees\bug-session-cancel-right-after-start\tests\unit\voice_paste\features\session\helpers.py:230: TypeError: SessionDeps.__init__() got an unexpected keyword argument 'restore_recording_volume'
+E   TypeError: SessionDeps.__init__() got an unexpected keyword argument 'restore_recording_volume'
+C:\Users\shuhe\repo\voice-paste\.claude\worktrees\bug-session-cancel-right-after-start\tests\unit\voice_paste\features\session\helpers.py:230: TypeError: SessionDeps.__init__() got an unexpected keyword argument 'restore_recording_volume'
+E   TypeError: SessionDeps.__init__() got an unexpected keyword argument 'restore_recording_volume'
+C:\Users\shuhe\repo\voice-paste\.claude\worktrees\bug-session-cancel-right-after-start\tests\unit\voice_paste\features\session\helpers.py:230: TypeError: SessionDeps.__init__() got an unexpected keyword argument 'restore_recording_volume'
+E   TypeError: SessionDeps.__init__() got an unexpected keyword argument 'restore_recording_volume'
+C:\Users\shuhe\repo\voice-paste\.claude\worktrees\bug-session-cancel-right-after-start\tests\unit\voice_paste\features\session\helpers.py:230: TypeError: SessionDeps.__init__() got an unexpected keyword argument 'restore_recording_volume'
+E   TypeError: SessionDeps.__init__() got an unexpected keyword argument 'restore_recording_volume'
+C:\Users\shuhe\repo\voice-paste\.claude\worktrees\bug-session-cancel-right-after-start\tests\unit\voice_paste\features\session\helpers.py:230: TypeError: SessionDeps.__init__() got an unexpected keyword argument 'restore_recording_volume'
+E   TypeError: SessionDeps.__init__() got an unexpected keyword argument 'restore_recording_volume'
+C:\Users\shuhe\repo\voice-paste\.claude\worktrees\bug-session-cancel-right-after-start\tests\unit\voice_paste\features\session\helpers.py:230: TypeError: SessionDeps.__init__() got an unexpected keyword argument 'restore_recording_volume'
+E   TypeError: SessionDeps.__init__() got an unexpected keyword argument 'restore_recording_volume'
+C:\Users\shuhe\repo\voice-paste\.claude\worktrees\bug-session-cancel-right-after-start\tests\unit\voice_paste\features\session\helpers.py:230: TypeError: SessionDeps.__init__() got an unexpected keyword argument 'restore_recording_volume'
+E   TypeError: SessionDeps.__init__() got an unexpected keyword argument 'restore_recording_volume'
+C:\Users\shuhe\repo\voice-paste\.claude\worktrees\bug-session-cancel-right-after-start\tests\unit\voice_paste\features\session\helpers.py:230: TypeError: SessionDeps.__init__() got an unexpected keyword argument 'restore_recording_volume'
+E   TypeError: SessionDeps.__init__() got an unexpected keyword argument 'restore_recording_volume'
+C:\Users\shuhe\repo\voice-paste\.claude\worktrees\bug-session-cancel-right-after-start\tests\unit\voice_paste\features\session\helpers.py:230: TypeError: SessionDeps.__init__() got an unexpected keyword argument 'restore_recording_volume'
+E   TypeError: SessionDeps.__init__() got an unexpected keyword argument 'restore_recording_volume'
+C:\Users\shuhe\repo\voice-paste\.claude\worktrees\bug-session-cancel-right-after-start\tests\unit\voice_paste\features\session\helpers.py:230: TypeError: SessionDeps.__init__() got an unexpected keyword argument 'restore_recording_volume'
+E   TypeError: SessionDeps.__init__() got an unexpected keyword argument 'restore_recording_volume'
+C:\Users\shuhe\repo\voice-paste\.claude\worktrees\bug-session-cancel-right-after-start\tests\unit\voice_paste\features\session\helpers.py:230: TypeError: SessionDeps.__init__() got an unexpected keyword argument 'restore_recording_volume'
+E   TypeError: SessionDeps.__init__() got an unexpected keyword argument 'restore_recording_volume'
+C:\Users\shuhe\repo\voice-paste\.claude\worktrees\bug-session-cancel-right-after-start\tests\unit\voice_paste\features\session\helpers.py:230: TypeError: SessionDeps.__init__() got an unexpected keyword argument 'restore_recording_volume'
+E   TypeError: SessionDeps.__init__() got an unexpected keyword argument 'restore_recording_volume'
+C:\Users\shuhe\repo\voice-paste\.claude\worktrees\bug-session-cancel-right-after-start\tests\unit\voice_paste\features\session\helpers.py:230: TypeError: SessionDeps.__init__() got an unexpected keyword argument 'restore_recording_volume'
+E   TypeError: SessionDeps.__init__() got an unexpected keyword argument 'restore_recording_volume'
+C:\Users\shuhe\repo\voice-paste\.claude\worktrees\bug-session-cancel-right-after-start\tests\unit\voice_paste\features\session\helpers.py:230: TypeError: SessionDeps.__init__() got an unexpected keyword argument 'restore_recording_volume'
+E   TypeError: SessionDeps.__init__() got an unexpected keyword argument 'restore_recording_volume'
+C:\Users\shuhe\repo\voice-paste\.claude\worktrees\bug-session-cancel-right-after-start\tests\unit\voice_paste\features\session\helpers.py:230: TypeError: SessionDeps.__init__() got an unexpected keyword argument 'restore_recording_volume'
+E   TypeError: SessionDeps.__init__() got an unexpected keyword argument 'restore_recording_volume'
+C:\Users\shuhe\repo\voice-paste\.claude\worktrees\bug-session-cancel-right-after-start\tests\unit\voice_paste\features\session\helpers.py:230: TypeError: SessionDeps.__init__() got an unexpected keyword argument 'restore_recording_volume'
+E   TypeError: SessionDeps.__init__() got an unexpected keyword argument 'restore_recording_volume'
+C:\Users\shuhe\repo\voice-paste\.claude\worktrees\bug-session-cancel-right-after-start\tests\unit\voice_paste\features\session\helpers.py:230: TypeError: SessionDeps.__init__() got an unexpected keyword argument 'restore_recording_volume'
+E   TypeError: SessionDeps.__init__() got an unexpected keyword argument 'restore_recording_volume'
+C:\Users\shuhe\repo\voice-paste\.claude\worktrees\bug-session-cancel-right-after-start\tests\unit\voice_paste\features\session\helpers.py:230: TypeError: SessionDeps.__init__() got an unexpected keyword argument 'restore_recording_volume'
+E   TypeError: SessionDeps.__init__() got an unexpected keyword argument 'restore_recording_volume'
+C:\Users\shuhe\repo\voice-paste\.claude\worktrees\bug-session-cancel-right-after-start\tests\unit\voice_paste\features\session\helpers.py:230: TypeError: SessionDeps.__init__() got an unexpected keyword argument 'restore_recording_volume'
+E   TypeError: SessionDeps.__init__() got an unexpected keyword argument 'restore_recording_volume'
+C:\Users\shuhe\repo\voice-paste\.claude\worktrees\bug-session-cancel-right-after-start\tests\unit\voice_paste\features\session\helpers.py:230: TypeError: SessionDeps.__init__() got an unexpected keyword argument 'restore_recording_volume'
+E   TypeError: SessionDeps.__init__() got an unexpected keyword argument 'restore_recording_volume'
+C:\Users\shuhe\repo\voice-paste\.claude\worktrees\bug-session-cancel-right-after-start\tests\unit\voice_paste\features\session\helpers.py:230: TypeError: SessionDeps.__init__() got an unexpected keyword argument 'restore_recording_volume'
+E   TypeError: SessionDeps.__init__() got an unexpected keyword argument 'restore_recording_volume'
+C:\Users\shuhe\repo\voice-paste\.claude\worktrees\bug-session-cancel-right-after-start\tests\unit\voice_paste\features\session\helpers.py:230: TypeError: SessionDeps.__init__() got an unexpected keyword argument 'restore_recording_volume'
+E   TypeError: SessionDeps.__init__() got an unexpected keyword argument 'restore_recording_volume'
+C:\Users\shuhe\repo\voice-paste\.claude\worktrees\bug-session-cancel-right-after-start\tests\unit\voice_paste\features\session\helpers.py:230: TypeError: SessionDeps.__init__() got an unexpected keyword argument 'restore_recording_volume'
+E   TypeError: SessionDeps.__init__() got an unexpected keyword argument 'restore_recording_volume'
+C:\Users\shuhe\repo\voice-paste\.claude\worktrees\bug-session-cancel-right-after-start\tests\unit\voice_paste\features\session\helpers.py:230: TypeError: SessionDeps.__init__() got an unexpected keyword argument 'restore_recording_volume'
+E   TypeError: SessionDeps.__init__() got an unexpected keyword argument 'restore_recording_volume'
+C:\Users\shuhe\repo\voice-paste\.claude\worktrees\bug-session-cancel-right-after-start\tests\unit\voice_paste\features\session\helpers.py:230: TypeError: SessionDeps.__init__() got an unexpected keyword argument 'restore_recording_volume'
+E   TypeError: SessionDeps.__init__() got an unexpected keyword argument 'restore_recording_volume'
+C:\Users\shuhe\repo\voice-paste\.claude\worktrees\bug-session-cancel-right-after-start\tests\unit\voice_paste\features\session\helpers.py:230: TypeError: SessionDeps.__init__() got an unexpected keyword argument 'restore_recording_volume'
+E   TypeError: SessionDeps.__init__() got an unexpected keyword argument 'restore_recording_volume'
+C:\Users\shuhe\repo\voice-paste\.claude\worktrees\bug-session-cancel-right-after-start\tests\unit\voice_paste\features\session\helpers.py:230: TypeError: SessionDeps.__init__() got an unexpected keyword argument 'restore_recording_volume'
+E   TypeError: SessionDeps.__init__() got an unexpected keyword argument 'restore_recording_volume'
+C:\Users\shuhe\repo\voice-paste\.claude\worktrees\bug-session-cancel-right-after-start\tests\unit\voice_paste\features\session\helpers.py:230: TypeError: SessionDeps.__init__() got an unexpected keyword argument 'restore_recording_volume'
+E   AttributeError: 'Recorder' object has no attribute 'restore_volume'
+C:\Users\shuhe\repo\voice-paste\.claude\worktrees\bug-session-cancel-right-after-start\tests\unit\voice_paste\features\recording\test_service.py:530: AttributeError: 'Recorder' object has no attribute 'restore_volume'
+E   AttributeError: 'Recorder' object has no attribute 'restore_volume'
+C:\Users\shuhe\repo\voice-paste\.claude\worktrees\bug-session-cancel-right-after-start\tests\unit\voice_paste\features\recording\test_service.py:543: AttributeError: 'Recorder' object has no attribute 'restore_volume'
+E   AttributeError: 'Recorder' object has no attribute 'clear'
+C:\Users\shuhe\repo\voice-paste\.claude\worktrees\bug-session-cancel-right-after-start\tests\unit\voice_paste\features\recording\test_service.py:561: AttributeError: 'Recorder' object has no attribute 'clear'
+E   AssertionError: expected call not found.
+    Expected: mock('finishing')
+      Actual: mock()
+C:\Users\shuhe\AppData\Local\Python\pythoncore-3.14-64\Lib\unittest\mock.py:985: AssertionError: expected call not found.
+E   ValueError: 'cancel_pending' is not a valid SessionState
+C:\Users\shuhe\AppData\Local\Python\pythoncore-3.14-64\Lib\enum.py:1193: ValueError: 'cancel_pending' is not a valid SessionState
+E   ValueError: 'cancel_pending' is not a valid SessionState
+C:\Users\shuhe\AppData\Local\Python\pythoncore-3.14-64\Lib\enum.py:1193: ValueError: 'cancel_pending' is not a valid SessionState
+E   ImportError: cannot import name 'BUSY_REASON_API' from 'voice_paste.ui.windows.busy_dialog' (C:\Users\shuhe\repo\voice-paste\.claude\worktrees\bug-session-cancel-right-after-start\src\voice_paste\ui\windows\busy_dialog.py)
+C:\Users\shuhe\repo\voice-paste\.claude\worktrees\bug-session-cancel-right-after-start\tests\unit\voice_paste\test_main.py:1273: ImportError: cannot import name 'BUSY_REASON_API' from 'voice_paste.ui.windows.busy_dialog' (C:\Users\shuhe\repo\voice-paste\.claude\worktrees\bug-session-cancel-right-after-start\src\voice_paste\ui\windows\busy_dialog.py)
+E   ImportError: cannot import name 'BUSY_REASON_FINISHING' from 'voice_paste.ui.windows.busy_dialog' (C:\Users\shuhe\repo\voice-paste\.claude\worktrees\bug-session-cancel-right-after-start\src\voice_paste\ui\windows\busy_dialog.py)
+C:\Users\shuhe\repo\voice-paste\.claude\worktrees\bug-session-cancel-right-after-start\tests\unit\voice_paste\test_main.py:1306: ImportError: cannot import name 'BUSY_REASON_FINISHING' from 'voice_paste.ui.windows.busy_dialog' (C:\Users\shuhe\repo\voice-paste\.claude\worktrees\bug-session-cancel-right-after-start\src\voice_paste\ui\windows\busy_dialog.py)
+E   ImportError: cannot import name 'BUSY_REASON_FINISHING' from 'voice_paste.ui.windows.busy_dialog' (C:\Users\shuhe\repo\voice-paste\.claude\worktrees\bug-session-cancel-right-after-start\src\voice_paste\ui\windows\busy_dialog.py)
+C:\Users\shuhe\repo\voice-paste\.claude\worktrees\bug-session-cancel-right-after-start\tests\unit\voice_paste\test_main.py:1306: ImportError: cannot import name 'BUSY_REASON_FINISHING' from 'voice_paste.ui.windows.busy_dialog' (C:\Users\shuhe\repo\voice-paste\.claude\worktrees\bug-session-cancel-right-after-start\src\voice_paste\ui\windows\busy_dialog.py)
+=========================== short test summary info ===========================
+FAILED tests/unit/voice_paste/features/session/test_service.py::test_start_when_idle
+FAILED tests/unit/voice_paste/features/session/test_service.py::test_start_when_busy
+FAILED tests/unit/voice_paste/features/session/test_service.py::test_start_when_microphone_unavailable
+FAILED tests/unit/voice_paste/features/session/test_service.py::test_pause_when_recording
+FAILED tests/unit/voice_paste/features/session/test_service.py::test_pause_when_api_session
+FAILED tests/unit/voice_paste/features/session/test_service.py::test_stop_when_recording
+FAILED tests/unit/voice_paste/features/session/test_service.py::test_stop_when_already_stopped
+FAILED tests/unit/voice_paste/features/session/test_service.py::test_stop_when_session_unknown[no_session]
+FAILED tests/unit/voice_paste/features/session/test_service.py::test_stop_when_session_unknown[other_id]
+FAILED tests/unit/voice_paste/features/session/test_service.py::test_complete_when_stopped
+FAILED tests/unit/voice_paste/features/session/test_service.py::test_complete_when_recording
+FAILED tests/unit/voice_paste/features/session/test_service.py::test_complete_when_preset
+FAILED tests/unit/voice_paste/features/session/test_service.py::test_complete_when_hotkey_on_api_session
+FAILED tests/unit/voice_paste/features/session/test_service.py::test_complete_when_session_id_mismatch
+FAILED tests/unit/voice_paste/features/session/test_service.py::test_complete_when_session_unknown
+FAILED tests/unit/voice_paste/features/session/test_service.py::test_complete_when_save_failed
+FAILED tests/unit/voice_paste/features/session/test_service.py::test_complete_when_save_failed_from_hotkey
+FAILED tests/unit/voice_paste/features/session/test_service.py::test_cancel_returns_without_waiting
+FAILED tests/unit/voice_paste/features/session/test_service.py::test_cancel_within_grace
+FAILED tests/unit/voice_paste/features/session/test_service.py::test_cancel_after_grace
+FAILED tests/unit/voice_paste/features/session/test_service.py::test_cancel_when_grace_zero
+FAILED tests/unit/voice_paste/features/session/test_service.py::test_cancel_when_api_session
+FAILED tests/unit/voice_paste/features/session/test_service.py::test_expire_cancel_when_pending
+FAILED tests/unit/voice_paste/features/session/test_service.py::test_expire_cancel_after_restart
+FAILED tests/unit/voice_paste/features/session/test_service.py::test_expire_cancel_after_recancel
+FAILED tests/unit/voice_paste/features/session/test_service.py::test_start_when_cancel_pending
+FAILED tests/unit/voice_paste/features/session/test_service.py::test_start_api_when_cancel_pending
+FAILED tests/unit/voice_paste/features/session/test_service.py::test_complete_when_cancel_pending
+FAILED tests/unit/voice_paste/features/session/test_service.py::test_pause_when_cancel_pending
+FAILED tests/unit/voice_paste/features/session/test_service.py::test_close_when_cancel_pending
+FAILED tests/unit/voice_paste/features/session/test_service.py::test_truncate_if_expired_when_recording
+FAILED tests/unit/voice_paste/features/session/test_service.py::test_truncate_if_expired_when_worker_runs
+FAILED tests/unit/voice_paste/features/session/test_service.py::test_truncate_if_expired_when_deliver_blocks
+FAILED tests/unit/voice_paste/features/session/test_service.py::test_truncate_if_expired_when_stopped
+FAILED tests/unit/voice_paste/features/session/test_service.py::test_truncate_if_expired_when_within_limit
+FAILED tests/unit/voice_paste/features/session/test_service.py::test_truncate_if_expired_when_hotkey_session
+FAILED tests/unit/voice_paste/features/session/test_service.py::test_truncate_if_expired_when_save_failed
+FAILED tests/unit/voice_paste/features/session/test_service.py::test_run_after_confirm
+FAILED tests/unit/voice_paste/features/session/test_service.py::test_run_after_confirm_when_transcription_failed_from_hotkey
+FAILED tests/unit/voice_paste/features/session/test_service.py::test_run_after_confirm_when_transcription_failed_from_api
+FAILED tests/unit/voice_paste/features/session/test_service.py::test_run_after_confirm_when_empty_from_hotkey
+FAILED tests/unit/voice_paste/features/session/test_service.py::test_run_after_confirm_when_empty_from_api
+FAILED tests/unit/voice_paste/features/session/test_service.py::test_run_after_confirm_when_deliver_raised_unexpected
+FAILED tests/unit/voice_paste/features/session/test_service.py::test_run_after_confirm_when_unknown_output
+FAILED tests/unit/voice_paste/features/session/test_service.py::test_switch_output_when_transcribing
+FAILED tests/unit/voice_paste/features/session/test_service.py::test_switch_output_when_delivering
+FAILED tests/unit/voice_paste/features/session/test_service.py::test_switch_output_when_preset
+FAILED tests/unit/voice_paste/features/session/test_service.py::test_switch_output_when_api_session
+FAILED tests/unit/voice_paste/features/session/test_service.py::test_switch_output_when_same_output
+FAILED tests/unit/voice_paste/features/session/test_service.py::test_switch_output_when_idle
+FAILED tests/unit/voice_paste/features/session/test_service.py::test_close_when_recording
+FAILED tests/unit/voice_paste/features/session/test_service.py::test_close_when_idle
+FAILED tests/unit/voice_paste/features/session/test_service.py::test_current_when_idle
+FAILED tests/unit/voice_paste/features/session/test_service.py::test_current_when_recording
+FAILED tests/unit/voice_paste/features/session/test_service.py::test_complete_when_reports_progress
+FAILED tests/unit/voice_paste/features/recording/test_service.py::test_restore_volume_keeps_input
+FAILED tests/unit/voice_paste/features/recording/test_service.py::test_lower_volume_after_restore
+FAILED tests/unit/voice_paste/features/recording/test_service.py::test_clear_drops_frames
+FAILED tests/unit/voice_paste/ui/test_controller.py::test_on_notified_when_busy
+FAILED tests/unit/voice_paste/ui/test_controller.py::test_on_notified_when_cancel_pending
+FAILED tests/unit/voice_paste/ui/test_controller.py::test_request_exit_when_cancel_pending
+FAILED tests/unit/voice_paste/test_main.py::test_start_local_session_when_busy_with_api
+FAILED tests/unit/voice_paste/test_main.py::test_start_local_session_when_busy_finishing[hotkey-transcribing]
+FAILED tests/unit/voice_paste/test_main.py::test_start_local_session_when_busy_finishing[idle]
+ERROR tests/unit/voice_paste/features/session/test_service.py::test_start_when_glossary_preset[single]
+ERROR tests/unit/voice_paste/features/session/test_service.py::test_start_when_glossary_preset[continuous]
+ERROR tests/unit/voice_paste/features/session/test_service.py::test_start_when_glossary_preset[omitted]
+ERROR tests/unit/voice_paste/features/session/test_service.py::test_start_when_continuous
+ERROR tests/unit/voice_paste/features/session/test_service.py::test_stop_when_continuous
+ERROR tests/unit/voice_paste/features/session/test_service.py::test_complete_when_continuous
+ERROR tests/unit/voice_paste/features/session/test_service.py::test_complete_when_continuous_without_segments
+ERROR tests/unit/voice_paste/features/session/test_service.py::test_truncate_if_expired_when_continuous
+ERROR tests/unit/voice_paste/features/session/test_service.py::test_close_when_continuous
+ERROR tests/unit/voice_paste/features/session/test_service.py::test_on_segment_numbers_in_order
+ERROR tests/unit/voice_paste/features/session/test_service.py::test_on_segment_when_not_continuous
+ERROR tests/unit/voice_paste/features/session/test_service.py::test_run_segments_when_transcription_failed
+ERROR tests/unit/voice_paste/features/session/test_service.py::test_run_segments_when_deliver_blocks
+ERROR tests/unit/voice_paste/features/session/test_service.py::test_run_segments_when_deliver_raised
+ERROR tests/unit/voice_paste/features/session/test_service.py::test_on_continuous_failed
+============ 64 failed, 102 passed, 3 skipped, 15 errors in 10.15s ============

@@ -921,6 +921,29 @@ def test_field_name_and_key(open_window: Callable[..., Opened]) -> None:
     assert name in texts
 
 
+def test_field_cancel_grace_sec(open_window: Callable[..., Opened]) -> None:
+    """「録音」のまとまりの録音中の音量の欄の下に、取り消しの猶予の秒数の欄を欄の名前・既定の値・補助文つきで出す。"""
+    # 準備
+    window = open_window().window
+
+    # 実行
+    find(window, QListWidget, "group_menu").setCurrentRow(5)
+
+    # 検証
+    field = _field(window, "recording.cancel_grace_sec", QLineEdit)
+    assert field.isVisible()
+    assert field.text() == "5.0"
+    assert _top_of(field, window) > _top_of(_field(window, "recording.fade_sec"), window)
+    texts = [label.text() for label in window.findChildren(QLabel)]
+    assert "取り消しの猶予の秒数" in texts
+    assert "recording.cancel_grace_sec" in texts
+    assert (
+        "録音を始めてからこの秒数の間に取り消すと、録音の画面をすぐ閉じ、録音はこの秒数が経ってから捨てる。"
+        "0 にすると、取り消したその場で捨てる。"
+    ) in texts
+    assert window.findChild(QLabel, "restart_badge_recording.cancel_grace_sec") is None
+
+
 def test_restart_badge_when_restart_field(open_window: Callable[..., Opened]) -> None:
     """反映が restart の欄には「再起動で反映」のマーカーを出す。"""
     # 実行

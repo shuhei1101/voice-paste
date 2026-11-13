@@ -473,6 +473,14 @@ class Stack:
         return wait_until(lambda: len(self.receiver.received) >= count)
 
 
+def _start_cancel_timer(delay_sec: float, callback: Callable[[], None]) -> Callable[[], None]:
+    """猶予の終わりを daemon の threading.Timer で予約し、予約を取りやめる関数を返す（取り消しの猶予を 0 にしているため使われない）。"""
+    timer = threading.Timer(delay_sec, callback)
+    timer.daemon = True
+    timer.start()
+    return timer.cancel
+
+
 def make_audio(kind: str, tmp_path: Path) -> bytes:
     """kind（webm・mp4・video_only_mp4）の短い音声のバイト列を、PyAV で書き出して返す。"""
     import av
@@ -615,6 +623,11 @@ def build_stack(
             recorder.start_continuous, min_silence_sec=settings.api.continuous.min_silence_sec
         ),
         stop_continuous_recording=recorder.stop_continuous,
+        restore_recording_volume=recorder.restore_volume,
+        lower_recording_volume=recorder.lower_volume,
+        clear_recording=recorder.clear,
+        get_cancel_grace=lambda: timedelta(0),
+        start_cancel_timer=_start_cancel_timer,
     )
     manager = SessionManager(deps, SESSION_LIMIT, CONTINUOUS_SESSION_LIMIT)
 
@@ -808,6 +821,11 @@ def build_output_stack(
             recorder.start_continuous, min_silence_sec=settings.api.continuous.min_silence_sec
         ),
         stop_continuous_recording=recorder.stop_continuous,
+        restore_recording_volume=recorder.restore_volume,
+        lower_recording_volume=recorder.lower_volume,
+        clear_recording=recorder.clear,
+        get_cancel_grace=lambda: timedelta(0),
+        start_cancel_timer=_start_cancel_timer,
     )
     return OutputStack(
         manager=SessionManager(deps, SESSION_LIMIT, CONTINUOUS_SESSION_LIMIT),

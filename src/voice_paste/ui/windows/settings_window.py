@@ -210,6 +210,7 @@ FIELD_LAYOUT: dict[str, tuple[str, ...]] = {
         "recording.hide_window",
         "recording.volume_percent",
         "recording.fade_sec",
+        "recording.cancel_grace_sec",
     ),
     "文字起こし": (ENGINE_KEY, ENGINE_TABS_FIELD_NAME),
     "表記のヒント": (HINT_PRESETS_FIELD_NAME,),
@@ -366,6 +367,9 @@ PRESET_URL_EXAMPLE: str = "https://example.com/hook"
 """プリセットの URL が空のときの文言に出す例。"""
 
 OPTION_NOTES: dict[str, str] = {
+    "recording.cancel_grace_sec": (
+        "録音を始めてからこの秒数の間に取り消すと、録音の画面をすぐ閉じ、録音はこの秒数が経ってから捨てる。0 にすると、取り消したその場で捨てる。"
+    ),
     "recording.keep_display_on": (
         "オンにすると、録音を始めてから終えるまで、PC の画面が自動で暗くならず、スクリーンセーバーも動かない。"
         "録音を終えると OS の設定どおりに戻る。"

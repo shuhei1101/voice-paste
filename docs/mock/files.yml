@@ -104,6 +104,11 @@ files:
   tags:
   - topic:モック
   - topic:画面
+- path: pages/settings/291/index.md
+  description: '#291（設定画面を開いたまま録音でき、トレイから用語集とショートカットの設定へ直接開けるようにする）で作った設定画面のモックの案を記載し、その変更の設定画面の案を確認するときに参照する。'
+  tags:
+  - topic:モック
+  - topic:画面
 - path: pages/settings/274/index.md
   description: '#274（設定画面の文字起こしの設定をエンジンごとのタブに分け、選んでいないエンジンの設定も変えられるようにする）で作った設定画面のモックの案を記載し、その変更の設定画面の案を確認するときに参照する。'
   tags:
@@ -154,6 +159,11 @@ files:
   tags:
   - topic:モック
   - topic:画面
+- path: pages/tray-notification/291/index.md
+  description: '#291（設定画面を開いたまま録音でき、トレイから用語集とショートカットの設定へ直接開けるようにする）で作ったトレイの通知のモックの案を記載し、その変更のトレイの通知の案を確認するときに参照する。'
+  tags:
+  - topic:モック
+  - topic:画面
 - path: pages/tray-notification/37/index.md
   description: '#37（画面・トレイ・ホットキーを PySide6 の新しい構成で作り直す）で作ったトレイの通知のモックの案を記載し、その変更のトレイの通知の案を確認するときに参照する。'
   tags:
@@ -161,6 +171,11 @@ files:
   - topic:画面
 - path: pages/tray-notification/index.md
   description: 'トレイの通知のモックの案を作業 PR ごとに記載し、トレイの通知の見た目の変遷を確認するときに参照する。'
+  tags:
+  - topic:モック
+  - topic:画面
+- path: pages/tray/291/index.md
+  description: '#291（設定画面を開いたまま録音でき、トレイから用語集とショートカットの設定へ直接開けるようにする）で作ったトレイのモックの案を記載し、その変更のトレイの案を確認するときに参照する。'
   tags:
   - topic:モック
   - topic:画面
@@ -251,6 +266,11 @@ files:
   - topic:pr
 - path: refs/274/index.md
   description: '#274（設定画面の文字起こしの設定をエンジンごとのタブに分け、選んでいないエンジンの設定も変えられるようにする）で作った画面のモックへのリンクを記載し、その作業 PR の画面の案を確認するときに参照する。'
+  tags:
+  - topic:モック
+  - topic:pr
+- path: refs/291/index.md
+  description: '#291（設定画面を開いたまま録音でき、トレイから用語集とショートカットの設定へ直接開けるようにする）で作った画面のモックへのリンクを記載し、その作業 PR の画面の案を確認するときに参照する。'
   tags:
   - topic:モック
   - topic:pr

@@ -12,6 +12,7 @@ from pathlib import Path
 
 from voice_paste.shared.errors import GlossaryReadError
 from voice_paste.shared.settings import (
+    DEFAULT_GLOSSARY_PRESET_NAME,
     EDGE_PHRASE_WILDCARD,
     EdgePhraseSettings,
     GlossaryPresetSettings,
@@ -39,9 +40,6 @@ DISABLED_VALUE: str = "0"
 
 DEFAULT_GLOSSARY_FILE_NAME: str = "yogo.csv"
 """`glossaries` も `glossary_path` も無いときに読む、settings.yaml と同じフォルダの用語集のファイル名。"""
-
-DEFAULT_GLOSSARY_PRESET_NAME: str = "既定"
-"""`glossary_presets` のキーが無い・空の設定で、resolve_glossary_presets が作る 1 つだけのプリセットの名前。"""
 
 GLOSSARY_FILE_PATTERN: str = "glossary_{number}.csv"
 """設定画面で追加した用語集の CSV のファイル名。number は 1 からの連番。"""

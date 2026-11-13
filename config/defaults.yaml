@@ -162,6 +162,13 @@ active_glossary: null
 glossary_presets: []
 # 使う用語集のプリセットの名前
 active_glossary_preset: null
+# 用語集のプリセットを切り替えるショートカットの一覧（設定画面の「ショートカット」で編集する）。
+# hotkey を押すと、補正に使う用語集のプリセットを preset に切り替える。書く例:
+#
+# glossary_preset_hotkeys:
+#   - hotkey: <ctrl>+<alt>+s
+#     preset: 既定
+glossary_preset_hotkeys: []
 
 # 表記のヒント（文字起こしの手がかり）のプリセットの一覧（設定画面の「表記のヒント」で編集する）。空の間はヒントを渡さない。
 # 有効なプリセットの語を上から順に読点（、）でつないで渡す。つないだ長さは UTF-8 で 222 バイトまで。

@@ -64,6 +64,8 @@ success = "#18742f"
 danger = "#cf222e"
 danger_bg = "#ffebe9"
 notice_bg = "#fff8c5"
+# 追加した行の地（accent_fg を surface に 10% 混ぜた色）
+added_bg = "#d7e2ef"
 
 # 暗いテーマの色
 [color.dark]
@@ -87,3 +89,5 @@ success = "#57ab5a"
 danger = "#ff6a69"
 danger_bg = "#2d2023"
 notice_bg = "#2e2a1f"
+# 追加した行の地（accent_fg を surface に 10% 混ぜた色）
+added_bg = "#273342"

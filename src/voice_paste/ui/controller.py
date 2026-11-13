@@ -8,7 +8,7 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Literal
 
-from PySide6.QtCore import QEvent, QObject
+from PySide6.QtCore import QEvent, QObject, Qt
 from PySide6.QtWidgets import QApplication
 
 from voice_paste.features.session.types import Session, SessionState
@@ -23,7 +23,7 @@ from voice_paste.shared.types import Entry, GlossaryEntry
 from voice_paste.ui.tray import RecordingWindowState, Tray, TrayState
 from voice_paste.ui.windows.busy_dialog import show_busy_dialog
 from voice_paste.ui.windows.recording_window import RecordingWindow
-from voice_paste.ui.windows.settings_window import SettingsWindow
+from voice_paste.ui.windows.settings_window import DEFAULT_GROUP, SettingsWindow
 from voice_paste.ui.windows.transcribing_indicator import TranscribingIndicator
 
 logger = logging.getLogger(__name__)
@@ -65,7 +65,7 @@ class UiDeps:
     """録音中の音量（0.0〜1.0。Recorder.level）。"""
 
     get_settings: Callable[[], Settings]
-    """今効いている設定（SettingsStore.get）。"""
+    """最新の設定（SettingsStore.latest。録音セッションが固定した設定ではなく、設定画面に出す値）。"""
 
     save_settings: Callable[[Settings, Mapping[Path, Sequence[GlossaryEntry]]], bool]
     """設定と、行を変えた用語集の CSV（場所 → 行）を書いて効かせ、再起動が要る項目が変わったかを返す（apply_settings）。"""
@@ -88,11 +88,14 @@ class UiDeps:
     request_quit: Callable[[], None]
     """イベントループを抜ける（QApplication.quit）。"""
 
-    suspend_hotkeys: Callable[[], None]
-    """ホットキーの受付を止める（設定画面を開いている間、欄で押したキーで録音が始まらないようにする）。"""
+    set_hotkey_capturing: Callable[[bool], None]
+    """設定画面のホットキーの欄が入力待ちに入る（True）・出る（False）ことを伝える。入力待ちの間に押したキーで録音・ショートカットが動かないようにする。"""
 
-    resume_hotkeys: Callable[[], None]
-    """今の設定でホットキーの受付を始める（設定画面を閉じたときに呼ぶ）。"""
+    switch_glossary_preset: Callable[[str], bool]
+    """補正に使用する用語集のプリセットを切り替えて保存し、切り替えられたかを返却する（メインスレッドで呼ぶ）。"""
+
+    reload_hotkeys: Callable[[], None]
+    """最新の設定でホットキーの受付を張り直す（設定画面の保存・既定に戻すの後に呼ぶ）。"""
 
     output_titles: Mapping[str, str]
     """画面に出す出力先の名前（出力先の ID → 名前。API 専用の出力先を除く）。設定画面の欄と録音の画面のボタンが引く。"""
@@ -155,7 +158,11 @@ class UiController(QObject):
         tray.recopy_requested.connect(self.recopy)
         recording_window.hide_requested.connect(self.hide_recording)
         indicator.output_selected.connect(deps.switch_output)
-        tray.settings_requested.connect(self.open_settings)
+        tray.settings_requested.connect(lambda: self.open_settings())
+        tray.settings_glossary_requested.connect(lambda: self.open_settings(group="用語集"))
+        tray.settings_shortcuts_requested.connect(
+            lambda: self.open_settings(group="ショートカット", add_shortcut_row=True)
+        )
         tray.restart_requested.connect(lambda: self.request_exit("restart"))
         tray.quit_requested.connect(lambda: self.request_exit("quit"))
         app = QApplication.instance()
@@ -211,38 +218,52 @@ class UiController(QObject):
         self._tray.hide()
         logger.info(f"処理中のため再起動・終了を待たせた（{kind}・{session.id}）")
 
-    def open_settings(self) -> None:
-        """設定画面を開く。開いていれば前面に出すだけにする。新しく開くときはホットキーの受付を止める。"""
-        if self._settings_window is not None:
-            self._settings_window.raise_()
-            self._settings_window.activateWindow()
+    def open_settings(self, *, group: str | None = None, add_shortcut_row: bool = False) -> None:
+        """設定画面を開く。開いていれば最小化を戻して最前面に出す。group を指定すればそのまとまりへ切り替え、add_shortcut_row ならショートカットの行を 1 つ追加する。"""
+        window = self._settings_window
+        # 開いている: 新しい窓を作らずに前へ出し、指定があればまとまりを切り替える
+        if window is not None:
+            window.setWindowState(window.windowState() & ~Qt.WindowState.WindowMinimized)
+            window.showNormal()
+            window.raise_()
+            window.activateWindow()
+            if group is not None:
+                window.show_group(group, add_shortcut_row=add_shortcut_row)
             return
-        self._deps.suspend_hotkeys()
+        # 開いていない: 作って、指定のまとまり（無ければ出力先）を選んでから出す
         window = SettingsWindow(self._deps)
         window.saved.connect(self.on_settings_saved)
         window.restart_requested.connect(lambda: self.request_exit("restart"))
         window.closed.connect(self.on_settings_closed)
+        window.hotkey_capturing.connect(self._deps.set_hotkey_capturing)
         self._settings_window = window
+        window.show_group(group or DEFAULT_GROUP, add_shortcut_row=add_shortcut_row)
         window.show()
         window.raise_()
         window.activateWindow()
 
     def on_settings_saved(self) -> None:
-        """設定画面が保存した後、画面の明暗を当て直し、トレイのホットキーの表示を新しい設定に合わせる（録音の画面は出すたびに設定を読む）。"""
+        """設定画面が保存した後、最新の設定でホットキーの受付を張り直し、画面の明暗とトレイのホットキーの表示を新しい設定に合わせる（録音の画面は出すたびに設定を読み込む）。"""
+        try:
+            self._deps.reload_hotkeys()
+        except HotkeyError as error:
+            # 保存の前に受け付けられることを確認しているため、ここに来るのは手で書き込んだ設定のファイルだけ
+            logger.error(f"ホットキーを受け付けられなかった（{error}）")
         self._deps.apply_theme()
         self._tray.set_start_hotkey(self._deps.get_settings().hotkeys.start)
 
     def on_settings_closed(self) -> None:
-        """設定画面を手放して破棄し、今の設定でホットキーの受付を始める。"""
+        """設定画面を手放して破棄する。入力待ちのまま閉じたときに備え、ホットキーを伝える状態に戻す。"""
+        self._deps.set_hotkey_capturing(False)
         # 欄のシグナルにつないだメソッドが窓を保つため、参照を手放すだけでは消えず、deleteLater で破棄する
         if self._settings_window is not None:
             self._settings_window.deleteLater()
         self._settings_window = None
-        try:
-            self._deps.resume_hotkeys()
-        except HotkeyError as error:
-            # 保存の前に受け付けられることを確かめているため、ここに来るのは手で書いた設定のファイルだけ
-            logger.error(f"ホットキーを受け付けられなかった（{error}）")
+
+    def on_glossary_preset_switch_requested(self, name: str) -> None:
+        """UiBridge.glossary_preset_switch_requested のスロット。用語集のプリセットを切り替え、切り替えられたらトレイで知らせる。"""
+        if self._deps.switch_glossary_preset(name):
+            self._tray.show_glossary_preset_switched(name)
 
     def hide_recording(self) -> None:
         """RecordingWindow.hide_requested のスロット。その回の録音の画面を隠し、トレイの「録音の画面を表示」を押せるようにする。"""

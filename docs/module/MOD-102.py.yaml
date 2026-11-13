@@ -169,6 +169,38 @@ classes:
             condition: 2 行を set_rows した後、focus_field(1, "preset")
             mock: なし（offscreen の QApplication）
             expected: 2 行目の切り替える用語集のプリセットの選択欄にフォーカスがある
+      - name: show_error
+        title: エラーの表示
+        kind: メソッド
+        scope: public
+        summary: 何行目かのキーの欄かプリセットの選択欄を赤くし、行の下にエラーを出す（同じ欄の失敗は重ねて出す。行を削除するとエラーを削除する）
+        args:
+          - name: index
+            type: int
+            required: true
+            passing: positional
+            description: 行の番号（0 始まり）
+          - name: field
+            type: str
+            required: true
+            passing: positional
+            description: hotkey か preset
+          - name: message
+            type: str
+            required: true
+            passing: positional
+            description: 欄の下に出す文言
+        returns:
+          type: None
+          description: なし
+      - name: clear_errors
+        title: エラーの削除
+        kind: メソッド
+        scope: public
+        summary: 前の保存で出したエラーを全て削除する
+        returns:
+          type: None
+          description: なし
     refs:
       - SCR-9#elements[ショートカットの一覧]
     status: planned

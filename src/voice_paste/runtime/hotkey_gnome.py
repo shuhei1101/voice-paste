@@ -141,7 +141,9 @@ class GnomeShortcutListener:
         """排他の名前と単一インスタンスの排他を受け、排他の on_hotkey に _dispatch を渡す。登録はまだしない。"""
         self._name = name
         self._bindings: dict[str, Callable[[], None]] = {}
+        self._accelerators: dict[str, str] = {}
         self._registered = False
+        self._suspended = False
         self._lock = threading.Lock()
         lock.on_hotkey(self._dispatch)
 
@@ -157,20 +159,18 @@ class GnomeShortcutListener:
             # 2. 各関数を、例外を握る関数で包む
             guarded = {hotkey: _guard(handler) for hotkey, handler in bindings.items()}
 
-            # 3. 前の起動の残りと張り直す前の登録を外した一覧を書き戻し、ショートカットごとの値と一覧を書く
+            # 3. 前の起動の残りと張り直す前の登録を外した一覧を書き戻し、ショートカットごとの値と一覧を書く（伝えない間は外したままにする）
             try:
-                others = _others(_read_paths())
-                _write_paths(others)
-                own = self._write_shortcuts(accelerators)
-                _write_paths([*others, *own])
+                self._register(accelerators, write_own=not self._suspended)
             except (subprocess.CalledProcessError, OSError) as error:
                 # 書いた登録を外してから断る（押したキーを GNOME が受けてアプリへ届けない登録を残さない）
                 self._remove_own()
                 reason = getattr(error, "stderr", None) or error
                 raise HotkeyError(f"GNOME のショートカットを登録できません（{reason}）") from error
 
-            # 4. 包んだ関数を持つ
+            # 4. 包んだ関数と、登録し直すためのアクセラレーターを持つ
             self._bindings = guarded
+            self._accelerators = accelerators
             self._registered = True
             logger.info(f"GNOME のショートカットを登録した（{', '.join(bindings)}）")
 
@@ -184,6 +184,38 @@ class GnomeShortcutListener:
                 return
             self._registered = False
             self._remove_own()
+
+    def set_suspended(self, suspended: bool) -> None:
+        """押されたホットキーを関数へ伝えるかを切り替える。伝えない間は常駐サービスの登録を一覧から外し、戻すと同じ組で登録し直す。"""
+        with self._lock:
+            # 変わらないか
+            if suspended == self._suspended:
+                # 変わらない: 何もしない
+                return
+            self._suspended = suspended
+            # 登録していないか
+            if not self._registered:
+                # していない: 一覧を書かない
+                return
+            # 伝えない: GNOME が押したキーを受けず、設定画面の欄へ届くよう登録を外す
+            if suspended:
+                self._remove_own()
+                return
+            # 伝える: 持っている組で登録し直す（失敗しても送出せず、ログに書き込む）
+            try:
+                self._register(self._accelerators, write_own=True)
+            except (subprocess.CalledProcessError, OSError) as error:
+                self._remove_own()
+                logger.error(f"ショートカットを登録し直せなかった（{getattr(error, 'stderr', None) or error}）")
+
+    def _register(self, accelerators: dict[str, str], *, write_own: bool) -> None:
+        """常駐サービスの前の登録を一覧から外し、write_own ならショートカットごとの値を書いて一覧へ加える。"""
+        others = _others(_read_paths())
+        _write_paths(others)
+        # 伝えない間は一覧へ加えない
+        if write_own:
+            own = self._write_shortcuts(accelerators)
+            _write_paths([*others, *own])
 
     def _write_shortcuts(self, accelerators: dict[str, str]) -> list[str]:
         """ホットキーごとにショートカットの name・command・binding を書き、書いたパスを返す。"""

@@ -12,7 +12,14 @@ from typing import TYPE_CHECKING, Any, Literal, TypeAliasType, get_args, get_ori
 from pydantic import ValidationError
 from pydantic.fields import FieldInfo
 from PySide6.QtCore import QEvent, QKeyCombination, QObject, Qt, Signal
-from PySide6.QtGui import QAccessible, QAccessibleAnnouncementEvent, QCloseEvent, QKeyEvent
+from PySide6.QtGui import (
+    QAccessible,
+    QAccessibleAnnouncementEvent,
+    QCloseEvent,
+    QFocusEvent,
+    QKeyEvent,
+    QMouseEvent,
+)
 from PySide6.QtWidgets import (
     QCheckBox,
     QFrame,
@@ -38,6 +45,8 @@ from voice_paste.shared.settings import (
     ENGINE_LABELS,
     GLOSSARIES_FIELD_NAME,
     GLOSSARY_NAME_OVERLAP_ERROR_TYPE,
+    GLOSSARY_PRESET_HOTKEYS_FIELD_NAME,
+    GLOSSARY_PRESET_MISSING_ERROR_TYPE,
     GLOSSARY_PRESET_NAME_OVERLAP_ERROR_TYPE,
     GLOSSARY_PRESETS_FIELD_NAME,
     HAAS_DEVICE_FORM_ERROR_TYPE,
@@ -98,6 +107,7 @@ from voice_paste.ui.windows.settings_presets import (
     PRESET_MODELS,
     PresetListPanel,
 )
+from voice_paste.ui.windows.settings_shortcuts import ShortcutPanel
 
 if TYPE_CHECKING:
     from voice_paste.ui.controller import UiDeps
@@ -166,8 +176,15 @@ ENGINE_TAB_LAYOUT: dict[str, tuple[str, ...]] = {
 ENGINE_KEY: str = "transcription.engine"
 """文字起こしのエンジンの選択の欄の設定のキー。"""
 
+SHORTCUT_GROUP: str = "ショートカット"
+"""用語集のプリセットを切り替えるショートカットのまとまりの名前。"""
+
+DEFAULT_GROUP: str = "出力先"
+"""設定画面を開いたときに選ぶまとまり。"""
+
 GROUP_NAMES: tuple[str, ...] = (
-    "出力先",
+    SHORTCUT_GROUP,
+    DEFAULT_GROUP,
     *PRESET_KIND_NAMES.values(),
     "ホットキー",
     "録音",
@@ -179,10 +196,11 @@ GROUP_NAMES: tuple[str, ...] = (
     "履歴とログ",
     "API",
 )
-"""まとまりのメニューの並び（既定は先頭）。"""
+"""まとまりのメニューの並び（開いたときは DEFAULT_GROUP を選ぶ）。"""
 
 FIELD_LAYOUT: dict[str, tuple[str, ...]] = {
-    "出力先": (OUTPUTS_FIELD_NAME,),
+    SHORTCUT_GROUP: (GLOSSARY_PRESET_HOTKEYS_FIELD_NAME,),
+    DEFAULT_GROUP: (OUTPUTS_FIELD_NAME,),
     PRESET_KIND_NAMES["browser"]: (PRESETS_FIELD_NAME, "preset_options.browser.open_delay_sec"),
     PRESET_KIND_NAMES["endpoint"]: (PRESETS_FIELD_NAME, "preset_options.endpoint.timeout_sec"),
     "ホットキー": ("hotkeys.start", "hotkeys.pause", "hotkeys.cancel", "keyboard.paste_key"),
@@ -297,10 +315,16 @@ RANGE_ERROR_TYPES: frozenset[str] = frozenset(
 )
 """数値が範囲の外のときの失敗の種類。"""
 
-SAVED_HOTKEY_KEY: re.Pattern[str] = re.compile(
-    rf"^(hotkeys\.\w+|{OUTPUTS_FIELD_NAME}\[\d+\]\.hotkey)$"
+SHORTCUT_KEY_PATTERN: re.Pattern[str] = re.compile(
+    rf"^{GLOSSARY_PRESET_HOTKEYS_FIELD_NAME}\[(\d+)\]\.(hotkey|preset)$"
 )
-"""保存したメッセージでホットキーが変わったかを見る欄のキー（録音のホットキー・出力先の確定のホットキー。貼り付けに送信するキーとプリセットの確定のホットキーは含めない）。"""
+"""ショートカットの欄の失敗のキー（`glossary_preset_hotkeys[1].hotkey`）を、何行目かと項目に分ける。"""
+
+SHORTCUT_FIELD_LABELS: dict[str, str] = {
+    "hotkey": "キーの組み合わせ",
+    "preset": "切り替える用語集のプリセット",
+}
+"""ショートカットの欄の名前（エラーの一覧に出す）。"""
 
 PRESET_KEY_PATTERN: re.Pattern[str] = re.compile(rf"^{PRESETS_FIELD_NAME}\[(\d+)\]\.(\w+)$")
 """プリセットの欄の失敗のキー（`presets[2].url`）を、設定の全体の中の添字と項目の名前に分ける。"""
@@ -513,6 +537,9 @@ def to_field_message(
     if error_type in RANGE_ERROR_TYPES and info is not None:
         return _range_text(info)
     if error_type == "string_too_short":
+        # ショートカットのキーの空はキーを押してもらう
+        if error["loc"][:1] == (GLOSSARY_PRESET_HOTKEYS_FIELD_NAME,):
+            return "キーの組み合わせを押してください。"
         # 用語集の名前の空は名前を、プリセットのタイトルの空はタイトルを入れてもらう
         if error["loc"][:1] in (
             (GLOSSARIES_FIELD_NAME,),
@@ -523,6 +550,8 @@ def to_field_message(
         return "タイトルを入れてください。"
     if error_type == GLOSSARY_NAME_OVERLAP_ERROR_TYPE:
         return f"用語集「{error['ctx']['name']}」と同じ名前です。{GLOSSARY_NAME_HINT}"
+    if error_type == GLOSSARY_PRESET_MISSING_ERROR_TYPE:
+        return f"用語集のプリセット「{error['ctx']['name']}」がありません。別のプリセットを選んでください。"
     if error_type == GLOSSARY_PRESET_NAME_OVERLAP_ERROR_TYPE:
         return f"用語集のプリセット「{error['ctx']['name']}」と同じ名前です。{GLOSSARY_NAME_HINT}"
     if error_type == HINT_TOO_LONG_ERROR_TYPE:
@@ -567,8 +596,8 @@ def to_field_message(
         return "http:// か https:// で始まる URL を入れてください。"
     if error_type == HOTKEY_OVERLAP_ERROR_TYPE:
         other = error["ctx"]["other"]
-        # 重なった先がプリセットなら、プリセットの呼び方で示す
-        if other.startswith(f"{PRESETS_FIELD_NAME}["):
+        # 重なった先がプリセットかショートカットの行なら、その呼び方で示す
+        if other.startswith((f"{PRESETS_FIELD_NAME}[", f"{GLOSSARY_PRESET_HOTKEYS_FIELD_NAME}[")):
             return f"{name_of(other)}と同じキーです。別のキーにしてください。"
         return f"「{name_of(other)}」と同じホットキーです。別のキーにしてください。"
     return str(error["msg"])
@@ -643,7 +672,11 @@ class HotkeyEdit(QLineEdit):
     """押すと入力待ちになり、次に押したキーの組み合わせが入るホットキーの欄。
 
     画面では `Ctrl+Alt+D` の表記で出し、値は pynput の書式で持つ。Tab と Esc は欄の移動と画面の取り消しに残す。
+    フォーカスを受けるか押すと入力待ちに入り、組み合わせが入るかフォーカスを失うと抜ける。入る・抜けるたびに capturing を emit する。
     """
+
+    capturing = Signal(bool)
+    """入力待ちに入った（True）・抜けた（False）。"""
 
     def __init__(self, hotkey: str) -> None:
         """今のホットキー（pynput の書式）で欄を作る。"""
@@ -651,7 +684,30 @@ class HotkeyEdit(QLineEdit):
         self.setReadOnly(True)
         self.setPlaceholderText("キーを押してください")
         self._hotkey = hotkey
+        self._capturing = False
         self.setText(format_hotkey(hotkey) if hotkey else "")
+
+    def _set_capturing(self, capturing: bool) -> None:
+        """入力待ちを切り替え、変わったときだけ capturing を emit する。"""
+        if capturing == self._capturing:
+            return
+        self._capturing = capturing
+        self.capturing.emit(capturing)
+
+    def focusInEvent(self, event: QFocusEvent) -> None:  # noqa: N802 Qt の名前
+        """フォーカスを受けたら入力待ちに入る。"""
+        super().focusInEvent(event)
+        self._set_capturing(True)
+
+    def focusOutEvent(self, event: QFocusEvent) -> None:  # noqa: N802 Qt の名前
+        """フォーカスを失ったら入力待ちを抜ける。"""
+        super().focusOutEvent(event)
+        self._set_capturing(False)
+
+    def mousePressEvent(self, event: QMouseEvent) -> None:  # noqa: N802 Qt の名前
+        """押したら入力待ちに入る（組み合わせを入れた後にもう一度押したときも入る）。"""
+        super().mousePressEvent(event)
+        self._set_capturing(True)
 
     @property
     def hotkey(self) -> str:
@@ -679,6 +735,7 @@ class HotkeyEdit(QLineEdit):
         self._hotkey = hotkey
         self.setText(format_hotkey(hotkey))
         event.accept()
+        self._set_capturing(False)
 
 
 # === 設定画面 ===
@@ -709,6 +766,9 @@ class SettingsWindow(QWidget):
     closed = Signal()
     """窓が閉じた（保存・取り消し・窓の閉じるのどの経路でも。UiController.on_settings_closed へ）。"""
 
+    hotkey_capturing = Signal(bool)
+    """ホットキーの欄が入力待ちに入った（True）・出た（False）。UiDeps.set_hotkey_capturing へ。"""
+
     def __init__(self, deps: UiDeps) -> None:
         """今の設定で欄を組み立てて窓を作る。"""
         super().__init__()
@@ -722,6 +782,8 @@ class SettingsWindow(QWidget):
         self._panel_groups: dict[str, int] = {}
         self._glossary_panel: GlossaryPanel | None = None
         self._glossary_group = GROUP_NAMES.index("用語集")
+        self._shortcut_panel: ShortcutPanel | None = None
+        self._shortcut_group = GROUP_NAMES.index(SHORTCUT_GROUP)
         self._hint_panel: HintPresetPanel | None = None
         self._hint_group = GROUP_NAMES.index("表記のヒント")
         self._edge_panel: EdgePhrasePanel | None = None
@@ -733,7 +795,6 @@ class SettingsWindow(QWidget):
         self._engine_error_labels: dict[str, QLabel] = {}
         self._baseline: dict[str, Any] = {}
         self._restart_baseline: dict[str, Any] = {}
-        self._hotkey_baseline: dict[str, str] = {}
         self._force_close = False
         self.setObjectName("settings_window")
         self.setWindowTitle(WINDOW_TITLE)
@@ -742,7 +803,6 @@ class SettingsWindow(QWidget):
         self._populate(self._original)
         # 開いたときの値を「再起動で反映」の変更の基準にして、知らせを数え直す
         self._restart_baseline = dict(self._baseline)
-        self._hotkey_baseline = self._hotkey_values()
         self._refresh_notices()
 
     # --- 窓の枠 ---
@@ -761,6 +821,7 @@ class SettingsWindow(QWidget):
         self._group_menu.setObjectName("group_menu")
         self._group_menu.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
         self._group_menu.addItems(GROUP_NAMES)
+        self._group_menu.setCurrentRow(GROUP_NAMES.index(DEFAULT_GROUP))
         self._fit_group_menu()
         # 窓の高さで縦のスクロールバーが出る・消えるのに合わせて幅を決め直す
         self._group_menu.verticalScrollBar().rangeChanged.connect(self._fit_group_menu)
@@ -845,6 +906,7 @@ class SettingsWindow(QWidget):
         self._panels = {}
         self._panel_groups = {}
         self._glossary_panel = None
+        self._shortcut_panel = None
         self._hint_panel = None
         self._edge_panel = None
         self._engine_tabs = None
@@ -869,6 +931,8 @@ class SettingsWindow(QWidget):
                     self._add_outputs(layout, settings, group)
                 elif key == PRESETS_FIELD_NAME:
                     self._add_presets(layout, settings, name, group)
+                elif key == GLOSSARY_PRESET_HOTKEYS_FIELD_NAME:
+                    self._add_shortcuts(layout)
                 elif key == GLOSSARIES_FIELD_NAME:
                     self._add_glossaries(layout, settings)
                 elif key == HINT_PRESETS_FIELD_NAME:
@@ -887,7 +951,11 @@ class SettingsWindow(QWidget):
             scroll.setWidget(content)
             self._stack.addWidget(scroll)
 
-        # 3. 今の値を基準にして、知らせを更新する
+        # 3. ショートカットの行を入れる（用語集のプリセットの一覧を受けた後に、名前で識別子を参照する）
+        if self._shortcut_panel is not None:
+            self._shortcut_panel.set_rows(settings.glossary_preset_hotkeys)
+
+        # 4. 今の値を基準にして、知らせを更新する
         self._group_menu.setCurrentRow(max(self._group_menu.currentRow(), 0))
         self._stack.setCurrentIndex(self._group_menu.currentRow())
         self._baseline = self._flat_values()
@@ -958,6 +1026,8 @@ class SettingsWindow(QWidget):
         )
         self._fields.append(field)
         connect_changed(widget, self._on_field_changed)
+        if isinstance(widget, HotkeyEdit):
+            widget.capturing.connect(self.hotkey_capturing)
         return field
 
     def _add_model_field(
@@ -1120,10 +1190,27 @@ class SettingsWindow(QWidget):
             else preset_names[0]
         )
         panel = GlossaryPanel(self._deps.read_glossary, self._deps.new_glossary_path)
+        # ショートカットの選択欄に、画面の今のプリセットの一覧を出す（set_glossaries の前につなぎ、開いたときの一覧も受ける）
+        if self._shortcut_panel is not None:
+            panel.presets_changed.connect(self._shortcut_panel.set_presets)
         panel.set_glossaries(glossaries, presets, active)
         panel.changed.connect(self._on_field_changed)
         self._glossary_panel = panel
         layout.addWidget(panel)
+
+    def _add_shortcuts(self, layout: QVBoxLayout) -> None:
+        """用語集のプリセットを切り替えるショートカットの見出しの行と一覧を追加する（行は _populate が用語集の後に入れる）。"""
+        panel = ShortcutPanel(CURRENT_OS, self._other_hotkeys)
+        panel.changed.connect(self._on_field_changed)
+        panel.capturing.connect(self.hotkey_capturing)
+        self._shortcut_panel = panel
+        layout.addWidget(panel)
+
+    def _other_hotkeys(self) -> list[str]:
+        """ショートカットのほかに受け付けるホットキー（ホットキーの欄と、プリセットの確定のホットキー）の今の値を返す。"""
+        hotkeys = [field.get() for field in self._fields if isinstance(field.widget, HotkeyEdit)]
+        hotkeys += [item["hotkey"] for _kind, _position, item in self._preset_values()]
+        return [hotkey for hotkey in hotkeys if hotkey]
 
     def _add_hints(self, layout: QVBoxLayout, settings: Settings) -> None:
         """表記のヒントの長さとプリセットの一覧を追加する。"""
@@ -1210,6 +1297,7 @@ class SettingsWindow(QWidget):
         panel = PresetListPanel(kind)
         panel.set_presets([preset for preset in settings.presets if preset.kind == kind])
         panel.changed.connect(self._on_field_changed)
+        panel.capturing.connect(self.hotkey_capturing)
         self._panels[kind] = panel
         self._panel_groups[kind] = group
         layout.addWidget(panel)
@@ -1222,6 +1310,13 @@ class SettingsWindow(QWidget):
         if self._glossary_panel is None:
             raise RuntimeError("用語集の部品がまだ無い")
         return self._glossary_panel
+
+    @property
+    def _shortcuts_panel(self) -> ShortcutPanel:
+        """ショートカットのまとまりの部品を返す（欄を組み立てた後に使用する）。"""
+        if self._shortcut_panel is None:
+            raise RuntimeError("ショートカットの部品がまだ無い")
+        return self._shortcut_panel
 
     @property
     def _hints_panel(self) -> HintPresetPanel:
@@ -1287,6 +1382,8 @@ class SettingsWindow(QWidget):
         data[GLOSSARIES_FIELD_NAME] = self._glossaries_panel.collect()
         data[GLOSSARY_PRESETS_FIELD_NAME] = self._glossaries_panel.collect_presets()
         data["active_glossary_preset"] = self._glossaries_panel.active_preset_name()
+        # ショートカットは、行の並びのまま入れる（プリセットはそのときの名前）
+        data[GLOSSARY_PRESET_HOTKEYS_FIELD_NAME] = self._shortcuts_panel.collect()
         # 表記のヒントは、プリセットの一覧を入れる
         data[HINT_PRESETS_FIELD_NAME] = self._hints_panel.collect()
         # 文頭・文末から削除する文言は、一覧の並びのまま入れる
@@ -1297,7 +1394,9 @@ class SettingsWindow(QWidget):
         """保存していない変更の件数（開いたとき・保存したときの値から変えた欄の数）。"""
         current = self._flat_values()
         keys = set(current) | set(self._baseline)
-        return sum(1 for key in keys if current.get(key) != self._baseline.get(key))
+        changed = sum(1 for key in keys if current.get(key) != self._baseline.get(key))
+        # ショートカットは、追加・削除・キーかプリセットを変えた行を 1 件ずつ数える
+        return changed + self._shortcuts_panel.change_count()
 
     def _restart_changed_count(self) -> int:
         """「再起動で反映」の欄のうち、開いたときの値から変えた欄の数。"""
@@ -1354,6 +1453,12 @@ class SettingsWindow(QWidget):
         return (position, matched.group(3), int(matched.group(4)))
 
     @staticmethod
+    def _locate_shortcut(key: str) -> tuple[int, str] | None:
+        """ショートカットの欄のキー（`glossary_preset_hotkeys[1].hotkey`）を、（何行目か, hotkey か preset）にする。その欄でなければ None。"""
+        matched = SHORTCUT_KEY_PATTERN.match(key)
+        return None if matched is None else (int(matched.group(1)), matched.group(2))
+
+    @staticmethod
     def _locate_edge(key: str) -> tuple[int | str, ...] | None:
         """文頭・文末から削除する文言の欄のキーを、EdgePhrasePanel の失敗の場所（`(1, "text")`）にする。その欄でなければ None。"""
         matched = EDGE_KEY_PATTERN.match(key)
@@ -1391,6 +1496,10 @@ class SettingsWindow(QWidget):
 
     def _label_of(self, key: str, relative_to: str | None = None) -> str:
         """設定のキーの欄の名前を返す（無ければキーのまま）。プリセットは、relative_to のキーと別の種類なら種類も添える。"""
+        shortcut = self._locate_shortcut(key)
+        # ショートカットの行: 何行目かで呼ぶ
+        if shortcut is not None:
+            return f"ショートカット {shortcut[0] + 1} 行目"
         located = self._locate_preset(key)
         if located is not None:
             kind, position, _attribute, title = located
@@ -1443,6 +1552,8 @@ class SettingsWindow(QWidget):
             self._hint_panel.clear_errors()
         if self._edge_panel is not None:
             self._edge_panel.clear_errors()
+        if self._shortcut_panel is not None:
+            self._shortcut_panel.clear_errors()
         for label in self._engine_error_labels.values():
             label.clear()
             label.hide()
@@ -1470,6 +1581,7 @@ class SettingsWindow(QWidget):
                     or self._locate_glossary_preset(key) is not None
                     or self._locate_hint(key) is not None
                     or self._locate_edge(key) is not None
+                    or self._locate_shortcut(key) is not None
                 )
             }
         )
@@ -1528,6 +1640,17 @@ class SettingsWindow(QWidget):
                 link.linkActivated.connect(self._focus_field)
                 self._error_summary_layout.addWidget(link)
                 self._hints_panel.show_error(hint_located, message)
+                continue
+            shortcut_located = self._locate_shortcut(key) if key is not None else None
+            # ショートカットの欄: 一覧の行（欄へのリンク）と、欄の下のエラーを出す
+            if shortcut_located is not None and key is not None:
+                index, shortcut_field = shortcut_located
+                label = f"ショートカット {index + 1} 行目の{SHORTCUT_FIELD_LABELS[shortcut_field]}"
+                link = QLabel(f'<a href="{key}">{html.escape(f"{label}: {message}")}</a>')
+                link.setTextFormat(Qt.TextFormat.RichText)
+                link.linkActivated.connect(self._focus_field)
+                self._error_summary_layout.addWidget(link)
+                self._shortcuts_panel.show_error(index, shortcut_field, message)
                 continue
             edge_located = self._locate_edge(key) if key is not None else None
             # 文頭・文末から削除する文言の欄: 一覧の行（欄へのリンク）と、欄の下のエラーを出す
@@ -1597,6 +1720,12 @@ class SettingsWindow(QWidget):
         if hint_located is not None:
             self._group_menu.setCurrentRow(self._hint_group)
             self._hints_panel.focus_field(hint_located)
+            return
+        shortcut_located = self._locate_shortcut(key)
+        # ショートカットの欄: ショートカットのまとまりへ切り替えて、欄へフォーカスを移す
+        if shortcut_located is not None:
+            self._group_menu.setCurrentRow(self._shortcut_group)
+            self._shortcuts_panel.focus_field(*shortcut_located)
             return
         edge_located = self._locate_edge(key)
         # 文頭・文末から削除する文言の欄: ハルシネーションのまとまりへ切り替えて、欄へフォーカスを移す
@@ -1673,6 +1802,7 @@ class SettingsWindow(QWidget):
         self._glossaries_panel.mark_saved()
         self._hints_panel.mark_saved()
         self._edges_panel.mark_saved()
+        self._shortcuts_panel.mark_saved()
         for panel in self._panels.values():
             panel.mark_saved()
         self._baseline = self._flat_values()
@@ -1688,11 +1818,8 @@ class SettingsWindow(QWidget):
         return True
 
     def _show_saved_notice(self) -> None:
-        """保存したメッセージを出す。新しいホットキーが閉じると効くことと、「再起動で反映」の欄の件数を、変えたときだけ続ける。"""
+        """保存したメッセージを出す。「再起動で反映」の欄の件数を、変えたときだけ続ける。"""
         text = "保存しました。"
-        # ホットキーの欄が開いたときの値から変わっていれば、閉じると効くことを添える
-        if self._hotkey_changed():
-            text += "新しいホットキーは、設定画面を閉じると効きます。"
         # 「再起動で反映」の欄が開いたときの値から変わっていれば、件数と今すぐ再起動を出し、再起動のメッセージを隠す
         count = self._restart_changed_count()
         if count > 0:
@@ -1705,26 +1832,11 @@ class SettingsWindow(QWidget):
         self._reset_notice.hide()
         self._refresh_notices()
 
-    def _hotkey_values(self) -> dict[str, str]:
-        """閉じたときに張り直すホットキーの欄（`keyboard.paste_key` は含めない）の値を、録音と出力先は設定のキー、プリセットは種類とタブの中の何件目かごとに返す。"""
-        values = {
-            key: value for key, value in self._flat_values().items() if SAVED_HOTKEY_KEY.match(key)
-        }
-        values.update(
-            {
-                f"{PRESETS_FIELD_NAME}.{kind}[{position}].hotkey": item["hotkey"]
-                for kind, position, item in self._preset_values()
-            }
-        )
-        return values
-
-    def _hotkey_changed(self) -> bool:
-        """閉じたときに張り直すホットキーの欄が、開いたときの値から変わったかを返す。"""
-        current = self._hotkey_values()
-        keys = current.keys() | self._hotkey_baseline.keys()
-        return any(
-            (current.get(key) or "") != (self._hotkey_baseline.get(key) or "") for key in keys
-        )
+    def show_group(self, group: str, *, add_shortcut_row: bool = False) -> None:
+        """まとまりのメニューで指定のまとまりを選び、add_shortcut_row ならショートカットの行を 1 つ追加してキーの欄へフォーカスを移す。"""
+        self._group_menu.setCurrentRow(GROUP_NAMES.index(group))
+        if add_shortcut_row:
+            self._shortcuts_panel.add_row()
 
     def reset_to_defaults(self) -> None:
         """確かめて、戻すなら環境の値を空にして読み直した設定を欄に入れ、再起動が要る設定が変わっていれば件数と「今すぐ再起動」を出す。"""

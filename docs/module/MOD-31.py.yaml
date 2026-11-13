@@ -353,7 +353,7 @@ classes:
           - SCR-2#notes
       - name: _on_message_clicked
         title: 通知の押下
-        summary: messageClicked のスロット。最後に出した通知の種類で、もう一度コピーするかログフォルダを開くかを出し分ける
+        summary: messageClicked のスロット。最後に出した通知の種類で、もう一度コピーするか、ログフォルダを開くか、何もしないかを出し分ける
         kind: メソッド
         scope: internal
         returns:
@@ -361,7 +361,8 @@ classes:
           description: なし
         process: |-
           1. _copied_text があれば、それを引き渡して recopy_requested を emit する
-          2. 無ければ、ログフォルダを開く
+          2. 最後に出した通知が失敗の通知（show_failure）なら、ログフォルダを開く
+          3. それ以外（用語集のプリセットの切り替えの通知）は何もしない
         unit_tests:
           - name: test_on_message_clicked_when_copy_completed
             case: 正常

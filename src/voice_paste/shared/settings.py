@@ -77,6 +77,15 @@ GLOSSARY_PRESET_NAME_OVERLAP_ERROR_TYPE: str = "glossary_preset_name_overlap"
 GLOSSARY_PRESETS_FIELD_NAME: str = "glossary_presets"
 """用語集のプリセットの一覧を持つ Settings の項目名。"""
 
+DEFAULT_GLOSSARY_PRESET_NAME: str = "既定"
+"""`glossary_presets` のキーが無い・空の設定で、resolve_glossary_presets が作る 1 つだけのプリセットの名前。"""
+
+GLOSSARY_PRESET_HOTKEYS_FIELD_NAME: str = "glossary_preset_hotkeys"
+"""用語集のプリセットを切り替えるショートカットの一覧を持つ Settings の項目名。"""
+
+GLOSSARY_PRESET_MISSING_ERROR_TYPE: str = "glossary_preset_missing"
+"""ショートカットの行が用語集のプリセットの一覧に無い名前を指すときの ValidationError の種類。理由の文に名前を `name` として持つ。"""
+
 HINT_PRESETS_FIELD_NAME: str = "hint_presets"
 """表記のヒントのプリセットの一覧を持つ Settings の項目名。"""
 
@@ -690,6 +699,19 @@ class GlossarySettings(_SettingsModel):
     )
 
 
+class GlossaryPresetHotkeySettings(_SettingsModel):
+    """用語集のプリセットを切り替えるショートカット 1 つのキーと、切り替える用語集のプリセットの名前。"""
+
+    model_config = ConfigDict(extra="forbid", str_strip_whitespace=True)
+
+    hotkey: str = Field(
+        description="押すと用語集のプリセットを切り替えるキー（pynput の書式。空は Settings の確認が断る）",
+    )
+    preset: str = Field(
+        description="切り替える用語集のプリセットの名前（`glossary_presets[].name`）",
+    )
+
+
 class GlossaryPresetSettings(_SettingsModel):
     """用語集のプリセット 1 つの名前と、補正に使う用語集の名前の並び。"""
 
@@ -879,6 +901,11 @@ class Settings(_SettingsModel):
         "補正に使う用語集のプリセットの名前。None か一覧に無い名前のときは 1 件目のプリセットを使う",
         reload=RELOAD_IMMEDIATE,
     )
+    glossary_preset_hotkeys: list[GlossaryPresetHotkeySettings] = Field(
+        default_factory=list,
+        description="用語集のプリセットを切り替えるショートカットの一覧。並びが設定画面の一覧の並びになる",
+        json_schema_extra={"reload": RELOAD_IMMEDIATE},
+    )
     hint_presets: list[HintPresetSettings] = Field(
         description="表記のヒント（文字起こしの手がかり）のプリセットの一覧。並びが設定画面の一覧と語をつなぐ順になる。有効な語をつないだ長さが HINT_MAX_BYTES を超える設定は断る",
         json_schema_extra={"reload": RELOAD_IMMEDIATE},
@@ -969,6 +996,33 @@ class Settings(_SettingsModel):
                 "input": name,
             }
             for location, name in _find_glossary_preset_name_overlap_locations(self)
+        ]
+        # キーが空のショートカットの行は、キーの場所で断る（重なりと同じ回に、欄ごとのエラーとして出す）
+        line_errors += [
+            {
+                "type": PydanticCustomError("string_too_short", "キーが空"),
+                "loc": (GLOSSARY_PRESET_HOTKEYS_FIELD_NAME, index, "hotkey"),
+                "input": row.hotkey,
+            }
+            for index, row in enumerate(self.glossary_preset_hotkeys)
+            if not row.hotkey
+        ]
+        # 用語集のプリセットの一覧に無い名前を指すショートカットの行は、プリセットの場所で断る
+        preset_names = {preset.name for preset in self.glossary_presets} or {
+            DEFAULT_GLOSSARY_PRESET_NAME
+        }
+        line_errors += [
+            {
+                "type": PydanticCustomError(
+                    GLOSSARY_PRESET_MISSING_ERROR_TYPE,
+                    "用語集のプリセット「{name}」が無い",
+                    {"name": row.preset},
+                ),
+                "loc": (GLOSSARY_PRESET_HOTKEYS_FIELD_NAME, index, "preset"),
+                "input": row.preset,
+            }
+            for index, row in enumerate(self.glossary_preset_hotkeys)
+            if row.preset not in preset_names
         ]
         # 重なった表記のヒントのプリセットの名前は、後ろにある側の名前の場所で、重なった名前を添える
         line_errors += [
@@ -1066,6 +1120,10 @@ def _accepted_hotkeys(settings: Settings) -> list[tuple[_Location, str, bool]]:
         if preset.enabled:
             location = (PRESETS_FIELD_NAME, index, preset.kind, "hotkey")
             accepted.append((location, preset.hotkey.lower(), False))
+    # 用語集のプリセットを切り替えるショートカットのキー
+    for index, row in enumerate(settings.glossary_preset_hotkeys):
+        location = (GLOSSARY_PRESET_HOTKEYS_FIELD_NAME, index, "hotkey")
+        accepted.append((location, row.hotkey.lower(), False))
     # 空のホットキーは受け付けないので、重なりを見ない
     return [item for item in accepted if item[1]]
 

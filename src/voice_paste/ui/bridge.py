@@ -30,6 +30,9 @@ class UiBridge(QObject):
     copied = Signal(str)
     """コピーの完了と起こした文字。"""
 
+    glossary_preset_switch_requested = Signal(str)
+    """ショートカットで頼んだ、補正に使用する用語集のプリセットの切り替え（プリセットの名前）。"""
+
 
 def notify(
     event: Literal[
@@ -64,3 +67,9 @@ def notify_copied(text: str, *, bridge: UiBridge) -> None:
 def report_progress(position_sec: float, duration_sec: float, *, bridge: UiBridge) -> None:
     """UiBridge.progressed を emit して、文字起こし中の表示の進みを変える。"""
     bridge.progressed.emit(position_sec, duration_sec)
+
+
+def request_glossary_preset_switch(name: str, *, bridge: UiBridge) -> None:
+    """UiBridge.glossary_preset_switch_requested を emit して、メインスレッドで用語集のプリセットを切り替える。"""
+    logger.info(f"用語集のプリセットの切り替えを頼んだ（{name}）")
+    bridge.glossary_preset_switch_requested.emit(name)

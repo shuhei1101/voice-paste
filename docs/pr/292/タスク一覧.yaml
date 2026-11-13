@@ -65,7 +65,10 @@ tasks:
     updated_by: planner
     updated_at: '2026-11-13T02:43:58.738154+00:00'
   - process: ドキュメント修正
-    status: todo
+    status: done
+    reason: docs/guide/ の録音して貼り付ける・起動と設定・外の端末から文字に起こす・API に、録音中に画面を暗くしない設定と動きを追記した
+    updated_by: planner
+    updated_at: '2026-11-13T02:54:09.395508+00:00'
   - process: 単体テスト作成
     status: todo
   - process: 実装

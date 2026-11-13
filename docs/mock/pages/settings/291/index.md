@@ -2,4 +2,4 @@
 
 | 案 | 説明 |
 | --- | --- |
-| [a-shortcuts-first](./a-shortcuts-first/index.html) | まとまりのメニューの先頭に「ショートカット」を追加し、行の追加ボタンを見出しの右に配置する |
+| [a-shortcuts-first](./a-shortcuts-first/index.html) <span class="badge ok">採用</span> | まとまりのメニューの先頭に「ショートカット」を追加し、行の追加ボタンを見出しの右に配置する |

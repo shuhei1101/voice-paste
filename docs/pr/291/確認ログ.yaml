@@ -5,3 +5,21 @@ confirmations:
     approver: shuhei1101
     commit: 33289abf49672451aed45a9fcdedc09fc785cb65
     thread: https://github.com/shuhei1101/voice-paste/pull/291#discussion_r4557425276
+  - topic: モックと画面の文言（設定画面の「ショートカット」のまとまり・トレイ・切り替えの通知）
+    decision: モックと文言のとおりに進める（推奨案 A）
+    decided_by: thumbs_up
+    approver: shuhei1101
+    commit: dcb0dc3
+    thread: https://github.com/shuhei1101/voice-paste/pull/291#discussion_r4559013083
+  - topic: トレイのメニューの項目の名前と位置
+    decision: 「設定…」の直下に「用語集の設定…」「ショートカットの設定…」を並べる（推奨案 A）
+    decided_by: thumbs_up
+    approver: shuhei1101
+    commit: dcb0dc3
+    thread: https://github.com/shuhei1101/voice-paste/pull/291#discussion_r4559013704
+  - topic: 「ショートカット」のまとまりの位置と行の構成
+    decision: まとまりのメニューの先頭に「ショートカット」を作り、見出しの右に「行追加」、行は「キーの組み合わせ」と「切り替える用語集のプリセット」（推奨案 A）
+    decided_by: thumbs_up
+    approver: shuhei1101
+    commit: dcb0dc3
+    thread: https://github.com/shuhei1101/voice-paste/pull/291#discussion_r4559014277

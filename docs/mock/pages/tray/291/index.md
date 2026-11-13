@@ -2,4 +2,4 @@
 
 | 案 | 説明 |
 | --- | --- |
-| [a-menu-items](./a-menu-items/index.html) | 「設定…」の直下に「用語集の設定…」「ショートカットの設定…」を追加し、録音中も設定の項目を押せる |
+| [a-menu-items](./a-menu-items/index.html) <span class="badge ok">採用</span> | 「設定…」の直下に「用語集の設定…」「ショートカットの設定…」を追加し、録音中も設定の項目を押せる |

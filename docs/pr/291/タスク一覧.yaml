@@ -38,7 +38,9 @@ tasks:
     updated_by: planner
     updated_at: '2026-11-13T02:05:09.885227+00:00'
   - process: モック作成
-    status: todo
+    status: done
+    updated_by: planner
+    updated_at: '2026-11-13T03:20:09.906830+00:00'
   - process: インターフェース定義設計
     status: skipped
     reason: API（インターフェース定義）は変わらない

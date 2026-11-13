@@ -1,0 +1,7 @@
+confirmations:
+  - topic: 画面一覧・画面遷移（トレイ・設定画面・トレイの通知の変更と、設定画面を開く・前面に戻す・開いたまま録音する動き）
+    decision: 計画書の画面一覧・画面遷移のとおりに進める（推奨案 A）
+    decided_by: thumbs_up
+    approver: shuhei1101
+    commit: 33289abf49672451aed45a9fcdedc09fc785cb65
+    thread: https://github.com/shuhei1101/voice-paste/pull/291#discussion_r4557425276

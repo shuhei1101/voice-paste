@@ -55,19 +55,27 @@ docs:
   - page: docs/guide/録音して貼り付ける.md
     new: false
     change: 録音中は設定でオンにしていれば画面が自動で暗くならず、録音を終えると戻ることを書き足す
-    status: todo
+    status: done
+    updated_by: planner
+    updated_at: '2026-11-13T02:53:47.417498+00:00'
   - page: docs/guide/起動と設定.md
     new: false
     change: 設定画面の新しい欄と、OS ごとに使えるかを書き足す
-    status: todo
+    status: done
+    updated_by: planner
+    updated_at: '2026-11-13T02:53:47.417498+00:00'
   - page: docs/guide/外の端末から文字に起こす.md
     new: false
     change: 録音している間は端末の画面が自動で暗くならないことと、ブラウザが対応しないときの振る舞いを書き足す
-    status: todo
+    status: done
+    updated_by: planner
+    updated_at: '2026-11-13T02:53:47.417498+00:00'
   - page: docs/guide/API.md
     new: false
     change: 録音の開始・停止・完了の説明に、設定に従って画面の消灯を抑止・解除することを書き足す
-    status: todo
+    status: done
+    updated_by: planner
+    updated_at: '2026-11-13T02:53:47.417498+00:00'
 scope_out:
   - item: voice-paste の API を呼ぶほかのシステム（MindStella の音声入力など）のブラウザの画面での画面の消灯の抑止（Screen Wake Lock）
     reason: 画面を持つのは呼び出し元のリポジトリで、voice-paste の変更では届かない。ただし PC 上のブラウザから API で録音している場合は常駐アプリの抑止で PC の画面は暗くならないため、起票が要るのはスマートフォンなど別の端末のブラウザから呼ぶ場合だけ。起票の要否は単一ユースケース設計のレビューで確定する

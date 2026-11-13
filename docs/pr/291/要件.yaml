@@ -16,14 +16,19 @@ use_cases:
     depends_on: []
   - kind: single
     scenario: docs/scenario/SC-9.yaml
-    impact: run_only
-    detail: ショートカットで切り替えた用語集のプリセットで補正する。シナリオの記述は変わらない
+    impact: changed
+    detail: 設定画面で保存した値は次の録音から使用する（録音中に保存した値はその回に使用しない）。ショートカットで切り替えた用語集のプリセットで補正する
     depends_on:
       - docs/scenario/SC-8.yaml
   - kind: composite
     scenario: docs/scenario/SC-12.yaml
     impact: run_only
     detail: ホットキーで録音して届ける流れは変わらないが、ホットキーの受付の変更が壊しうる
+    depends_on: []
+  - kind: single
+    scenario: docs/scenario/SC-5.yaml
+    impact: changed
+    detail: Linux の Wayland のセッションで、設定画面を開いている間も GNOME のショートカットの登録を残し、ホットキーの欄が入力待ちの間だけ除外する
     depends_on: []
 docs:
   - page: docs/config/CFG-1.yaml

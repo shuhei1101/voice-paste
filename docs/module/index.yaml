@@ -168,6 +168,8 @@ items:
     summary: 常駐アプリ / ホットキーと画面 / settings_edge_phrases.py
   - page: MOD-46.py.yaml
     summary: 常駐アプリ / ホットキーと画面 / settings_fields.py
+  - page: MOD-102.py.yaml
+    summary: 常駐アプリ / ホットキーと画面 / settings_shortcuts.py
   - page: MOD-38.py.yaml
     summary: 常駐アプリ / ホットキーと画面 / settings_glossaries.py
   - page: MOD-39.py.yaml

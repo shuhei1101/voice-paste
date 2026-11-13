@@ -19,6 +19,9 @@ classes:
       - name: progressed
         type: Signal(float, float)
         description: 文字起こしの区間の終わりの時刻と録音の長さ（秒）
+      - name: glossary_preset_switched
+        type: Signal(str)
+        description: ショートカットで補正に使用する用語集のプリセットを切り替えた（切り替えたプリセットの名前）。UiController.on_glossary_preset_switched へ
       - name: copied
         type: Signal(str)
         description: コピーの完了と起こした文字
@@ -145,3 +148,40 @@ functions:
     status: planned
     refs:
       - SCR-2#elements[もう一度コピー]
+  - name: notify_glossary_preset_switched
+    title: 用語集のプリセットの切り替えの知らせ
+    container: ui/bridge.py
+    usecase: 録音する
+    summary: UiBridge.glossary_preset_switched を emit して、メインスレッドでトレイに切り替えの通知を出す
+    kind: 関数
+    scope: public
+    thread_safe: true
+    args:
+      - name: name
+        type: str
+        required: true
+        passing: positional
+        description: 切り替えた用語集のプリセットの名前
+      - name: bridge
+        type: UiBridge
+        required: true
+        passing: injected
+        description: メインスレッドで作った橋渡し
+    returns:
+      type: None
+      description: なし
+    process: |-
+      1. `bridge.glossary_preset_switched.emit(name)` を呼ぶ
+         - `[INFO]` ユーザーへの通知（glossary_preset_switched・プリセットの名前）
+    unit_tests:
+      - name: test_notify_glossary_preset_switched
+        case: 正常
+        summary: プリセットの名前を Signal で引き渡す
+        condition: name="会議"
+        mock: なし（glossary_preset_switched に受け手をつなぐ）
+        expected: 受け手に "会議" が届き、INFO のログが 1 行出る
+    refs:
+      - SCR-2#notes
+    status: planned
+    introduced:
+      pr: 291

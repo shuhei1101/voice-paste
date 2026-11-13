@@ -224,7 +224,7 @@ external_systems:
     protocol: 子プロセスの起動（`gnome-session-inhibit --inhibit idle ... cat`。標準入力のパイプを閉じると終わる）
     detail: LIB-32#
     notes:
-      事前確認: 不要。起動できないときは警告をログに残して録音を続ける。
+      事前確認: 不要。起動できないとき・GNOME のセッションでないときは、警告をログに残して録音を続ける（GNOME のセッションでないことは、子プロセスが先に終わっていたことで録音を終えたときに検出する）。
     status: planned
     introduced:
       pr: 292

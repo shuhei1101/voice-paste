@@ -77,6 +77,10 @@ class VolumeControlError(AppError):
     """システム音量を操作できない。"""
 
 
+class DisplayInhibitError(AppError):
+    """画面の消灯を抑止できない・抑止を解除できない。"""
+
+
 class SettingsError(AppError):
     """設定の値が合わない。読めなかったファイルのパスを paths に持つ。"""
 

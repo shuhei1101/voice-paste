@@ -51,7 +51,12 @@ from voice_paste.features.outputs import (
 from voice_paste.features.outputs.paste_and_send import read_enter_delay_sec
 from voice_paste.features.recording import Recorder
 from voice_paste.features.recording.client import open_input
-from voice_paste.features.recording.types import LowerVolumeFn, RestoreVolumeFn
+from voice_paste.features.recording.types import (
+    InhibitDisplayFn,
+    LowerVolumeFn,
+    ReleaseDisplayFn,
+    RestoreVolumeFn,
+)
 from voice_paste.features.session import (
     Session,
     SessionApiDeps,
@@ -209,7 +214,7 @@ class CliArgs:
 
 @dataclass(frozen=True, slots=True, kw_only=True)
 class PlatformAdapters:
-    """動いている OS とデスクトップのセッションに合わせて選んだ、単一インスタンス・音量・ブラウザ・貼り付けのキーと Enter の送信・ホットキーの受付・Qt のプラットフォーム・文字起こしワーカーの起動・再起動の実装。
+    """動いている OS とデスクトップのセッションに合わせて選んだ、単一インスタンス・音量・画面の消灯の抑止・ブラウザ・貼り付けのキーと Enter の送信・ホットキーの受付・Qt のプラットフォーム・文字起こしワーカーの起動・再起動の実装。
 
     select_platform_adapters が作る。OS を見て実装を選ぶのはここだけで、各モジュールは sys.platform を見ない。
     """
@@ -222,6 +227,12 @@ class PlatformAdapters:
 
     restore_volume: RestoreVolumeFn | None
     """下げた音量を戻す（Windows）。Linux は None。"""
+
+    inhibit_display: InhibitDisplayFn
+    """録音の間、画面の消灯を抑止する（Windows は電源要求、Linux は gnome-session-inhibit）。"""
+
+    release_display: ReleaseDisplayFn
+    """画面の消灯の抑止を解除する。"""
 
     open_app_window: Callable[[str], None]
     """ブラウザ添付のプリセットの画面を開く。"""
@@ -295,8 +306,9 @@ def select_platform_adapters(
     """OS とデスクトップのセッションに合った実装を PlatformAdapters に束ねる。その OS・セッションだけのモジュールは、選んだ分岐の中で import する。"""
     # OS で分ける
     if os_kind is OsKind.WINDOWS:
-        # Windows: pycaw の音量・Edge・Win32 の排他（comtypes・pycaw を読み込むため Linux では import しない）
+        # Windows: pycaw の音量・電源要求・Edge・Win32 の排他（comtypes・pycaw・ctypes の Win32 を読み込むため Linux では import しない）
         from voice_paste.integrations.browser.opener import open_app_window
+        from voice_paste.integrations.display.adapter import inhibit_display, release_display
         from voice_paste.integrations.keyboard.sender import send_paste
         from voice_paste.integrations.volume.adapter import lower_volume, restore_volume
         from voice_paste.runtime.single_instance import acquire_single_instance
@@ -305,6 +317,8 @@ def select_platform_adapters(
             acquire_single_instance=acquire_single_instance,
             lower_volume=lower_volume,
             restore_volume=restore_volume,
+            inhibit_display=inhibit_display,
+            release_display=release_display,
             open_app_window=open_app_window,
             worker_creationflags=CREATE_NO_WINDOW,
             relaunch=partial(relaunch, os_kind=OsKind.WINDOWS),
@@ -316,6 +330,12 @@ def select_platform_adapters(
             close_key_sender=_do_nothing,
             validate_hotkeys=validate_hotkeys,
         )
+
+    # Linux: gnome-session-inhibit の画面の消灯の抑止（Xorg・Wayland で同じ）
+    from voice_paste.integrations.display.adapter_linux import (
+        inhibit_display_linux,
+        release_display_linux,
+    )
 
     # Linux のセッションで分ける
     if display_session is DisplaySession.WAYLAND:
@@ -331,6 +351,8 @@ def select_platform_adapters(
             acquire_single_instance=partial(acquire_single_instance_linux, lock_file=lock_file),
             lower_volume=None,
             restore_volume=None,
+            inhibit_display=inhibit_display_linux,
+            release_display=release_display_linux,
             open_app_window=open_app_window_linux,
             worker_creationflags=0,
             relaunch=partial(relaunch, os_kind=OsKind.LINUX),
@@ -352,6 +374,8 @@ def select_platform_adapters(
         acquire_single_instance=partial(acquire_single_instance_linux, lock_file=lock_file),
         lower_volume=None,
         restore_volume=None,
+        inhibit_display=inhibit_display_linux,
+        release_display=release_display_linux,
         open_app_window=open_app_window_linux,
         worker_creationflags=0,
         relaunch=partial(relaunch, os_kind=OsKind.LINUX),
@@ -588,7 +612,7 @@ def build_handlers(
         stop_engine()
         raise
 
-    # 4. 録音機に音量とマイクの入力の関数と、SettingsStore から録音の設定を返す関数と、VAD のセッションを部分適用した話し声の判定を作る関数を渡す
+    # 4. 録音機に音量と画面の消灯の抑止とマイクの入力の関数と、SettingsStore から録音の設定を返す関数と、VAD のセッションを部分適用した話し声の判定を作る関数を渡す
     # 音量を下げる機能を使えない OS か
     if Feature.LOWER_VOLUME in unavailable:
         # 使えない: 音量を変えない関数を渡す
@@ -598,6 +622,8 @@ def build_handlers(
     recorder = Recorder(
         lower_volume=lower_volume,
         restore_volume=restore_volume,
+        inhibit_display=adapters.inhibit_display,
+        release_display=adapters.release_display,
         open_input=open_input,
         get_settings=lambda: store.get().recording,
         create_speech_detector=partial(StreamingVad, vad_session),

@@ -75,6 +75,9 @@ tasks:
     updated_by: planner
     updated_at: '2026-11-13T03:08:57.731040+00:00'
   - process: 実装
-    status: todo
+    status: done
+    reason: 録音機・画面の消灯の抑止のアダプタ・配線・設定・設定画面・外の端末の画面を実装し、単体テストの全 pass と lint を確認した
+    updated_by: planner
+    updated_at: '2026-11-13T03:23:42.176331+00:00'
   - process: 結合テスト作成
     status: todo

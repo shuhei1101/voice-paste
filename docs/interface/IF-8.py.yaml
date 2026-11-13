@@ -57,6 +57,7 @@ flows:
     expected:
       - 200 が返る
       - 録音セッションが停止中のままである
+      - 画面の消灯の抑止の解除が、最初の停止の 1 回だけ呼ばれている
     test: test_normal_when_already_stopped
   - name: 異常系（トークンが合わない・401）
     summary: トークンが合わなければ停止しない

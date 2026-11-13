@@ -1362,6 +1362,68 @@ def test_start_local_session_when_unexpected_error(caplog: pytest.LogCaptureFixt
     assert len([record for record in caplog.records if record.levelno == logging.ERROR]) == 1
 
 
+# === _pin_settings_while_recording ===
+
+
+PINNED_VOLUME_PERCENT = 30
+"""固定を確かめるために、録音を始めた後に入れ替える設定の音量。"""
+
+RESTARTED_VOLUME_PERCENT = 40
+"""始め直した後に入れ替える設定の音量（始め直した録音で使用しない値）。"""
+
+
+def test_pin_settings_while_recording_when_cancel_pending(
+    default_settings: Settings, make_settings: Callable[..., Settings]
+) -> None:
+    """取り消しの猶予にしたら設定の固定を解く（正常系）。"""
+    from voice_paste.features.session.types import SessionState
+    from voice_paste.main import _pin_settings_while_recording
+    from voice_paste.runtime.settings_store import SettingsStore
+
+    # 準備
+    store = SettingsStore(default_settings)
+    notify = MagicMock()
+    new_settings = make_settings({"recording": {"volume_percent": PINNED_VOLUME_PERCENT}})
+
+    # 実行: 録音を始めて設定を入れ替えてから、取り消しの猶予にする
+    _pin_settings_while_recording("state_changed", str(SessionState.RECORDING), store=store, notify=notify)
+    store.replace(new_settings)
+    _pin_settings_while_recording(
+        "state_changed", str(SessionState.CANCEL_PENDING), store=store, notify=notify
+    )
+
+    # 検証
+    assert store.get().recording.volume_percent == PINNED_VOLUME_PERCENT
+    assert notify.call_args_list[-1] == call("state_changed", str(SessionState.CANCEL_PENDING))
+
+
+def test_pin_settings_while_recording_when_restart_within_grace(
+    default_settings: Settings, make_settings: Callable[..., Settings]
+) -> None:
+    """猶予の間に始め直したら最新の設定に固定し直す（正常系）。"""
+    from voice_paste.features.session.types import SessionState
+    from voice_paste.main import _pin_settings_while_recording
+    from voice_paste.runtime.settings_store import SettingsStore
+
+    # 準備
+    store = SettingsStore(default_settings)
+    notify = MagicMock()
+    saved_in_grace = make_settings({"recording": {"volume_percent": PINNED_VOLUME_PERCENT}})
+    saved_after_restart = make_settings({"recording": {"volume_percent": RESTARTED_VOLUME_PERCENT}})
+
+    # 実行: 録音を始めて猶予にし、猶予の間に設定を入れ替えてから始め直し、もう一度入れ替える
+    _pin_settings_while_recording("state_changed", str(SessionState.RECORDING), store=store, notify=notify)
+    _pin_settings_while_recording(
+        "state_changed", str(SessionState.CANCEL_PENDING), store=store, notify=notify
+    )
+    store.replace(saved_in_grace)
+    _pin_settings_while_recording("state_changed", str(SessionState.RECORDING), store=store, notify=notify)
+    store.replace(saved_after_restart)
+
+    # 検証
+    assert store.get().recording.volume_percent == PINNED_VOLUME_PERCENT
+
+
 # === _wire_outputs ===
 
 

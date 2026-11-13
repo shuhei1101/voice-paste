@@ -378,7 +378,7 @@ functions:
       description: 配線済みの関数の束
     process: |-
       1. 設定を SettingsStore に入れる。以降の配線は設定を値でなく SettingsStore.get から読み込む（保存した immediate の項目を次の回から有効にする）
-         - SessionDeps.notify には、`state_changed` の `recording` で SettingsStore.pin、`idle` で SettingsStore.unpin を呼んでから notify を呼ぶ関数を引き渡す（録音を始めた時点の設定でその回を確定まで動かす。設計書『設定を変える』の補足『録音中の設定画面』）
+         - SessionDeps.notify には、`state_changed` の `recording` で SettingsStore.pin、`idle`・`cancel_pending` で SettingsStore.unpin を呼んでから notify を呼ぶ関数を引き渡す（録音を始めた時点の設定でその回を確定まで動かす。取り消しの猶予の間は待機中と同じく固定を解き、猶予の間に始め直すと `recording` でその時点の最新の設定に固定し直す。設計書『設定を変える』の補足『録音中の設定画面』）
       2. 設定のエンジンで文字起こしの engine と stop_engine を作り、engine を文字起こしに引き渡す。get_hint には、SettingsStore.get の hint_presets を join_hint_words でつなぎ、空なら None を返却する関数を引き渡す
          - local_whisper の場合、ensure_local_whisper_installed で確認（StartupError はそのまま送出する）、WhisperWorkerClient を adapters.worker_creationflags で作り、on_engine_created にその stop を引き渡してから起動する。engine はその transcribe、stop_engine はその stop
            - EngineError の場合、StartupError を送出する
@@ -428,6 +428,18 @@ functions:
         condition: transcription.engine=haas、HaasServer.ensure_started が ("dtype", "device") を返却する
         mock: HaasServer・WhisperWorkerClient・notify
         expected: notify に engine_settings_mismatch と「計算の精度・装置」が渡り、active_engine が haas
+      - name: test_pin_settings_while_recording_when_cancel_pending
+        case: 正常
+        summary: 取り消しの猶予にしたら設定の固定を解く
+        condition: '`state_changed` の `recording` を通知してから設定を replace し、`state_changed` の `cancel_pending` を通知する'
+        mock: notify
+        expected: '`cancel_pending` の後の SettingsStore.get が replace した設定を返却し、notify に `state_changed` と `cancel_pending` が渡る'
+      - name: test_pin_settings_while_recording_when_restart_within_grace
+        case: 正常
+        summary: 猶予の間に始め直したら最新の設定に固定し直す
+        condition: '`recording`・`cancel_pending` を通知し、設定を replace してから `recording` を通知し、もう一度 replace する'
+        mock: notify
+        expected: 2 回目の `recording` の後の SettingsStore.get が 1 回目の replace の設定を返却する（2 回目の replace の設定ではない）
   - name: main
     title: 起動
     kind: 関数

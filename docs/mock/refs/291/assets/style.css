@@ -11,10 +11,11 @@
 
 /* ショートカットの一覧: キーの欄と用語集のプリセットの欄を並べる */
 .shortcuts {
+  min-width: 32rem;
   td:first-child { width: 45%; }
   input.hotkey, select { width: 100%; min-width: 9em; }
-  tr[data-added="true"] td { background: var(--surface-2); }
-  .field-error { margin: 4px 0 0; }
+  tr[data-added="true"] td { background: color-mix(in oklab, var(--accent-fg) 10%, var(--surface)); }
+  .field-error { margin: 4px 0 0; text-align: left; }
 }
 
 /* 行が無いときの文 */

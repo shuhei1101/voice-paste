@@ -1,0 +1,6 @@
+$ python 実行.py /mnt/c/Users/shuhe/repo/voice-paste/.claude/worktrees/chore-ai-monitor-follow-v0.4.0 --dry-run
+前提確認: ok
+dev-docs.yaml: ok
+配信元の登録: ok
+共通設定の撤去した設計書のツール: ok
+exit: 0

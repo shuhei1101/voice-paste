@@ -1,0 +1,5 @@
+$ python 実行.py /mnt/c/Users/shuhe/repo/voice-paste/.claude/worktrees/chore-ai-monitor-follow-v0.4.0 --dry-run
+前提確認: ok
+退避先: /mnt/c/Users/shuhe/repo/voice-paste/.git/worktrees/chore-ai-monitor-follow-v0.4.0/ai-monitor-pr2941-backup
+写しの削除: skipped
+exit: 0

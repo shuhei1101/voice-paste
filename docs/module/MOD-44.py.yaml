@@ -8,7 +8,7 @@ functions:
     title: スタイルシートの組み立て
     container: ui/style.py
     usecase: 共通
-    summary: リポジトリの直下の content/tokens.toml（デザイン方針の色・書体・余白）を QSS に埋め、アプリ全体のスタイルシートを返却する。部品ごとに色・書体を直書きしない。枠なしの窓（録音の画面・文字起こし中の表示）の外側の枠線 `QFrame[role="window"]` と `QMenu` は、面を surface、縁を frame の 1px の線で描き、ほかの線は border のままにする。チェックボックス・ラジオボタンはマーカーと名前の組に透明の 1px の枠線を持たせ、フォーカスで枠を accent_fg、使用できないとき名前を text_muted にする。マーカーと名前の間は `shape.indicator_gap`。選択欄の開くマーカーは、区画（`::drop-down`）に枠を持たせず、`::down-arrow` に write_arrow_image が書き込んだ V 字の画像を適用する（`url()` には `/` 区切りのパス（`Path.as_posix()`）を `"` で囲んで入れる。`\` 区切りでは描かれない）。チェックボックス・ラジオボタンのマーカー（`::indicator`）の規則は持たず IndicatorStyle が描く
+    summary: `shared/constants.py` の REPO_ROOT の下の content/tokens.toml（デザイン方針の色・書体・余白）を QSS に埋め、アプリ全体のスタイルシートを返却する。部品ごとに色・書体を直書きしない。枠なしの窓（録音の画面・文字起こし中の表示）の外側の枠線 `QFrame[role="window"]` と `QMenu` は、面を surface、縁を frame の 1px の線で描き、ほかの線は border のままにする。チェックボックス・ラジオボタンはマーカーと名前の組に透明の 1px の枠線を持たせ、フォーカスで枠を accent_fg、使用できないとき名前を text_muted にする。マーカーと名前の間は `shape.indicator_gap`。選択欄の開くマーカーは、区画（`::drop-down`）に枠を持たせず、`::down-arrow` に write_arrow_image が書き込んだ V 字の画像を適用する（`url()` には `/` 区切りのパス（`Path.as_posix()`）を `"` で囲んで入れる。`\` 区切りでは描かれない）。チェックボックス・ラジオボタンのマーカー（`::indicator`）の規則は持たず IndicatorStyle が描く
     kind: 関数
     scope: public
     args:

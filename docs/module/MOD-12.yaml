@@ -47,7 +47,7 @@ directory: |-
   | 起動しない | 上の表の理由の行（`voice-paste.bat` は `voice-paste.sh` に読み替える）と `See log: {launcher.log のパス}` を標準エラーに出し、同じ終了コードで終わる。`pause` に当たる止めは持たず、標準エラーが端末でなく `notify-send` があるときは同じ 2 行を通知する |
   | 起動の記録 | `${XDG_DATA_HOME:-~/.local/share}/voice-paste/log/launcher.log` へ起動ごとに上書きで書き込む（platformdirs の user_data_dir の `log/` と同じ場所） |
 
-  自動起動の雛形（`voice-paste.desktop`）は `Type=Application`・`Name=voice-paste`・`Exec="@REPO_DIR@/voice-paste.sh"`・`Icon=@REPO_DIR@/resources/tray/idle.png`・`Terminal=false`・`X-GNOME-Autostart-enabled=true` を持つ。手順のページの `sed` で `@REPO_DIR@` をクローンの絶対パスに置き換えて、`~/.config/autostart/`（ログイン時の自動起動）と `~/.local/share/applications/`（アプリの一覧）へ書き出す。
+  自動起動の雛形（`voice-paste.desktop`）は `Type=Application`・`Name=voice-paste`・`Exec="@REPO_DIR@/voice-paste.sh"`・`Icon=@REPO_DIR@/resources/tray_idle.png`・`Terminal=false`・`X-GNOME-Autostart-enabled=true` を持つ。手順のページの `sed` で `@REPO_DIR@` をクローンの絶対パスに置き換えて、`~/.config/autostart/`（ログイン時の自動起動）と `~/.local/share/applications/`（アプリの一覧）へ書き出す。
   起動のスクリプトと雛形は単体テストを持たず、検証環境の VM での起動から貼り付けまでの通しの確認で確認する（`voice-paste.bat` と同じ）。
   `pyproject.toml` の `[project.scripts]` の `voice-paste` は `voice_paste.main:main` を指す。
 diagrams:

@@ -151,14 +151,9 @@ entries:
         content_types: [config]
   - type: folder
     name: resources
-    contents: 常駐アプリが読み込む画像
+    contents: 常駐アプリが読み込む画像（トレイの状態ごとのアイコン）
     content_types: [asset]
-    children:
-      - type: folder
-        name: tray
-        contents: トレイの状態ごとのアイコン
-        content_types: [asset]
-        naming: ["{state}.png"]
+    naming: ["tray_{state}.png"]
   - type: folder
     name: content
     contents: 常駐アプリが読み込む、設定で上書きしない定義の原本

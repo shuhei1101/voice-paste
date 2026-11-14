@@ -50,6 +50,7 @@ categories:
     prerequisites:
       - Node.js（LTS）と npm を入れておく
       - リポジトリの直下で `npm ci` を実行し、`package-lock.json` のバージョンで `typescript`・`eslint`・`typescript-eslint` を `node_modules/` に入れる
+      - 4・5 は、AI Monitor をクローンし、その場所を環境変数 `AI_MONITOR_HOME` に設定しておく（WSL・Linux の uv で実行する）
     commands: |-
       1. 外の端末の画面のスクリプト（`src/voice_paste/server/web/assets/app.ts`）から、同じフォルダの `app.js` を生成する（生成した `app.js` はコミットする）
 
@@ -68,10 +69,22 @@ categories:
       ```bash
       npm install --save-dev {パッケージ}
       ```
+
+      4. `docs/index.yaml`・`docs/{種類}/index.yaml` から `docs/README.md`・`docs/{種類}/README.md` を、`docs/guide/` の文書の分類から `docs/_theme/_data/nav.project.yml` を書き出す（書き出したファイルはコミットする。`--check` を付けると書き換えずに、書き換えが要るファイルを出す）
+
+      ```bash
+      cd "$AI_MONITOR_HOME" && PYTHONPATH=src uv run python -m ai_monitor.design_docs publish --root {voice-paste の作業ツリーの直下}
+      ```
+
+      5. YAML の設計書から `docs/generated/` の Markdown を生成する（`docs/generated/` は Git で管理しない）
+
+      ```bash
+      cd "$AI_MONITOR_HOME" && PYTHONPATH=src uv run python -m ai_monitor.design_docs generate --root {voice-paste の作業ツリーの直下}
+      ```
     verification:
       state: 済
-      date: '2026-10-24'
-      detail: 'PR [#171 外の端末のブラウザから音声を送って文字に起こす画面とエンドポイントを追加する](https://github.com/shuhei1101/voice-paste/issues/171) の作業ツリー（WSL・Node.js v24.14.0・npm 11.9.0）で、`node_modules/` を削除してから `npm ci` で `package-lock.json` どおりに入れ、`npm run build` が `assets/app.ts` から `assets/app.js` を生成し（再実行しても差分が出ない）、`npm run dev` が `Found 0 errors. Watching for file changes.` で保存を待つことを確認した。`npm install --save-dev typescript eslint typescript-eslint @eslint/js` で `package.json` と `package-lock.json` が書き換わることも確認した'
+      date: '2026-11-14'
+      detail: 'PR [#171 外の端末のブラウザから音声を送って文字に起こす画面とエンドポイントを追加する](https://github.com/shuhei1101/voice-paste/issues/171) の作業ツリー（WSL・Node.js v24.14.0・npm 11.9.0）で、`node_modules/` を削除してから `npm ci` で `package-lock.json` どおりに入れ、`npm run build` が `assets/app.ts` から `assets/app.js` を生成し（再実行しても差分が出ない）、`npm run dev` が `Found 0 errors. Watching for file changes.` で保存を待つことを確認した。`npm install --save-dev typescript eslint typescript-eslint @eslint/js` で `package.json` と `package-lock.json` が書き換わることも確認した。4・5 は 2026-11-14 に PR [#310](https://github.com/shuhei1101/voice-paste/pull/310) の作業ツリーを `--root` に指定して実行し、`publish --check` が書き換えが要る `docs/{種類}/README.md` を出して終了コード 1 で終わること（書き換えが要るファイルがあるときの終了コード）と、`generate` が `docs/generated/` へ 185 件を生成し、Git の差分が出ないことを確認した'
   - name: 環境構築（クローン直後）
     prerequisites:
       - クローンしたリポジトリの直下で実行する

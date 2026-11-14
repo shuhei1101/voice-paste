@@ -1,0 +1,4 @@
+summary: リポジトリの直下からのフォルダとファイルの構成
+items:
+- page: LAY-1.yaml
+  summary: 常駐アプリのコードの `src/`、Haas の文字起こしのサーバーの `haas_server/`、テストの `tests/`、設計書と公開ドキュメントの `docs/` に分ける。

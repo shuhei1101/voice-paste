@@ -1,0 +1,59 @@
+docs:
+  - page: docs/layout/LAY-1.yaml
+    new: true
+    change: knowledge の layout のスキーマの書式で、リポジトリの直下からのフォルダとファイルを entries[] の入れ子で記載し、生成物・一時ファイルを gitignore[]・generated_from、中身の種類を content_types で記載する
+    status: done
+    updated_by: planner
+    updated_at: '2026-11-14T07:18:45.541072+00:00'
+  - page: docs/layout/index.yaml
+    new: true
+    change: docs/layout/ の目次を作る
+    status: done
+    updated_by: planner
+    updated_at: '2026-11-14T07:18:45.541072+00:00'
+  - page: docs/index.yaml
+    new: false
+    change: items に layout/ の行を加える
+    status: done
+    updated_by: planner
+    updated_at: '2026-11-14T07:18:45.541072+00:00'
+  - page: dev-docs.yaml
+    new: false
+    change: documents[] に layout の行を加え、schema は knowledge の schemas/design/layout.schema.yaml を design-schemas のタグつきで参照する
+    status: done
+    updated_by: planner
+    updated_at: '2026-11-14T07:18:45.541072+00:00'
+  - page: docs/_config.yml
+    new: false
+    change: GitHub Pages の exclude に layout/ を加える（publish が書き出す）
+    status: done
+    updated_by: planner
+    updated_at: '2026-11-14T07:18:56.462575+00:00'
+scope_out:
+  - item: layout 以外の設計書の schema を、schemas/ のコピーから knowledge のスキーマの参照へ移すこと
+    reason: shuhei1101/ai-monitor#3188 の反映作業が配布先へ知らせる移行で、この Issue は layout の行だけを加える
+    plan: none
+  - item: '同じ種類が散る（config）: 設定の見本が直下の settings.sample.yaml と resources/yogo.csv に分かれ、既定値の config/ とも別の場所にある'
+    reason: レビューの観点で見つかった問題で、起点 Issue は別の Issue で対処する。レビューで起票すると確定した
+    plan: '#301'
+  - item: '種類が混ざる: src/voice_paste/ui/ がコードとデザイントークンの tokens.toml を持ち、ui/ は規約『トップレベルレイアウト + feature 内構造』のトップレベルに無い'
+    reason: レビューの観点で見つかった問題で、起点 Issue は別の Issue で対処する。レビューで起票すると確定した
+    plan: '#302'
+  - item: '種類が混ざる: haas_server/ がマニフェスト・起動のスクリプト・コードを直下に平らに持ち、src レイアウトになっていない'
+    reason: レビューの観点で見つかった問題で、起点 Issue は別の Issue で対処する。レビューで起票すると確定した
+    plan: '#303'
+  - item: '管理しないもの: docs/{種類}/README.md・docs/_theme/_data/nav.project.yml・docs/generated/ を生成する AI Monitor の publish・generate が開発コマンドに無く、generated_from を記載できない'
+    reason: レビューの観点で見つかった問題で、起点 Issue は別の Issue で対処する。レビューで起票すると確定した
+    plan: '#304'
+  - item: '管理しないもの: .claude/worktrees/ が .gitignore に無く、手元の .git/info/exclude だけで除外している'
+    reason: レビューの観点で見つかった .gitignore の食い違いで、起点 Issue は別の Issue で対処する。設計書の gitignore は今の .gitignore のまま記載した
+    plan: '#305'
+  - item: publish を流すと docs/interface・library・module・scenario・screen の README.md が作り直される（目次の表の書式と、library の LIB-32・LIB-33 の行の欠け）
+    reason: この作業 PR が変えない目次の生成物のずれで、この作業 PR では作り直した分を戻した
+    plan: '#306'
+  - item: 規約『テストの種類と配置』（python-testing-layers）のファイル配置に、規約『V字モデル』（dev-v-model）が定める tests/nfr/ が無い
+    reason: knowledge の規約どうしの食い違いで、voice-paste の配置は規約どおり。規約『ルール改修の報告』の経路で起票する
+    plan: shuhei1101/knowledge#374
+  - item: '種類が混ざる: docs/ の直下が guide（index.md・design-policy.md）と tool_config（rules.yaml・_config.yml）を持つ'
+    reason: _config.yml と index.md は GitHub Pages が docs/ の直下に求めるため、再分割しない
+    plan: none

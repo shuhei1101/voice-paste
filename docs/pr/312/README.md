@@ -1,0 +1,1 @@
+# .gitignore に .claude/worktrees/ を加える

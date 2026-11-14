@@ -20,12 +20,18 @@
 
 | 対象 | 方針 | 補足 |
 | --- | --- | --- |
-| コードの置き場所 | `__init__.py`・`main.py`・`app.py`・`audio.py` を中身を変えずに移す | 分け方は `未確定`（[要件](./要件.md)） |
-| 起動スクリプト | 移した後も、受けた引数を全て `haas_server.main` へ引き渡し、環境の python を絶対パスで起動する | import の方法は `未確定`（[要件](./要件.md)） |
-| マニフェスト | 依存・`uv.lock` の中身は変えない | `package` を変えるかは import の方法で決まる |
-| テスト | テストのコードの import 文（`haas_server.*`）は変えず、常駐アプリの `.venv` から移した後のコードを import できるようにする | 結合テストの別プロセスの起動も同じ検索先で動かす |
+| コードの置き場所 | `__init__.py`・`main.py`・`app.py`・`audio.py` を中身を変えずに `haas_server/src/haas_server/` へ移動し、`files.yml` を `haas_server/src/files.yml` へ移動する | - |
+| 起動スクリプト | `cd "$(dirname "$0")/src"` へ変え、受けた引数を全て `haas_server.main` へ引き渡し、環境の python を絶対パスで起動する | `haas_server/` の直下に配置したまま |
+| マニフェスト | 依存・`uv.lock`・`package = false` は変えない | - |
+| テスト | テストのコードの import 文（`haas_server.*`）は変えず、直下の `pyproject.toml` の pytest の `pythonpath` に `haas_server/src` を加える | 別のプロセスでサーバーを動かす結合テスト（`test_shutdown.py`）は環境変数 `PYTHONPATH` で同じフォルダを渡す |
 | 設計書 | MOD-98〜101・LAY-1 のパスと図を移した後の構成に更新する | - |
 | 動作環境 | サーバーの環境の置き場所・Python 3.11・ログの置き場所は変えない | - |
+
+## 設計書の確定コミット
+
+| 工程 | 範囲 | 補足 |
+| --- | --- | --- |
+| モジュール構成設計 | `7d9ae05..d376e85` | - |
 
 ## テスト結果
 

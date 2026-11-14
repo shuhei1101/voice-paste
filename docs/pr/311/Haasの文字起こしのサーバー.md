@@ -39,16 +39,16 @@
 
 | ファイル | メソッド | 変更種別 | 結果 | 補足 |
 | --- | --- | --- | --- | --- |
-| [tests/unit/haas_server/](https://github.com/shuhei1101/voice-paste/tree/7d9ae053c7ce87a869492c465d3ada707cca6a6b/tests/unit/haas_server) | 全実行 | 実行のみ | ✅ | 18 テスト pass。移した後の `haas_server/src/haas_server/` を pytest の `pythonpath` で import する<br>`テスト結果/20261114193142_df193eb_単体テスト.log` |
-| `tests/unit` の残り | 全実行 | 実行のみ | ✅ | 全体で 937 passed、57 skipped<br>`テスト結果/20261114193142_df193eb_単体テスト.log` |
+| [tests/unit/haas_server/](https://github.com/shuhei1101/voice-paste/tree/7d9ae053c7ce87a869492c465d3ada707cca6a6b/tests/unit/haas_server) | 全実行 | 実行のみ | ✅ | 18 テスト pass。移した後の `haas_server/src/haas_server/` を pytest の `pythonpath` で import する<br>`テスト結果/20261114194902_c2973ec_単体テスト.log` |
+| `tests/unit` の残り | 全実行 | 実行のみ | ✅ | 全体で 937 passed、57 skipped<br>`テスト結果/20261114194902_c2973ec_単体テスト.log` |
 
 ### 結合
 
 | ファイル | メソッド | 変更種別 | 結果 | 補足 |
 | --- | --- | --- | --- | --- |
-| [tests/integration/haas_server/test_shutdown.py](https://github.com/shuhei1101/voice-paste/blob/7d9ae053c7ce87a869492c465d3ada707cca6a6b/tests/integration/haas_server/test_shutdown.py) | 全実行 | 変更 | ✅ | 別のプロセスのサーバーへ `haas_server/src` を `PYTHONPATH` で指定する<br>`テスト結果/20261114193333_145cb77_結合テスト.log` |
-| [tests/integration/haas_server/test_transcribe.py](https://github.com/shuhei1101/voice-paste/blob/7d9ae053c7ce87a869492c465d3ada707cca6a6b/tests/integration/haas_server/test_transcribe.py) | 全実行 | 実行のみ | ✅ | `テスト結果/20261114193333_145cb77_結合テスト.log` |
-| [tests/integration/haas_server/test_health.py](https://github.com/shuhei1101/voice-paste/blob/7d9ae053c7ce87a869492c465d3ada707cca6a6b/tests/integration/haas_server/test_health.py) | 全実行 | 実行のみ | ✅ | 3 ファイルで 19 passed<br>`テスト結果/20261114193333_145cb77_結合テスト.log` |
+| [tests/integration/haas_server/test_shutdown.py](https://github.com/shuhei1101/voice-paste/blob/7d9ae053c7ce87a869492c465d3ada707cca6a6b/tests/integration/haas_server/test_shutdown.py) | 全実行 | 変更 | ✅ | 別のプロセスのサーバーへ `haas_server/src` を `PYTHONPATH` で指定する<br>`テスト結果/20261114194902_c2973ec_結合テスト.log` |
+| [tests/integration/haas_server/test_transcribe.py](https://github.com/shuhei1101/voice-paste/blob/7d9ae053c7ce87a869492c465d3ada707cca6a6b/tests/integration/haas_server/test_transcribe.py) | 全実行 | 実行のみ | ✅ | `テスト結果/20261114194902_c2973ec_結合テスト.log` |
+| [tests/integration/haas_server/test_health.py](https://github.com/shuhei1101/voice-paste/blob/7d9ae053c7ce87a869492c465d3ada707cca6a6b/tests/integration/haas_server/test_health.py) | 全実行 | 実行のみ | ✅ | 3 ファイルで 19 passed<br>`テスト結果/20261114194902_c2973ec_結合テスト.log` |
 
 ### 起動
 

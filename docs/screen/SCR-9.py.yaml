@@ -1361,5 +1361,5 @@ notes:
     | マーカーと名前の間・ラジオボタンの選択肢の間 | マーカーと名前の間は 8px、ラジオボタンの選択肢の間は 20px |
     | 選択欄の開くマーカー | 欄の右端に別の枠線を持たせず、`text_muted` の線の V 字を配置する |
 
-    色の役割は `src/voice_paste/ui/tokens.toml` の色のトークンに従う。部品ごとの状態の見本は `docs/mock/components/check-indicator/`。
+    色の役割は `content/tokens.toml` の色のトークンに従う。部品ごとの状態の見本は `docs/mock/components/check-indicator/`。
 test_file: tests/integration/ui/test_settings_window.py

@@ -104,7 +104,7 @@ requirements:
     tests:
       - name: test_paste_latency
         summary: 録音を止めてから貼り付けのキーを押す直前までの中央値が決定値以下である
-        condition: 固めた設定（`tests/nfr/fixtures/whisper.env` の large-v3・cuda・int8）と用語集（`tests/nfr/fixtures/yogo.csv`。`resources/yogo.csv` と同じ）で build_handlers を一時フォルダの配置先で配線し、モデルの読み込みを待つ。マイクの入力（open_input）は、刷新前を再測定したのと同じ録音（`tests/nfr/fixtures/recordings/latency/20261002212623.wav`）の先頭 10 秒を 1024 フレームずつ引き渡すもの、音量の操作は何もしないもの、貼り付けのキー（send_paste）は押した時刻だけを記録するものに差し替える。ホットキーの入口で録音セッションを始め、録音が 10 秒分たまったら貼り付けのみ（paste_only）で確定する。先に捨てる 1 回の後、これを 20 回続ける
+        condition: 固めた設定（`tests/nfr/fixtures/whisper.env` の large-v3・cuda・int8）と用語集（`tests/nfr/fixtures/yogo.csv`。`config/yogo.sample.csv` と同じ）で build_handlers を一時フォルダの配置先で配線し、モデルの読み込みを待つ。マイクの入力（open_input）は、刷新前を再測定したのと同じ録音（`tests/nfr/fixtures/recordings/latency/20261002212623.wav`）の先頭 10 秒を 1024 フレームずつ引き渡すもの、音量の操作は何もしないもの、貼り付けのキー（send_paste）は押した時刻だけを記録するものに差し替える。ホットキーの入口で録音セッションを始め、録音が 10 秒分たまったら貼り付けのみ（paste_only）で確定する。先に捨てる 1 回の後、これを 20 回続ける
         measurement: SessionManager.complete を呼んだ時点から、差し替えた貼り付けのキーが押された時点までを time.perf_counter で測り、20 回の生の値と中央値・最小・最大を出す
         expected: 20 回とも貼り付けのキーが押され、中央値が 1.59 秒以下
         notes: クリップボードは実物を書き換えるため、測る前の文字を記録して測った後に戻す。録音は特性テスト（test_transcription_parity）が検出しない `recordings/latency/` に配置する。`--run-e2e` が無い環境・録音が無い環境・GPU が無い環境（Linux を含む）では skip する

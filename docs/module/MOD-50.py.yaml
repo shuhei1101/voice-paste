@@ -1125,7 +1125,7 @@ functions:
       - name: test_load_settings_when_sample_file
         case: 正常
         summary: リポジトリの見本は、既定値に重ねて設定のモデルの検証に通る
-        condition: リポジトリの直下の settings.sample.yaml を settings_file に写す
+        condition: リポジトリの config/settings.sample.yaml を settings_file に写す
         mock: なし（一時フォルダ）
         expected: SettingsError にならない
       - name: test_load_settings_when_only_show_hotkeys

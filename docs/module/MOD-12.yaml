@@ -16,7 +16,7 @@ directory: |-
       └── timer.py             # RepeatingTimer（上限での打ち切りを定期に呼ぶ）
   ```
 
-  リポジトリの直下は `pyproject.toml`・`uv.lock`・`.python-version`・起動のバッチファイル（`voice-paste.bat`）・Linux の起動のスクリプト（`voice-paste.sh`）・自動起動の雛形（`voice-paste.desktop`）・`config/`・`settings.sample.yaml`・`README.md`・`CLAUDE.md`・`src/`・`resources/`・`tests/`・`dev/`・`docs/` に絞る。
+  リポジトリの直下は `pyproject.toml`・`uv.lock`・`.python-version`・起動のバッチファイル（`voice-paste.bat`）・Linux の起動のスクリプト（`voice-paste.sh`）・自動起動の雛形（`voice-paste.desktop`）・`config/`・`README.md`・`CLAUDE.md`・`src/`・`resources/`・`content/`・`tests/`・`dev/`・`docs/` に絞る。
 
   動かす環境は、リポジトリの直下で Windows の uv（WSL からは `uv.exe`）で `uv sync --frozen` を実行して `.venv/` に作り、ローカルの Whisper（faster-whisper・nvidia-*）を使用する環境は `--extra local-whisper` を付けて流す（`uv.lock` のバージョンで入り、Python のバージョンは `.python-version` の 3.14）。
   Windows のクローンで WSL の uv で実行すると `.venv/` を Linux の構成に作り直すため、Windows のクローンの環境を作るコマンドと環境で実行するコマンドは Windows の uv で実行する（`uv lock` はどちらでもよい）。

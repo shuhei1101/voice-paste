@@ -169,7 +169,7 @@ documents:
     body_file: path
   - id: files_haas_server
     title: Haas の文字起こしのサーバーのコード
-    paths: ["haas_server/files.yml"]
+    paths: ["haas_server/src/files.yml"]
     schema: schemas/files.schema.yaml
     records: files
     body_file: path

@@ -1,0 +1,85 @@
+tasks:
+  - process: 初期構築
+    status: skipped
+    reason: 既存のリポジトリのため対象外
+    updated_by: planner
+    updated_at: '2026-11-14T09:54:49.634941+00:00'
+  - process: リバースエンジニアリング
+    status: skipped
+    reason: 設計書は揃っており、棚卸しは要らない
+    updated_by: planner
+    updated_at: '2026-11-14T09:54:49.634941+00:00'
+  - process: 方針決め
+    status: skipped
+    reason: 方針決めを依頼する Issue ではない
+    updated_by: planner
+    updated_at: '2026-11-14T09:54:49.634941+00:00'
+  - process: PoC 検証
+    status: skipped
+    reason: ファイルの置き場所の変更だけで、未検証の技術機構に依存しない
+    updated_by: planner
+    updated_at: '2026-11-14T09:54:49.634941+00:00'
+  - process: 複合ユースケース設計
+    status: skipped
+    reason: 動きを変えないため、業務の流れは変わらない
+    updated_by: planner
+    updated_at: '2026-11-14T09:54:49.634941+00:00'
+  - process: デザインスタイル選定
+    status: skipped
+    reason: 画面に関わらない（判定フローチャート『モック要否』）
+    updated_by: planner
+    updated_at: '2026-11-14T09:54:49.634941+00:00'
+  - process: 画面一覧・画面遷移
+    status: skipped
+    reason: 画面に関わらない（判定フローチャート『モック要否』）
+    updated_by: planner
+    updated_at: '2026-11-14T09:54:49.634941+00:00'
+  - process: 単一ユースケース設計
+    status: skipped
+    reason: 動きを変えないため、利用者の操作とシナリオの記述は変わらない
+    updated_by: planner
+    updated_at: '2026-11-14T09:54:49.634941+00:00'
+  - process: モック作成
+    status: skipped
+    reason: 画面に関わらない（判定フローチャート『モック要否』）
+    updated_by: planner
+    updated_at: '2026-11-14T09:54:49.634941+00:00'
+  - process: インターフェース定義設計
+    status: skipped
+    reason: サーバーの API（IF-12〜14）は変わらない。テストファイルのパスが変わる場合はドキュメント修正で直す
+    updated_by: planner
+    updated_at: '2026-11-14T09:54:49.634941+00:00'
+  - process: 部品設計
+    status: skipped
+    reason: 画面の部品に関わらない
+    updated_by: planner
+    updated_at: '2026-11-14T09:54:49.634941+00:00'
+  - process: 画面設計
+    status: skipped
+    reason: 画面に関わらない（判定フローチャート『画面設計要否』）
+    updated_by: planner
+    updated_at: '2026-11-14T09:54:49.634941+00:00'
+  - process: モジュール構成設計
+    status: done
+    note: haas_server/ の分け方を決め、MOD-96・MOD-98〜101 の container と directory、フォルダ構成の設計書 LAY-1 を直す
+    updated_by: planner
+    updated_at: '2026-11-14T10:05:00.286530+00:00'
+  - process: ドキュメント修正
+    status: done
+    note: 設計の工程と TP-1 で更新した。haas_server/files.yml・tests/files.yml は実装で移すコードとあわせて修正する
+    updated_by: planner
+    updated_at: '2026-11-14T10:20:31.582119+00:00'
+  - process: 単体テスト作成
+    status: skipped
+    reason: モジュール構成の単体テストの表も、テストのコードの import 文（haas_server.*）も変わらない。移した後の import は実装の後の単体テストの全件実行で確かめる
+    updated_by: planner
+    updated_at: '2026-11-14T10:20:52.237233+00:00'
+  - process: 実装
+    status: done
+    note: 実装の後に wsl.exe から start.sh を起動して確かめ直し、MOD-98 の notes の『起動スクリプト』の確認の記録を差し替える（reviewer の任意の指摘の案 A）
+    updated_by: planner
+    updated_at: '2026-11-14T10:32:19.486017+00:00'
+  - process: 結合テスト作成
+    status: done
+    updated_by: planner
+    updated_at: '2026-11-14T10:33:51.989947+00:00'

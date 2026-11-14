@@ -244,7 +244,7 @@ tables:
     scale: 1 MB を 3 世代（RotatingFileHandler）
     retention: 世代を超えた分を削除する
     deletion: RotatingFileHandler が古い世代を削除する。常駐アプリの保持期間の削除の対象にしない
-    implementation: haas_server/main.py
+    implementation: haas_server/src/haas_server/main.py
     refs:
       - MOD-101#functions[main]
     status: planned

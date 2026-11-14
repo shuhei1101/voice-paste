@@ -14,15 +14,15 @@ files:
         type: tests
   - path: unit/haas_server/test_app.py
     related:
-      - to: haas_server/app.py
+      - to: haas_server/src/haas_server/app.py
         type: tests
   - path: unit/haas_server/test_audio.py
     related:
-      - to: haas_server/audio.py
+      - to: haas_server/src/haas_server/audio.py
         type: tests
   - path: unit/haas_server/test_main.py
     related:
-      - to: haas_server/main.py
+      - to: haas_server/src/haas_server/main.py
         type: tests
   - path: unit/voice_paste/features/correction/test_service.py
     related:

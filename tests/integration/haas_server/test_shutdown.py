@@ -5,6 +5,7 @@
 
 from __future__ import annotations
 
+import os
 import subprocess
 import sys
 import threading
@@ -22,6 +23,8 @@ from tests.support.real_service import free_port
 EXIT_WAIT_SEC = 30.0
 START_WAIT_SEC = 30.0
 WAV_SECONDS = 1
+HAAS_SERVER_SRC_DIR = Path(__file__).resolve().parents[3] / "haas_server" / "src"
+"""別のプロセスのサーバーが haas_server を import するフォルダ（pytest の pythonpath は別のプロセスに伝わらない）。"""
 
 
 @dataclass
@@ -55,7 +58,8 @@ def server(tmp_path: Path) -> Iterator[Server]:
             str(port),
             str(log_file),
             str(tmp_path),
-        ]
+        ],
+        env={**os.environ, "PYTHONPATH": os.pathsep.join(filter(None, [str(HAAS_SERVER_SRC_DIR), os.environ.get("PYTHONPATH")]))},
     )
     url = f"http://127.0.0.1:{port}"
     assert wait_until(lambda: _responds(url), START_WAIT_SEC)

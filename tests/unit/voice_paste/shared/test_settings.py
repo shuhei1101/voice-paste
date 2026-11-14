@@ -494,7 +494,7 @@ def test_load_settings_when_sample_file(
 
     # 準備
     paths.settings_file.parent.mkdir(parents=True)
-    shutil.copyfile(repo_root / "settings.sample.yaml", paths.settings_file)
+    shutil.copyfile(repo_root / "config" / "settings.sample.yaml", paths.settings_file)
 
     # 実行
     settings = load_settings(paths, settings_model)

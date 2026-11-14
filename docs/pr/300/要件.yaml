@@ -1,0 +1,24 @@
+docs:
+  - page: docs/layout/LAY-1.yaml
+    new: true
+    change: knowledge の layout のスキーマの書式で、リポジトリの直下からのフォルダとファイルを entries[] の入れ子で記載し、生成物・一時ファイルを gitignore[]・generated_from、中身の種類を content_types で記載する
+    status: todo
+  - page: docs/layout/index.yaml
+    new: true
+    change: docs/layout/ の目次を作る
+    status: todo
+  - page: docs/index.yaml
+    new: false
+    change: items に layout/ の行を加える
+    status: todo
+  - page: dev-docs.yaml
+    new: false
+    change: documents[] に layout の行を加え、schema は knowledge の schemas/design/layout.schema.yaml を design-schemas のタグつきで参照する
+    status: todo
+scope_out:
+  - item: レビューの観点で見つかったフォルダ構成の問題（.gitignore との食い違いを含む）の対処
+    reason: 起点 Issue の `## やりたいこと` で、問題は別の Issue で対処する。この作業 PR はコードと既存の構成を変えない
+    plan: to_file
+  - item: layout 以外の設計書の schema を、schemas/ のコピーから knowledge のスキーマの参照へ移すこと
+    reason: shuhei1101/ai-monitor#3188 の反映作業が配布先へ知らせる移行で、この Issue は layout の行だけを加える
+    plan: none

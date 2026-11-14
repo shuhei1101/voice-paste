@@ -23,43 +23,45 @@ docs:
   - page: docs/layout/LAY-1.yaml
     new: false
     change: 見本・既定値・ui/・tokens.toml のエントリを移した後の場所へ修正する
-    status: todo
+    status: done
+    updated_by: planner
+    updated_at: '2026-11-14T08:34:03.318183+00:00'
   - page: docs/config/CFG-1.yaml
     new: false
     change: 見本・既定値のファイルの場所を修正する
-    status: todo
+    status: done
+    updated_by: planner
+    updated_at: '2026-11-14T08:34:03.318183+00:00'
   - page: docs/guide/起動と設定.md
     new: false
     change: 見本・既定値の場所の記載を修正する
-    status: todo
+    status: done
+    updated_by: planner
+    updated_at: '2026-11-14T08:34:03.318183+00:00'
   - page: docs/nonfunctional/NFR-1.yaml
     new: false
     change: 用語集の見本 resources/yogo.csv の記載を移した後の場所へ修正する
-    status: todo
+    status: done
+    updated_by: planner
+    updated_at: '2026-11-14T08:34:03.318183+00:00'
   - page: docs/design-policy.md
     new: false
     change: デザイントークンの値の配置先を移した後の場所へ修正する
-    status: todo
-  - page: docs/library/LIB-21.yaml
-    new: false
-    change: src/voice_paste/ui/ の記載を決めた場所へ揃える（ui/ を移すとき）
-    status: todo
+    status: done
+    updated_by: planner
+    updated_at: '2026-11-14T08:34:03.318183+00:00'
   - page: docs/screen/SCR-9.py.yaml
     new: false
     change: tokens.toml・voice_paste.ui の記載を決めた場所へ揃える
-    status: todo
+    status: done
+    updated_by: planner
+    updated_at: '2026-11-14T08:34:03.318183+00:00'
   - page: docs/module/MOD-12.yaml
     new: false
     change: settings.sample.yaml・voice_paste.ui の記載を決めた場所へ揃える
-    status: todo
-  - page: src/files.yml
-    new: false
-    change: 移したコードの行のパスを修正する（ui/ を移すとき）
-    status: todo
-  - page: tests/files.yml
-    new: false
-    change: 移したテストの行のパスを修正する（ui/ を移すとき）
-    status: todo
+    status: done
+    updated_by: planner
+    updated_at: '2026-11-14T08:34:03.318183+00:00'
 scope_out:
   - item: knowledge の規約『トップレベルレイアウト + feature 内構造』へ ui/ を加える修正
     reason: knowledge の文書で、このリポジトリの作業 PR では変えられない。ui/ の置き場所を案 A に決めたときだけ要る

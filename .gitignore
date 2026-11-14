@@ -44,3 +44,6 @@ Thumbs.db
 
 # YAML の設計書から生成した Markdown
 docs/generated/
+
+# Claude Code の作業ブランチの worktree
+.claude/worktrees/

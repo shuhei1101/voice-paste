@@ -65,8 +65,10 @@ tasks:
     updated_by: planner
     updated_at: '2026-11-14T04:42:19.944021+00:00'
   - process: ドキュメント修正
-    status: todo
+    status: done
     note: docs/module/MOD-24.py.yaml の状態遷移図を map で囲む
+    updated_by: planner
+    updated_at: '2026-11-14T04:47:25.376773+00:00'
   - process: 単体テスト作成
     status: skipped
     reason: src/・tests/ を変えない

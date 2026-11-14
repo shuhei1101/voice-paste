@@ -13,5 +13,7 @@ docs:
   - page: docs/module/MOD-24.py.yaml
     new: false
     change: SessionManager の description の stateDiagram-v2 の図を mdmark の map のマーカーで囲む
-    status: todo
+    status: done
+    updated_by: planner
+    updated_at: '2026-11-14T04:47:17.876508+00:00'
 scope_out: []

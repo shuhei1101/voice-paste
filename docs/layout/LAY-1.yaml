@@ -1,0 +1,536 @@
+id: LAY-1
+visibility: internal
+title: voice-paste
+repository: shuhei1101/voice-paste
+lead: 常駐アプリのコードの `src/`、Haas の文字起こしのサーバーの `haas_server/`、テストの `tests/`、設計書と公開ドキュメントの `docs/` に分ける。
+content_types:
+  - name: source
+    group: role
+    summary: アプリのコード
+  - name: test
+    group: role
+    summary: テストのコードと、テストが使用するデータ
+  - name: design_doc
+    group: role
+    summary: YAML の設計書
+  - name: doc_index
+    group: role
+    summary: フォルダの目次と、Markdown・コードの行を記載する files.yml
+  - name: guide
+    group: role
+    summary: 人が参照する Markdown のドキュメント
+  - name: mock
+    group: role
+    summary: 画面のモック
+  - name: pr_doc
+    group: role
+    summary: 作業 PR ごとの計画と記録
+  - name: schema
+    group: role
+    summary: 設計書のスキーマ
+  - name: config
+    group: role
+    summary: アプリの設定と、その既定値・見本
+  - name: tool_config
+    group: role
+    summary: 開発の道具（Git・Python・Node.js・エディタ・dev-docs・rule-inject・Pages）の設定
+  - name: manifest
+    group: role
+    summary: 依存と起動の入口を持つマニフェストと、そのロックファイル
+  - name: launcher
+    group: role
+    summary: アプリを起動するスクリプトとショートカット
+  - name: version
+    group: role
+    summary: バージョンを記載するファイル
+  - name: asset
+    group: role
+    summary: アプリが読み込む画像・モデル
+  - name: agent_instruction
+    group: role
+    summary: Claude Code に参照させる指示
+  - name: web_transcription
+    group: feature
+    summary: 外の端末のブラウザから音声を送信して文字に起こす機能
+entries:
+  - type: file
+    name: .gitattributes
+    contents: 改行コードと差分の扱い
+    content_types: [tool_config]
+  - type: file
+    name: .gitignore
+    contents: Git で管理しないパターン
+    content_types: [tool_config]
+  - type: file
+    name: .python-version
+    contents: uv が使用する Python のバージョン
+    content_types: [tool_config]
+  - type: file
+    name: CLAUDE.md
+    contents: Claude Code に参照させる、リポジトリの概要とドキュメントの索引の引き方
+    content_types: [agent_instruction]
+  - type: file
+    name: README.md
+    contents: リポジトリのトップページ
+    content_types: [guide]
+  - type: file
+    name: ai-monitor-version.ini
+    contents: 追従している AI Monitor の配布物のバージョン
+    content_types: [version]
+  - type: file
+    name: version.ini
+    contents: voice-paste のバージョン
+    content_types: [version]
+  - type: file
+    name: dev-docs.yaml
+    contents: dev-docs と project-index の配信元の設定（設計書の種類ごとの場所とスキーマ）
+    content_types: [tool_config]
+  - type: file
+    name: eslint.config.mjs
+    contents: 外の端末の画面のスクリプトの ESLint の設定
+    content_types: [tool_config]
+  - type: file
+    name: package.json
+    contents: 外の端末の画面のスクリプトを生成・検査する Node.js の開発用の依存とコマンド
+    content_types: [manifest]
+  - type: file
+    name: package-lock.json
+    contents: package.json のロックファイル
+    content_types: [manifest]
+  - type: file
+    name: pyproject.toml
+    contents: 常駐アプリの Python の依存・起動の入口・pytest・ruff の設定
+    content_types: [manifest]
+  - type: file
+    name: uv.lock
+    contents: pyproject.toml のロックファイル
+    content_types: [manifest]
+  - type: file
+    name: tsconfig.json
+    contents: 外の端末の画面のスクリプトの型検査の設定
+    content_types: [tool_config]
+  - type: file
+    name: tsconfig.build.json
+    contents: 外の端末の画面のスクリプトから JavaScript を生成するときの設定
+    content_types: [tool_config]
+  - type: file
+    name: settings.sample.yaml
+    contents: 利用者が手元に作る settings.yaml の見本
+    content_types: [config]
+  - type: file
+    name: voice-paste.bat
+    contents: Windows のショートカットから常駐アプリを起動するスクリプト
+    content_types: [launcher]
+  - type: file
+    name: voice-paste.sh
+    contents: Linux で常駐アプリを起動するスクリプト
+    content_types: [launcher]
+  - type: file
+    name: voice-paste.desktop
+    contents: Linux のデスクトップのショートカット
+    content_types: [launcher]
+  - type: file
+    name: voice-paste.code-workspace
+    contents: VS Code のワークスペースの設定
+    content_types: [tool_config]
+  - type: folder
+    name: config
+    contents: 常駐アプリの設定の既定値
+    content_types: [config]
+    children:
+      - type: file
+        name: defaults.yaml
+        contents: 全てのキーを持つ設定の既定値。settings.yaml と settings.local.yaml をこの上に重ねる
+        content_types: [config]
+  - type: folder
+    name: resources
+    contents: 常駐アプリが読み込む画像と、用語集の CSV の見本
+    content_types: [config]
+    children:
+      - type: folder
+        name: tray
+        contents: トレイの状態ごとのアイコン
+        content_types: [asset]
+        naming: ["{state}.png"]
+      - type: file
+        name: yogo.csv
+        contents: 用語集の CSV（誤変換と正しい表記）の見本
+        content_types: [config]
+  - type: folder
+    name: schemas
+    contents: 設計書のスキーマのコピーと、スキーマのバージョンを上げたときの設計書の変換
+    content_types: [schema]
+    naming: ["{kind}.schema.yaml"]
+    children:
+      - type: folder
+        name: conversions
+        contents: スキーマのバージョンごとの設計書の変換のスクリプトと、その一覧
+        content_types: [schema]
+        naming: ["v{version}.py", versions.yaml]
+  - type: folder
+    name: src
+    contents: 常駐アプリのコード
+    children:
+      - type: file
+        name: files.yml
+        contents: src/ のコードの行（project-index の配信元の常駐アプリのコード）
+        content_types: [doc_index]
+      - type: folder
+        name: voice_paste
+        contents: 常駐アプリと文字起こしワーカーのパッケージ
+        content_types: [source]
+        convention: python-architecture-layout
+        children:
+          - type: folder
+            name: ui
+            contents: Qt の画面・トレイ・画面と録音セッションのつなぎ
+            children:
+              - type: folder
+                name: windows
+                contents: 画面ごとのウィンドウとダイアログ
+                content_types: [source]
+              - type: file
+                name: tokens.toml
+                contents: 画面の色・余白のデザイントークン
+                content_types: [config]
+          - type: folder
+            name: server
+            contents: API と外の端末の画面を配信する FastAPI のサーバー
+            content_types: [source]
+            children:
+              - type: folder
+                name: web
+                contents: 外の端末の画面
+                children:
+                  - type: folder
+                    name: assets
+                    contents: 外の端末の画面のスクリプトとスタイル
+                    content_types: [source, web_transcription]
+                    children:
+                      - type: file
+                        name: app.ts
+                        contents: 外の端末の画面のスクリプトの原本
+                        content_types: [source, web_transcription]
+                      - type: file
+                        name: app.js
+                        contents: app.ts から tsc で生成したスクリプト。Node.js の無い端末でも配信できるよう Git で管理する
+                        content_types: [source, web_transcription]
+                        generated_from:
+                          path: src/voice_paste/server/web/assets/app.ts
+                          command: CMD-1#categories[ビルド・生成]
+                      - type: file
+                        name: style.css
+                        contents: 外の端末の画面のスタイル
+                        content_types: [source, web_transcription]
+          - type: folder
+            name: integrations
+            contents: 外部のサービス・ライブラリ・OS の機能との連携
+            content_types: [source]
+            children:
+              - type: folder
+                name: vad
+                contents: 音声区間の検出
+                content_types: [source]
+                children:
+                  - type: folder
+                    name: assets
+                    contents: Silero VAD のモデルとライセンス
+                    content_types: [asset]
+  - type: folder
+    name: haas_server
+    contents: WSL の中で動かす Haas の文字起こしのサーバー。常駐アプリとは別の Python のプロジェクト
+    children:
+      - type: file
+        name: files.yml
+        contents: haas_server/ のコードの行（project-index の配信元の Haas の文字起こしのサーバーのコード）
+        content_types: [doc_index]
+      - type: file
+        name: pyproject.toml
+        contents: Haas の文字起こしのサーバーの依存
+        content_types: [manifest]
+      - type: file
+        name: uv.lock
+        contents: haas_server/pyproject.toml のロックファイル
+        content_types: [manifest]
+      - type: file
+        name: start.sh
+        contents: 常駐アプリが WSL の中でサーバーを起動するスクリプト
+        content_types: [launcher]
+      - type: file
+        name: __init__.py
+        contents: パッケージの初期化
+        content_types: [source]
+      - type: file
+        name: main.py
+        contents: 起動の入口
+        content_types: [source]
+      - type: file
+        name: app.py
+        contents: HTTP のエンドポイント
+        content_types: [source]
+      - type: file
+        name: audio.py
+        contents: 受信した音声の読み込み
+        content_types: [source]
+  - type: folder
+    name: tests
+    contents: 常駐アプリと Haas の文字起こしのサーバーのテスト
+    content_types: [test]
+    convention: python-testing-layers
+    children:
+      - type: file
+        name: files.yml
+        contents: tests/ のテストの行（project-index の配信元のテスト）
+        content_types: [doc_index]
+      - type: folder
+        name: nfr
+        contents: 非機能要件のテスト
+        content_types: [test]
+        naming: ["test_{requirement}.py"]
+        children:
+          - type: folder
+            name: fixtures
+            contents: 非機能要件のテストが実行時に作る音声。直下の .gitignore で全て Git の管理から除外する
+            content_types: [test]
+      - type: folder
+        name: mocks
+        contents: 外部の依存の差し替え
+        content_types: [test]
+      - type: folder
+        name: support
+        contents: 結合・非機能要件のテストが共有する起動と fixture の部品
+        content_types: [test]
+  - type: folder
+    name: docs
+    contents: 設計書・公開ドキュメント・モック・PR ドキュメント
+    children:
+      - type: file
+        name: index.yaml
+        contents: docs/ の目次の原本
+        content_types: [doc_index]
+      - type: file
+        name: README.md
+        contents: docs/index.yaml から生成した目次
+        content_types: [doc_index]
+      - type: file
+        name: index.md
+        contents: GitHub Pages のトップページ
+        content_types: [guide]
+      - type: file
+        name: design-policy.md
+        contents: 画面全体に適用するデザインの方向性
+        content_types: [guide]
+      - type: file
+        name: rules.yaml
+        contents: rule-inject に参照させる、このリポジトリのルールの索引
+        content_types: [tool_config]
+      - type: file
+        name: _config.yml
+        contents: GitHub Pages の設定
+        content_types: [tool_config]
+      - type: folder
+        name: _root
+        contents: docs/ の直下の Markdown の行
+        children:
+          - type: file
+            name: files.yml
+            contents: docs/ の直下の Markdown の行（project-index の配信元の docs の直下の Markdown）
+            content_types: [doc_index]
+      - type: folder
+        name: _theme
+        contents: GitHub Pages の共通レイアウト
+        children:
+          - type: folder
+            name: _data
+            contents: GitHub Pages のナビゲーションのデータ
+            children:
+              - type: file
+                name: nav.project.yml
+                contents: AI Monitor の publish が docs/guide/ の文書の分類から書き出す上タブ
+                content_types: [tool_config]
+      - type: folder
+        name: architecture
+        contents: アーキテクチャ図の設計書
+        content_types: [design_doc]
+        naming: ["ARCH-{number}.yaml"]
+      - type: folder
+        name: config
+        contents: 設定の設計書
+        content_types: [design_doc]
+        naming: ["CFG-{number}.yaml"]
+      - type: folder
+        name: dev-command
+        contents: 開発コマンドの設計書
+        content_types: [design_doc]
+        naming: ["CMD-{number}.yaml"]
+      - type: folder
+        name: er
+        contents: ER 図の設計書
+        content_types: [design_doc]
+        naming: ["ER-{number}.yaml"]
+      - type: folder
+        name: external-api
+        contents: 外部 API の設計書
+        content_types: [design_doc]
+        naming: ["API-{number}.yaml"]
+      - type: folder
+        name: glossary
+        contents: 用語集の設計書
+        content_types: [design_doc]
+        naming: ["GLO-{number}.yaml"]
+      - type: folder
+        name: interface
+        contents: インターフェース定義の設計書
+        content_types: [design_doc]
+        naming: ["IF-{number}.{lang}.yaml"]
+      - type: folder
+        name: layout
+        contents: フォルダ構成の設計書
+        content_types: [design_doc]
+        naming: ["LAY-{number}.yaml"]
+      - type: folder
+        name: library
+        contents: 外部ライブラリの設計書
+        content_types: [design_doc]
+        naming: ["LIB-{number}.yaml"]
+      - type: folder
+        name: module
+        contents: モジュール構成の設計書
+        content_types: [design_doc]
+        naming: ["MOD-{number}.yaml", "MOD-{number}.{lang}.yaml"]
+      - type: folder
+        name: nonfunctional
+        contents: 非機能要件の設計書
+        content_types: [design_doc]
+        naming: ["NFR-{number}.yaml"]
+      - type: folder
+        name: scenario
+        contents: シナリオの設計書
+        content_types: [design_doc]
+        naming: ["SC-{number}.yaml"]
+      - type: folder
+        name: screen
+        contents: 画面設計の設計書
+        content_types: [design_doc]
+        naming: ["SCR-{number}.{lang}.yaml"]
+      - type: folder
+        name: test-procedure
+        contents: テスト実行方法の設計書
+        content_types: [design_doc]
+        naming: ["TP-{number}.yaml"]
+      - type: folder
+        name: guide
+        contents: GitHub Pages に出す公開ドキュメント（はじめに・使い方・リファレンス）
+        content_types: [guide]
+        naming: ["{page}.md"]
+      - type: folder
+        name: mock
+        contents: 画面のモック
+        content_types: [mock]
+        children:
+          - type: file
+            name: index.md
+            contents: モックの入口
+            content_types: [mock]
+          - type: folder
+            name: pages
+            contents: 画面ごとのモック
+            content_types: [mock]
+            children:
+              - type: folder
+                name: "{screen}"
+                contents: 1 つの画面のモック HTML と、状態ごとの画像
+                content_types: [mock]
+          - type: folder
+            name: components
+            contents: 新しく追加する部品のモック
+            content_types: [mock]
+            children:
+              - type: folder
+                name: "{component}"
+                contents: 1 つの部品のモック HTML
+                content_types: [mock]
+          - type: folder
+            name: styles
+            contents: 画面全体のデザインスタイルの採用と候補
+            content_types: [mock]
+            children:
+              - type: folder
+                name: "{style}"
+                contents: 1 つのデザインスタイルのサンプル画面
+                content_types: [mock]
+          - type: folder
+            name: refs
+            contents: Issue / PR ごとの画面のモックへのリンク集
+            content_types: [mock]
+            children:
+              - type: folder
+                name: "{number}"
+                contents: 1 つの Issue / PR で作ったモックの入口と、その画面のスクリプト・スタイル
+                content_types: [mock]
+      - type: folder
+        name: pr
+        contents: 作業 PR ごとの PR ドキュメント
+        content_types: [pr_doc]
+        children:
+          - type: folder
+            name: "{pr_number}"
+            contents: 1 つの作業 PR の目次・要件・タスク一覧・確認ログ・テスト結果・反映作業
+            content_types: [pr_doc]
+      - type: folder
+        name: generated
+        contents: AI Monitor の generate が YAML の設計書から生成した Markdown
+gitignore:
+  - pattern: .env
+    reason: 秘匿値を持つ環境変数
+  - pattern: .env.migrated
+    reason: 廃止した `--migrate-env` が `.env` を設定ファイルへ移した後に残したファイル
+  - pattern: venv/
+    reason: Python の仮想環境
+  - pattern: .venv/
+    reason: Python の仮想環境
+  - pattern: node_modules/
+    reason: Node.js の開発用の依存
+  - pattern: __pycache__/
+    reason: Python のキャッシュ
+  - pattern: "*.pyc"
+    reason: Python のキャッシュ
+  - pattern: "*.pyo"
+    reason: Python のキャッシュ
+  - pattern: "*.pyd"
+    reason: Python の拡張モジュールの生成物
+  - pattern: .Python
+    reason: 仮想環境の生成物
+  - pattern: log/
+    reason: 実行時のログ
+  - pattern: cache/
+    reason: 一時音声ファイルなどのキャッシュ
+  - pattern: /history/
+    reason: 実行時に生成する履歴
+  - pattern: voice_paste.pid
+    reason: シングルインスタンス制御の一時ファイル
+  - pattern: build/
+    reason: ビルドの生成物
+  - pattern: dist/
+    reason: ビルドの生成物
+  - pattern: "*.egg-info/"
+    reason: パッケージの生成物
+  - pattern: .vscode/
+    reason: 利用者ごとのエディタの設定
+  - pattern: .idea/
+    reason: 利用者ごとのエディタの設定
+  - pattern: .DS_Store
+    reason: OS が作るファイル
+  - pattern: Thumbs.db
+    reason: OS が作るファイル
+  - pattern: "*.local.*"
+    reason: checkout ごとの上書きの設定
+  - pattern: docs/generated/
+    reason: YAML の設計書から生成した Markdown
+refs:
+  - ARCH-1#subsystems
+  - CMD-1#categories
+notes:
+  目次と行のファイル: |-
+    フォルダごとの `index.yaml`・`README.md`・`files.yml` は、フォルダの目次と、配信元に記載する行を持つファイルで、エントリに記載しない。
+    フォルダの `content_types` は、これらを除いた中身で決める。

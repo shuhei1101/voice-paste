@@ -4,7 +4,7 @@ voice-paste のドキュメント全体の目次
 
 ## 目次
 
-<!-- table: {"kind": "data"} -->
+<!-- table: data -->
 
 | ページ | 概要 |
 | --- | --- |
@@ -15,6 +15,7 @@ voice-paste のドキュメント全体の目次
 | [config](./config/) | 設定と環境変数のキー定義 |
 | [er](./er/) | データストアの定義 |
 | [architecture](./architecture/) | システム全体構成（常駐アプリ・文字起こしの外部サービス・API の呼び出し元・貼り付け先の関係） |
+| [layout](./layout/) | リポジトリの直下からのフォルダとファイルの構成 |
 | [nonfunctional](./nonfunctional/) | 外部の制約から逆算したアプリ側の決定値（非機能要件テストの元） |
 | [external-api](./external-api/) | 採用済みの外部 API のリファレンス |
 | [library](./library/) | 採用済みの外部ライブラリ / 外部ツールのリファレンス |

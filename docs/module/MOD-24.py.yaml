@@ -17,6 +17,8 @@ classes:
       文字起こしから届けるまでは専用のワーカースレッドで動かし、終わったら録音セッションを空にして待機中に戻す。
       API の連続録音では、開始でワーカースレッドを 1 つ起動し、録音が区切った区間を待ち行列経由で区切った順に起こして返却する（録音は続ける）。完了か上限で録音を止め、最後の区間の後ろに終わりを返却してから待機中に戻す。
 
+      <!-- map: {"title": "連続録音"} -->
+
       ```mermaid
       stateDiagram-v2
         [*] --> recording : start(continuous=True)
@@ -25,6 +27,8 @@ classes:
         transcribing --> [*] : 残りの区間と終わりを返却した
         recording --> [*] : close（終了。返却しない）
       ```
+
+      <!-- /map -->
     properties:
       - name: _deps
         type: SessionDeps

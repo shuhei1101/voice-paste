@@ -1,0 +1,19 @@
+use_cases:
+  - kind: composite
+    scenario: docs/scenario/SC-10.yaml
+    impact: none
+    detail: 連続録音の録音セッションの状態遷移図の表し方だけを変え、業務の流れは変えない
+    depends_on: []
+  - kind: single
+    scenario: docs/scenario/SC-1.yaml
+    impact: none
+    detail: API での録音の操作の状態遷移図の表し方だけを変え、業務の流れは変えない
+    depends_on: []
+docs:
+  - page: docs/module/MOD-24.py.yaml
+    new: false
+    change: SessionManager の description の stateDiagram-v2 の図を mdmark の map のマーカーで囲む
+    status: done
+    updated_by: planner
+    updated_at: '2026-11-14T04:47:17.876508+00:00'
+scope_out: []

@@ -1,7 +1,7 @@
 docs:
   - page: docs/layout/LAY-1.yaml
     new: false
-    change: '`schemas` のエントリをスキーマのコピーの削除に合わせて直し、`docs/rules.yaml` を直下の `rules.yaml` へ移し、`docs/data/` のエントリを足し、`docs/_theme/` を import-site の取り込み後の構成に合わせる'
+    change: '`schemas` のエントリをスキーマのコピーの削除に合わせて直し、`schemas` の下の `conversions` のエントリを削除し、`docs/rules.yaml` を直下の `rules.yaml` へ移し、`docs/data/` のエントリを足し、`docs/_theme/` を import-site の取り込み後の構成に合わせる'
     status: todo
   - page: docs/_config.yml
     new: false
@@ -28,6 +28,3 @@ scope_out:
   - item: テスト実行方法の層ごとの実行場所の決定と GitHub Actions への移行
     reason: この追従で schemas/ のコピーを削除した後に行う別の要望
     plan: '#298'
-  - item: schemas/conversions/ の変換のスクリプトと一覧の削除
-    reason: 反映作業『各プロジェクトのスキーマの参照への移行』は AI Monitor から配られたスキーマのコピーだけを削除し、プロジェクトが持つ変換は消さない。参照へ移した後も残すかはレビューで確定する
-    plan: none

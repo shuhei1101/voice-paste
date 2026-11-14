@@ -27,6 +27,8 @@ classes:
         transcribing --> [*] : 残りの区間と終わりを返却した
         recording --> [*] : close（終了。返却しない）
       ```
+
+      <!-- /map -->
     properties:
       - name: _deps
         type: SessionDeps

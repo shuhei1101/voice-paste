@@ -34,26 +34,26 @@ scope_out:
     reason: shuhei1101/ai-monitor#3188 の反映作業が配布先へ知らせる移行で、この Issue は layout の行だけを加える
     plan: none
   - item: '同じ種類が散る（config）: 設定の見本が直下の settings.sample.yaml と resources/yogo.csv に分かれ、既定値の config/ とも別の場所にある'
-    reason: レビューの観点で見つかった問題で、起点 Issue は別の Issue で対処する。問題として扱うかはレビューで確定する
-    plan: to_file
-  - item: 'コードではない原本: トレイのアイコンと用語集の CSV の見本が content/ ではなく resources/ にある（コンテンツの置き場所）'
-    reason: レビューの観点で見つかった問題で、起点 Issue は別の Issue で対処する。問題として扱うかはレビューで確定する
+    reason: レビューの観点で見つかった問題で、起点 Issue は別の Issue で対処する。レビューで起票すると確定した
     plan: to_file
   - item: '種類が混ざる: src/voice_paste/ui/ がコードとデザイントークンの tokens.toml を持ち、ui/ は規約『トップレベルレイアウト + feature 内構造』のトップレベルに無い'
-    reason: レビューの観点で見つかった問題で、起点 Issue は別の Issue で対処する。問題として扱うかはレビューで確定する
+    reason: レビューの観点で見つかった問題で、起点 Issue は別の Issue で対処する。レビューで起票すると確定した
     plan: to_file
   - item: '種類が混ざる: haas_server/ がマニフェスト・起動のスクリプト・コードを直下に平らに持ち、src レイアウトになっていない'
-    reason: レビューの観点で見つかった問題で、起点 Issue は別の Issue で対処する。問題として扱うかはレビューで確定する
-    plan: to_file
-  - item: '規約に無いフォルダ: tests/nfr/・tests/mocks/・tests/support/ が規約『テストの種類と配置』のファイル配置に無い'
-    reason: レビューの観点で見つかった問題で、起点 Issue は別の Issue で対処する。規約の不足か配置の誤りかはレビューで確定する
+    reason: レビューの観点で見つかった問題で、起点 Issue は別の Issue で対処する。レビューで起票すると確定した
     plan: to_file
   - item: '管理しないもの: docs/{種類}/README.md・docs/_theme/_data/nav.project.yml・docs/generated/ を生成する AI Monitor の publish・generate が開発コマンドに無く、generated_from を記載できない'
-    reason: レビューの観点で見つかった問題で、起点 Issue は別の Issue で対処する。問題として扱うかはレビューで確定する
+    reason: レビューの観点で見つかった問題で、起点 Issue は別の Issue で対処する。レビューで起票すると確定した
     plan: to_file
-  - item: '管理しないもの: .claude/worktrees/ が .gitignore に無く、手元の .git/info/exclude だけで除外している。.gitignore の .env.migrated は #42 で廃止した --migrate-env の残り'
+  - item: '管理しないもの: .claude/worktrees/ が .gitignore に無く、手元の .git/info/exclude だけで除外している'
     reason: レビューの観点で見つかった .gitignore の食い違いで、起点 Issue は別の Issue で対処する。設計書の gitignore は今の .gitignore のまま記載した
     plan: to_file
   - item: publish を流すと docs/interface・library・module・scenario・screen の README.md が作り直される（目次の表の書式と、library の LIB-32・LIB-33 の行の欠け）
     reason: この作業 PR が変えない目次の生成物のずれで、この作業 PR では作り直した分を戻した
     plan: to_file
+  - item: 規約『テストの種類と配置』（python-testing-layers）のファイル配置に、規約『V字モデル』（dev-v-model）が定める tests/nfr/ が無い
+    reason: knowledge の規約どうしの食い違いで、voice-paste の配置は規約どおり。規約『ルール改修の報告』の経路で起票する
+    plan: to_file
+  - item: '種類が混ざる: docs/ の直下が guide（index.md・design-policy.md）と tool_config（rules.yaml・_config.yml）を持つ'
+    reason: _config.yml と index.md は GitHub Pages が docs/ の直下に求めるため、再分割しない
+    plan: none

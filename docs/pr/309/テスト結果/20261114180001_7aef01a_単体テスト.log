@@ -1,0 +1,771 @@
+$ .venv/Scripts/python.exe -m pytest tests/unit
+============================= test session starts =============================
+platform win32 -- Python 3.14.3, pytest-9.1.1, pluggy-1.7.0
+rootdir: C:\Users\shuhe\repo\voice-paste\.claude\worktrees\refactor-layout-config-and-ui-placement
+configfile: pyproject.toml
+plugins: anyio-4.15.1, platformdirs-4.13.3
+collected 994 items
+
+tests\unit\haas_server\test_app.py .........                             [  0%]
+tests\unit\haas_server\test_audio.py ...                                 [  1%]
+tests\unit\haas_server\test_main.py ......                               [  1%]
+tests\unit\voice_paste\features\correction\test_service.py ............. [  3%]
+...................................                                      [  6%]
+tests\unit\voice_paste\features\history\test_service.py .............    [  7%]
+tests\unit\voice_paste\features\outputs\browser\test_service.py ...      [  8%]
+tests\unit\voice_paste\features\outputs\callback\test_service.py ....... [  8%]
+.......                                                                  [  9%]
+tests\unit\voice_paste\features\outputs\copy_only\test_service.py ...    [  9%]
+tests\unit\voice_paste\features\outputs\endpoint\test_service.py ....    [ 10%]
+tests\unit\voice_paste\features\outputs\paste_and_send\test_service.py . [ 10%]
+.......                                                                  [ 11%]
+tests\unit\voice_paste\features\outputs\paste_only\test_service.py ...   [ 11%]
+tests\unit\voice_paste\features\outputs\test_service.py .....            [ 11%]
+tests\unit\voice_paste\features\outputs\test_types.py ...                [ 12%]
+tests\unit\voice_paste\features\recording\test_client.py .               [ 12%]
+tests\unit\voice_paste\features\recording\test_segmenter.py ............ [ 13%]
+                                                                         [ 13%]
+tests\unit\voice_paste\features\recording\test_service.py .............. [ 14%]
+.................                                                        [ 16%]
+tests\unit\voice_paste\features\session\test_route.py ......             [ 17%]
+tests\unit\voice_paste\features\session\test_service.py ................ [ 18%]
+......................................................                   [ 24%]
+tests\unit\voice_paste\features\transcription\test_service.py ......     [ 24%]
+tests\unit\voice_paste\features\web_transcription\test_service.py ...... [ 25%]
+..........                                                               [ 26%]
+tests\unit\voice_paste\integrations\audio\test_probe.py .......          [ 27%]
+tests\unit\voice_paste\integrations\browser\test_opener.py ....          [ 27%]
+tests\unit\voice_paste\integrations\browser\test_opener_linux.py ....    [ 28%]
+tests\unit\voice_paste\integrations\display\test_adapter.py .......      [ 28%]
+tests\unit\voice_paste\integrations\display\test_adapter_linux.py ...... [ 29%]
+.                                                                        [ 29%]
+tests\unit\voice_paste\integrations\haas\test_server.py ...........      [ 30%]
+tests\unit\voice_paste\integrations\haas\test_transcriber.py .......     [ 31%]
+tests\unit\voice_paste\integrations\http\test_client.py .......          [ 31%]
+tests\unit\voice_paste\integrations\keyboard\test_active_window_linux.py s [ 32%]
+ssss                                                                     [ 32%]
+tests\unit\voice_paste\integrations\keyboard\test_active_window_wayland.py . [ 32%]
+.....                                                                    [ 33%]
+tests\unit\voice_paste\integrations\keyboard\test_sender.py ............ [ 34%]
+..                                                                       [ 34%]
+tests\unit\voice_paste\integrations\keyboard\test_sender_linux.py ssssss [ 35%]
+s                                                                        [ 35%]
+tests\unit\voice_paste\integrations\keyboard\test_sender_wayland.py ssss [ 35%]
+ssssssss                                                                 [ 36%]
+tests\unit\voice_paste\integrations\openai\test_credentials.py ....      [ 36%]
+tests\unit\voice_paste\integrations\openai\test_transcriber.py ......... [ 37%]
+.........                                                                [ 38%]
+tests\unit\voice_paste\integrations\vad\test_adapter.py ....             [ 39%]
+tests\unit\voice_paste\integrations\volume\test_adapter.py .........     [ 39%]
+tests\unit\voice_paste\integrations\volume\test_noop.py .                [ 40%]
+tests\unit\voice_paste\integrations\whisper\test_client.py ............. [ 41%]
+.....                                                                    [ 41%]
+tests\unit\voice_paste\integrations\whisper\test_worker.py .......       [ 42%]
+tests\unit\voice_paste\runtime\test_hotkey.py ..........                 [ 43%]
+tests\unit\voice_paste\runtime\test_hotkey_gnome.py sssssssssssss        [ 44%]
+tests\unit\voice_paste\runtime\test_process.py ...                       [ 45%]
+tests\unit\voice_paste\runtime\test_send_hotkey.py sss                   [ 45%]
+tests\unit\voice_paste\runtime\test_settings_store.py ..                 [ 45%]
+tests\unit\voice_paste\runtime\test_single_instance.py ..........        [ 46%]
+tests\unit\voice_paste\runtime\test_single_instance_linux.py sssssssssss [ 47%]
+sss                                                                      [ 48%]
+tests\unit\voice_paste\runtime\test_timer.py ...                         [ 48%]
+tests\unit\voice_paste\server\test_app.py ....                           [ 48%]
+tests\unit\voice_paste\server\test_body_limit.py .....                   [ 49%]
+tests\unit\voice_paste\server\test_error_handlers.py .......             [ 50%]
+tests\unit\voice_paste\server\test_middleware.py ............            [ 51%]
+tests\unit\voice_paste\server\test_runner.py ....                        [ 51%]
+tests\unit\voice_paste\server\test_token.py ...                          [ 51%]
+tests\unit\voice_paste\server\test_web_page.py ..                        [ 52%]
+tests\unit\voice_paste\shared\test_constants.py ..                       [ 52%]
+tests\unit\voice_paste\shared\test_logger.py ......                      [ 52%]
+tests\unit\voice_paste\shared\test_os_kind.py ..........                 [ 53%]
+tests\unit\voice_paste\shared\test_settings.py .....................F... [ 56%]
+........................................................................ [ 63%]
+..............                                                           [ 65%]
+tests\unit\voice_paste\shared\test_yaml_document.py ...........          [ 66%]
+tests\unit\voice_paste\test_main.py ..............s............ss....... [ 69%]
+................................                                         [ 73%]
+tests\unit\voice_paste\ui\test_bridge.py .....                           [ 73%]
+tests\unit\voice_paste\ui\test_controller.py ........................... [ 76%]
+.....                                                                    [ 76%]
+tests\unit\voice_paste\ui\test_placement.py ..                           [ 76%]
+tests\unit\voice_paste\ui\test_style.py EEEE....EEE....EEEEEE.EEEE.      [ 79%]
+tests\unit\voice_paste\ui\test_tray.py ...................               [ 81%]
+tests\unit\voice_paste\ui\windows\test_settings_edge_phrases.py ........ [ 82%]
+                                                                         [ 82%]
+tests\unit\voice_paste\ui\windows\test_settings_glossaries.py .......... [ 83%]
+..............                                                           [ 84%]
+tests\unit\voice_paste\ui\windows\test_settings_hints.py ............... [ 86%]
+..                                                                       [ 86%]
+tests\unit\voice_paste\ui\windows\test_settings_presets.py ...........   [ 87%]
+tests\unit\voice_paste\ui\windows\test_settings_shortcuts.py ..........  [ 88%]
+tests\unit\voice_paste\ui\windows\test_settings_window.py .............. [ 90%]
+..............................................                           [ 94%]
+tests\unit\voice_paste\ui\windows\test_transcribing_indicator.py ....... [ 95%]
+..............................................                           [100%]
+
+=================================== ERRORS ====================================
+___________________ ERROR at setup of test_build_stylesheet ___________________
+
+repo_root = WindowsPath('C:/Users/shuhe/repo/voice-paste/.claude/worktrees/refactor-layout-config-and-ui-placement')
+
+    @pytest.fixture
+    def tokens(repo_root: Path) -> dict[str, dict[str, dict[str, str]]]:
+        """content/tokens.toml を読んだ値を返す。"""
+        tokens_file = repo_root / "content" / "tokens.toml"
+>       return tomllib.loads(tokens_file.read_text(encoding="utf-8"))
+                             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+tests\unit\voice_paste\ui\test_style.py:38: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+C:\Users\shuhe\AppData\Local\Python\pythoncore-3.14-64\Lib\pathlib\__init__.py:787: in read_text
+    with self.open(mode='r', encoding=encoding, errors=errors, newline=newline) as f:
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+self = WindowsPath('C:/Users/shuhe/repo/voice-paste/.claude/worktrees/refactor-layout-config-and-ui-placement/content/tokens.toml')
+mode = 'r', buffering = -1, encoding = 'utf-8', errors = None, newline = None
+
+    def open(self, mode='r', buffering=-1, encoding=None,
+             errors=None, newline=None):
+        """
+        Open the file pointed to by this path and return a file object, as
+        the built-in open() function does.
+        """
+        if "b" not in mode:
+            encoding = io.text_encoding(encoding)
+>       return io.open(self, mode, buffering, encoding, errors, newline)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       FileNotFoundError: [Errno 2] No such file or directory: 'C:\\Users\\shuhe\\repo\\voice-paste\\.claude\\worktrees\\refactor-layout-config-and-ui-placement\\content\\tokens.toml'
+
+C:\Users\shuhe\AppData\Local\Python\pythoncore-3.14-64\Lib\pathlib\__init__.py:771: FileNotFoundError
+__________ ERROR at setup of test_build_stylesheet_when_window_frame __________
+
+repo_root = WindowsPath('C:/Users/shuhe/repo/voice-paste/.claude/worktrees/refactor-layout-config-and-ui-placement')
+
+    @pytest.fixture
+    def tokens(repo_root: Path) -> dict[str, dict[str, dict[str, str]]]:
+        """content/tokens.toml を読んだ値を返す。"""
+        tokens_file = repo_root / "content" / "tokens.toml"
+>       return tomllib.loads(tokens_file.read_text(encoding="utf-8"))
+                             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+tests\unit\voice_paste\ui\test_style.py:38: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+C:\Users\shuhe\AppData\Local\Python\pythoncore-3.14-64\Lib\pathlib\__init__.py:787: in read_text
+    with self.open(mode='r', encoding=encoding, errors=errors, newline=newline) as f:
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+self = WindowsPath('C:/Users/shuhe/repo/voice-paste/.claude/worktrees/refactor-layout-config-and-ui-placement/content/tokens.toml')
+mode = 'r', buffering = -1, encoding = 'utf-8', errors = None, newline = None
+
+    def open(self, mode='r', buffering=-1, encoding=None,
+             errors=None, newline=None):
+        """
+        Open the file pointed to by this path and return a file object, as
+        the built-in open() function does.
+        """
+        if "b" not in mode:
+            encoding = io.text_encoding(encoding)
+>       return io.open(self, mode, buffering, encoding, errors, newline)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       FileNotFoundError: [Errno 2] No such file or directory: 'C:\\Users\\shuhe\\repo\\voice-paste\\.claude\\worktrees\\refactor-layout-config-and-ui-placement\\content\\tokens.toml'
+
+C:\Users\shuhe\AppData\Local\Python\pythoncore-3.14-64\Lib\pathlib\__init__.py:771: FileNotFoundError
+________ ERROR at setup of test_build_stylesheet_when_check_indicator _________
+
+repo_root = WindowsPath('C:/Users/shuhe/repo/voice-paste/.claude/worktrees/refactor-layout-config-and-ui-placement')
+
+    @pytest.fixture
+    def tokens(repo_root: Path) -> dict[str, dict[str, dict[str, str]]]:
+        """content/tokens.toml を読んだ値を返す。"""
+        tokens_file = repo_root / "content" / "tokens.toml"
+>       return tomllib.loads(tokens_file.read_text(encoding="utf-8"))
+                             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+tests\unit\voice_paste\ui\test_style.py:38: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+C:\Users\shuhe\AppData\Local\Python\pythoncore-3.14-64\Lib\pathlib\__init__.py:787: in read_text
+    with self.open(mode='r', encoding=encoding, errors=errors, newline=newline) as f:
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+self = WindowsPath('C:/Users/shuhe/repo/voice-paste/.claude/worktrees/refactor-layout-config-and-ui-placement/content/tokens.toml')
+mode = 'r', buffering = -1, encoding = 'utf-8', errors = None, newline = None
+
+    def open(self, mode='r', buffering=-1, encoding=None,
+             errors=None, newline=None):
+        """
+        Open the file pointed to by this path and return a file object, as
+        the built-in open() function does.
+        """
+        if "b" not in mode:
+            encoding = io.text_encoding(encoding)
+>       return io.open(self, mode, buffering, encoding, errors, newline)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       FileNotFoundError: [Errno 2] No such file or directory: 'C:\\Users\\shuhe\\repo\\voice-paste\\.claude\\worktrees\\refactor-layout-config-and-ui-placement\\content\\tokens.toml'
+
+C:\Users\shuhe\AppData\Local\Python\pythoncore-3.14-64\Lib\pathlib\__init__.py:771: FileNotFoundError
+__________________ ERROR at setup of test_write_arrow_image ___________________
+
+repo_root = WindowsPath('C:/Users/shuhe/repo/voice-paste/.claude/worktrees/refactor-layout-config-and-ui-placement')
+
+    @pytest.fixture
+    def tokens(repo_root: Path) -> dict[str, dict[str, dict[str, str]]]:
+        """content/tokens.toml を読んだ値を返す。"""
+        tokens_file = repo_root / "content" / "tokens.toml"
+>       return tomllib.loads(tokens_file.read_text(encoding="utf-8"))
+                             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+tests\unit\voice_paste\ui\test_style.py:38: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+C:\Users\shuhe\AppData\Local\Python\pythoncore-3.14-64\Lib\pathlib\__init__.py:787: in read_text
+    with self.open(mode='r', encoding=encoding, errors=errors, newline=newline) as f:
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+self = WindowsPath('C:/Users/shuhe/repo/voice-paste/.claude/worktrees/refactor-layout-config-and-ui-placement/content/tokens.toml')
+mode = 'r', buffering = -1, encoding = 'utf-8', errors = None, newline = None
+
+    def open(self, mode='r', buffering=-1, encoding=None,
+             errors=None, newline=None):
+        """
+        Open the file pointed to by this path and return a file object, as
+        the built-in open() function does.
+        """
+        if "b" not in mode:
+            encoding = io.text_encoding(encoding)
+>       return io.open(self, mode, buffering, encoding, errors, newline)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       FileNotFoundError: [Errno 2] No such file or directory: 'C:\\Users\\shuhe\\repo\\voice-paste\\.claude\\worktrees\\refactor-layout-config-and-ui-placement\\content\\tokens.toml'
+
+C:\Users\shuhe\AppData\Local\Python\pythoncore-3.14-64\Lib\pathlib\__init__.py:771: FileNotFoundError
+________________ ERROR at setup of test_apply_theme_when_dark _________________
+
+repo_root = WindowsPath('C:/Users/shuhe/repo/voice-paste/.claude/worktrees/refactor-layout-config-and-ui-placement')
+
+    @pytest.fixture
+    def tokens(repo_root: Path) -> dict[str, dict[str, dict[str, str]]]:
+        """content/tokens.toml を読んだ値を返す。"""
+        tokens_file = repo_root / "content" / "tokens.toml"
+>       return tomllib.loads(tokens_file.read_text(encoding="utf-8"))
+                             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+tests\unit\voice_paste\ui\test_style.py:38: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+C:\Users\shuhe\AppData\Local\Python\pythoncore-3.14-64\Lib\pathlib\__init__.py:787: in read_text
+    with self.open(mode='r', encoding=encoding, errors=errors, newline=newline) as f:
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+self = WindowsPath('C:/Users/shuhe/repo/voice-paste/.claude/worktrees/refactor-layout-config-and-ui-placement/content/tokens.toml')
+mode = 'r', buffering = -1, encoding = 'utf-8', errors = None, newline = None
+
+    def open(self, mode='r', buffering=-1, encoding=None,
+             errors=None, newline=None):
+        """
+        Open the file pointed to by this path and return a file object, as
+        the built-in open() function does.
+        """
+        if "b" not in mode:
+            encoding = io.text_encoding(encoding)
+>       return io.open(self, mode, buffering, encoding, errors, newline)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       FileNotFoundError: [Errno 2] No such file or directory: 'C:\\Users\\shuhe\\repo\\voice-paste\\.claude\\worktrees\\refactor-layout-config-and-ui-placement\\content\\tokens.toml'
+
+C:\Users\shuhe\AppData\Local\Python\pythoncore-3.14-64\Lib\pathlib\__init__.py:771: FileNotFoundError
+_______________ ERROR at setup of test_apply_theme_when_system ________________
+
+repo_root = WindowsPath('C:/Users/shuhe/repo/voice-paste/.claude/worktrees/refactor-layout-config-and-ui-placement')
+
+    @pytest.fixture
+    def tokens(repo_root: Path) -> dict[str, dict[str, dict[str, str]]]:
+        """content/tokens.toml を読んだ値を返す。"""
+        tokens_file = repo_root / "content" / "tokens.toml"
+>       return tomllib.loads(tokens_file.read_text(encoding="utf-8"))
+                             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+tests\unit\voice_paste\ui\test_style.py:38: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+C:\Users\shuhe\AppData\Local\Python\pythoncore-3.14-64\Lib\pathlib\__init__.py:787: in read_text
+    with self.open(mode='r', encoding=encoding, errors=errors, newline=newline) as f:
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+self = WindowsPath('C:/Users/shuhe/repo/voice-paste/.claude/worktrees/refactor-layout-config-and-ui-placement/content/tokens.toml')
+mode = 'r', buffering = -1, encoding = 'utf-8', errors = None, newline = None
+
+    def open(self, mode='r', buffering=-1, encoding=None,
+             errors=None, newline=None):
+        """
+        Open the file pointed to by this path and return a file object, as
+        the built-in open() function does.
+        """
+        if "b" not in mode:
+            encoding = io.text_encoding(encoding)
+>       return io.open(self, mode, buffering, encoding, errors, newline)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       FileNotFoundError: [Errno 2] No such file or directory: 'C:\\Users\\shuhe\\repo\\voice-paste\\.claude\\worktrees\\refactor-layout-config-and-ui-placement\\content\\tokens.toml'
+
+C:\Users\shuhe\AppData\Local\Python\pythoncore-3.14-64\Lib\pathlib\__init__.py:771: FileNotFoundError
+______________ ERROR at setup of test_apply_theme_when_switched _______________
+
+repo_root = WindowsPath('C:/Users/shuhe/repo/voice-paste/.claude/worktrees/refactor-layout-config-and-ui-placement')
+
+    @pytest.fixture
+    def tokens(repo_root: Path) -> dict[str, dict[str, dict[str, str]]]:
+        """content/tokens.toml を読んだ値を返す。"""
+        tokens_file = repo_root / "content" / "tokens.toml"
+>       return tomllib.loads(tokens_file.read_text(encoding="utf-8"))
+                             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+tests\unit\voice_paste\ui\test_style.py:38: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+C:\Users\shuhe\AppData\Local\Python\pythoncore-3.14-64\Lib\pathlib\__init__.py:787: in read_text
+    with self.open(mode='r', encoding=encoding, errors=errors, newline=newline) as f:
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+self = WindowsPath('C:/Users/shuhe/repo/voice-paste/.claude/worktrees/refactor-layout-config-and-ui-placement/content/tokens.toml')
+mode = 'r', buffering = -1, encoding = 'utf-8', errors = None, newline = None
+
+    def open(self, mode='r', buffering=-1, encoding=None,
+             errors=None, newline=None):
+        """
+        Open the file pointed to by this path and return a file object, as
+        the built-in open() function does.
+        """
+        if "b" not in mode:
+            encoding = io.text_encoding(encoding)
+>       return io.open(self, mode, buffering, encoding, errors, newline)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       FileNotFoundError: [Errno 2] No such file or directory: 'C:\\Users\\shuhe\\repo\\voice-paste\\.claude\\worktrees\\refactor-layout-config-and-ui-placement\\content\\tokens.toml'
+
+C:\Users\shuhe\AppData\Local\Python\pythoncore-3.14-64\Lib\pathlib\__init__.py:771: FileNotFoundError
+_____________ ERROR at setup of test_theme_color_when_not_applied _____________
+
+repo_root = WindowsPath('C:/Users/shuhe/repo/voice-paste/.claude/worktrees/refactor-layout-config-and-ui-placement')
+
+    @pytest.fixture
+    def tokens(repo_root: Path) -> dict[str, dict[str, dict[str, str]]]:
+        """content/tokens.toml を読んだ値を返す。"""
+        tokens_file = repo_root / "content" / "tokens.toml"
+>       return tomllib.loads(tokens_file.read_text(encoding="utf-8"))
+                             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+tests\unit\voice_paste\ui\test_style.py:38: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+C:\Users\shuhe\AppData\Local\Python\pythoncore-3.14-64\Lib\pathlib\__init__.py:787: in read_text
+    with self.open(mode='r', encoding=encoding, errors=errors, newline=newline) as f:
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+self = WindowsPath('C:/Users/shuhe/repo/voice-paste/.claude/worktrees/refactor-layout-config-and-ui-placement/content/tokens.toml')
+mode = 'r', buffering = -1, encoding = 'utf-8', errors = None, newline = None
+
+    def open(self, mode='r', buffering=-1, encoding=None,
+             errors=None, newline=None):
+        """
+        Open the file pointed to by this path and return a file object, as
+        the built-in open() function does.
+        """
+        if "b" not in mode:
+            encoding = io.text_encoding(encoding)
+>       return io.open(self, mode, buffering, encoding, errors, newline)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       FileNotFoundError: [Errno 2] No such file or directory: 'C:\\Users\\shuhe\\repo\\voice-paste\\.claude\\worktrees\\refactor-layout-config-and-ui-placement\\content\\tokens.toml'
+
+C:\Users\shuhe\AppData\Local\Python\pythoncore-3.14-64\Lib\pathlib\__init__.py:771: FileNotFoundError
+_______________ ERROR at setup of test_theme_color_when_applied _______________
+
+repo_root = WindowsPath('C:/Users/shuhe/repo/voice-paste/.claude/worktrees/refactor-layout-config-and-ui-placement')
+
+    @pytest.fixture
+    def tokens(repo_root: Path) -> dict[str, dict[str, dict[str, str]]]:
+        """content/tokens.toml を読んだ値を返す。"""
+        tokens_file = repo_root / "content" / "tokens.toml"
+>       return tomllib.loads(tokens_file.read_text(encoding="utf-8"))
+                             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+tests\unit\voice_paste\ui\test_style.py:38: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+C:\Users\shuhe\AppData\Local\Python\pythoncore-3.14-64\Lib\pathlib\__init__.py:787: in read_text
+    with self.open(mode='r', encoding=encoding, errors=errors, newline=newline) as f:
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+self = WindowsPath('C:/Users/shuhe/repo/voice-paste/.claude/worktrees/refactor-layout-config-and-ui-placement/content/tokens.toml')
+mode = 'r', buffering = -1, encoding = 'utf-8', errors = None, newline = None
+
+    def open(self, mode='r', buffering=-1, encoding=None,
+             errors=None, newline=None):
+        """
+        Open the file pointed to by this path and return a file object, as
+        the built-in open() function does.
+        """
+        if "b" not in mode:
+            encoding = io.text_encoding(encoding)
+>       return io.open(self, mode, buffering, encoding, errors, newline)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       FileNotFoundError: [Errno 2] No such file or directory: 'C:\\Users\\shuhe\\repo\\voice-paste\\.claude\\worktrees\\refactor-layout-config-and-ui-placement\\content\\tokens.toml'
+
+C:\Users\shuhe\AppData\Local\Python\pythoncore-3.14-64\Lib\pathlib\__init__.py:771: FileNotFoundError
+________________ ERROR at setup of test_draw_checkbox_when_on _________________
+
+repo_root = WindowsPath('C:/Users/shuhe/repo/voice-paste/.claude/worktrees/refactor-layout-config-and-ui-placement')
+
+    @pytest.fixture
+    def tokens(repo_root: Path) -> dict[str, dict[str, dict[str, str]]]:
+        """content/tokens.toml を読んだ値を返す。"""
+        tokens_file = repo_root / "content" / "tokens.toml"
+>       return tomllib.loads(tokens_file.read_text(encoding="utf-8"))
+                             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+tests\unit\voice_paste\ui\test_style.py:38: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+C:\Users\shuhe\AppData\Local\Python\pythoncore-3.14-64\Lib\pathlib\__init__.py:787: in read_text
+    with self.open(mode='r', encoding=encoding, errors=errors, newline=newline) as f:
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+self = WindowsPath('C:/Users/shuhe/repo/voice-paste/.claude/worktrees/refactor-layout-config-and-ui-placement/content/tokens.toml')
+mode = 'r', buffering = -1, encoding = 'utf-8', errors = None, newline = None
+
+    def open(self, mode='r', buffering=-1, encoding=None,
+             errors=None, newline=None):
+        """
+        Open the file pointed to by this path and return a file object, as
+        the built-in open() function does.
+        """
+        if "b" not in mode:
+            encoding = io.text_encoding(encoding)
+>       return io.open(self, mode, buffering, encoding, errors, newline)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       FileNotFoundError: [Errno 2] No such file or directory: 'C:\\Users\\shuhe\\repo\\voice-paste\\.claude\\worktrees\\refactor-layout-config-and-ui-placement\\content\\tokens.toml'
+
+C:\Users\shuhe\AppData\Local\Python\pythoncore-3.14-64\Lib\pathlib\__init__.py:771: FileNotFoundError
+________________ ERROR at setup of test_draw_checkbox_when_off ________________
+
+repo_root = WindowsPath('C:/Users/shuhe/repo/voice-paste/.claude/worktrees/refactor-layout-config-and-ui-placement')
+
+    @pytest.fixture
+    def tokens(repo_root: Path) -> dict[str, dict[str, dict[str, str]]]:
+        """content/tokens.toml を読んだ値を返す。"""
+        tokens_file = repo_root / "content" / "tokens.toml"
+>       return tomllib.loads(tokens_file.read_text(encoding="utf-8"))
+                             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+tests\unit\voice_paste\ui\test_style.py:38: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+C:\Users\shuhe\AppData\Local\Python\pythoncore-3.14-64\Lib\pathlib\__init__.py:787: in read_text
+    with self.open(mode='r', encoding=encoding, errors=errors, newline=newline) as f:
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+self = WindowsPath('C:/Users/shuhe/repo/voice-paste/.claude/worktrees/refactor-layout-config-and-ui-placement/content/tokens.toml')
+mode = 'r', buffering = -1, encoding = 'utf-8', errors = None, newline = None
+
+    def open(self, mode='r', buffering=-1, encoding=None,
+             errors=None, newline=None):
+        """
+        Open the file pointed to by this path and return a file object, as
+        the built-in open() function does.
+        """
+        if "b" not in mode:
+            encoding = io.text_encoding(encoding)
+>       return io.open(self, mode, buffering, encoding, errors, newline)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       FileNotFoundError: [Errno 2] No such file or directory: 'C:\\Users\\shuhe\\repo\\voice-paste\\.claude\\worktrees\\refactor-layout-config-and-ui-placement\\content\\tokens.toml'
+
+C:\Users\shuhe\AppData\Local\Python\pythoncore-3.14-64\Lib\pathlib\__init__.py:771: FileNotFoundError
+_____________ ERROR at setup of test_draw_checkbox_when_disabled ______________
+
+repo_root = WindowsPath('C:/Users/shuhe/repo/voice-paste/.claude/worktrees/refactor-layout-config-and-ui-placement')
+
+    @pytest.fixture
+    def tokens(repo_root: Path) -> dict[str, dict[str, dict[str, str]]]:
+        """content/tokens.toml を読んだ値を返す。"""
+        tokens_file = repo_root / "content" / "tokens.toml"
+>       return tomllib.loads(tokens_file.read_text(encoding="utf-8"))
+                             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+tests\unit\voice_paste\ui\test_style.py:38: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+C:\Users\shuhe\AppData\Local\Python\pythoncore-3.14-64\Lib\pathlib\__init__.py:787: in read_text
+    with self.open(mode='r', encoding=encoding, errors=errors, newline=newline) as f:
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+self = WindowsPath('C:/Users/shuhe/repo/voice-paste/.claude/worktrees/refactor-layout-config-and-ui-placement/content/tokens.toml')
+mode = 'r', buffering = -1, encoding = 'utf-8', errors = None, newline = None
+
+    def open(self, mode='r', buffering=-1, encoding=None,
+             errors=None, newline=None):
+        """
+        Open the file pointed to by this path and return a file object, as
+        the built-in open() function does.
+        """
+        if "b" not in mode:
+            encoding = io.text_encoding(encoding)
+>       return io.open(self, mode, buffering, encoding, errors, newline)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       FileNotFoundError: [Errno 2] No such file or directory: 'C:\\Users\\shuhe\\repo\\voice-paste\\.claude\\worktrees\\refactor-layout-config-and-ui-placement\\content\\tokens.toml'
+
+C:\Users\shuhe\AppData\Local\Python\pythoncore-3.14-64\Lib\pathlib\__init__.py:771: FileNotFoundError
+_______________ ERROR at setup of test_draw_radio_when_checked ________________
+
+repo_root = WindowsPath('C:/Users/shuhe/repo/voice-paste/.claude/worktrees/refactor-layout-config-and-ui-placement')
+
+    @pytest.fixture
+    def tokens(repo_root: Path) -> dict[str, dict[str, dict[str, str]]]:
+        """content/tokens.toml を読んだ値を返す。"""
+        tokens_file = repo_root / "content" / "tokens.toml"
+>       return tomllib.loads(tokens_file.read_text(encoding="utf-8"))
+                             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+tests\unit\voice_paste\ui\test_style.py:38: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+C:\Users\shuhe\AppData\Local\Python\pythoncore-3.14-64\Lib\pathlib\__init__.py:787: in read_text
+    with self.open(mode='r', encoding=encoding, errors=errors, newline=newline) as f:
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+self = WindowsPath('C:/Users/shuhe/repo/voice-paste/.claude/worktrees/refactor-layout-config-and-ui-placement/content/tokens.toml')
+mode = 'r', buffering = -1, encoding = 'utf-8', errors = None, newline = None
+
+    def open(self, mode='r', buffering=-1, encoding=None,
+             errors=None, newline=None):
+        """
+        Open the file pointed to by this path and return a file object, as
+        the built-in open() function does.
+        """
+        if "b" not in mode:
+            encoding = io.text_encoding(encoding)
+>       return io.open(self, mode, buffering, encoding, errors, newline)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       FileNotFoundError: [Errno 2] No such file or directory: 'C:\\Users\\shuhe\\repo\\voice-paste\\.claude\\worktrees\\refactor-layout-config-and-ui-placement\\content\\tokens.toml'
+
+C:\Users\shuhe\AppData\Local\Python\pythoncore-3.14-64\Lib\pathlib\__init__.py:771: FileNotFoundError
+_____ ERROR at setup of test_pixel_metric_when_indicator[indicator_width] _____
+
+repo_root = WindowsPath('C:/Users/shuhe/repo/voice-paste/.claude/worktrees/refactor-layout-config-and-ui-placement')
+
+    @pytest.fixture
+    def tokens(repo_root: Path) -> dict[str, dict[str, dict[str, str]]]:
+        """content/tokens.toml を読んだ値を返す。"""
+        tokens_file = repo_root / "content" / "tokens.toml"
+>       return tomllib.loads(tokens_file.read_text(encoding="utf-8"))
+                             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+tests\unit\voice_paste\ui\test_style.py:38: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+C:\Users\shuhe\AppData\Local\Python\pythoncore-3.14-64\Lib\pathlib\__init__.py:787: in read_text
+    with self.open(mode='r', encoding=encoding, errors=errors, newline=newline) as f:
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+self = WindowsPath('C:/Users/shuhe/repo/voice-paste/.claude/worktrees/refactor-layout-config-and-ui-placement/content/tokens.toml')
+mode = 'r', buffering = -1, encoding = 'utf-8', errors = None, newline = None
+
+    def open(self, mode='r', buffering=-1, encoding=None,
+             errors=None, newline=None):
+        """
+        Open the file pointed to by this path and return a file object, as
+        the built-in open() function does.
+        """
+        if "b" not in mode:
+            encoding = io.text_encoding(encoding)
+>       return io.open(self, mode, buffering, encoding, errors, newline)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       FileNotFoundError: [Errno 2] No such file or directory: 'C:\\Users\\shuhe\\repo\\voice-paste\\.claude\\worktrees\\refactor-layout-config-and-ui-placement\\content\\tokens.toml'
+
+C:\Users\shuhe\AppData\Local\Python\pythoncore-3.14-64\Lib\pathlib\__init__.py:771: FileNotFoundError
+____ ERROR at setup of test_pixel_metric_when_indicator[indicator_height] _____
+
+repo_root = WindowsPath('C:/Users/shuhe/repo/voice-paste/.claude/worktrees/refactor-layout-config-and-ui-placement')
+
+    @pytest.fixture
+    def tokens(repo_root: Path) -> dict[str, dict[str, dict[str, str]]]:
+        """content/tokens.toml を読んだ値を返す。"""
+        tokens_file = repo_root / "content" / "tokens.toml"
+>       return tomllib.loads(tokens_file.read_text(encoding="utf-8"))
+                             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+tests\unit\voice_paste\ui\test_style.py:38: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+C:\Users\shuhe\AppData\Local\Python\pythoncore-3.14-64\Lib\pathlib\__init__.py:787: in read_text
+    with self.open(mode='r', encoding=encoding, errors=errors, newline=newline) as f:
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+self = WindowsPath('C:/Users/shuhe/repo/voice-paste/.claude/worktrees/refactor-layout-config-and-ui-placement/content/tokens.toml')
+mode = 'r', buffering = -1, encoding = 'utf-8', errors = None, newline = None
+
+    def open(self, mode='r', buffering=-1, encoding=None,
+             errors=None, newline=None):
+        """
+        Open the file pointed to by this path and return a file object, as
+        the built-in open() function does.
+        """
+        if "b" not in mode:
+            encoding = io.text_encoding(encoding)
+>       return io.open(self, mode, buffering, encoding, errors, newline)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       FileNotFoundError: [Errno 2] No such file or directory: 'C:\\Users\\shuhe\\repo\\voice-paste\\.claude\\worktrees\\refactor-layout-config-and-ui-placement\\content\\tokens.toml'
+
+C:\Users\shuhe\AppData\Local\Python\pythoncore-3.14-64\Lib\pathlib\__init__.py:771: FileNotFoundError
+_____ ERROR at setup of test_pixel_metric_when_indicator[exclusive_width] _____
+
+repo_root = WindowsPath('C:/Users/shuhe/repo/voice-paste/.claude/worktrees/refactor-layout-config-and-ui-placement')
+
+    @pytest.fixture
+    def tokens(repo_root: Path) -> dict[str, dict[str, dict[str, str]]]:
+        """content/tokens.toml を読んだ値を返す。"""
+        tokens_file = repo_root / "content" / "tokens.toml"
+>       return tomllib.loads(tokens_file.read_text(encoding="utf-8"))
+                             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+tests\unit\voice_paste\ui\test_style.py:38: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+C:\Users\shuhe\AppData\Local\Python\pythoncore-3.14-64\Lib\pathlib\__init__.py:787: in read_text
+    with self.open(mode='r', encoding=encoding, errors=errors, newline=newline) as f:
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+self = WindowsPath('C:/Users/shuhe/repo/voice-paste/.claude/worktrees/refactor-layout-config-and-ui-placement/content/tokens.toml')
+mode = 'r', buffering = -1, encoding = 'utf-8', errors = None, newline = None
+
+    def open(self, mode='r', buffering=-1, encoding=None,
+             errors=None, newline=None):
+        """
+        Open the file pointed to by this path and return a file object, as
+        the built-in open() function does.
+        """
+        if "b" not in mode:
+            encoding = io.text_encoding(encoding)
+>       return io.open(self, mode, buffering, encoding, errors, newline)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       FileNotFoundError: [Errno 2] No such file or directory: 'C:\\Users\\shuhe\\repo\\voice-paste\\.claude\\worktrees\\refactor-layout-config-and-ui-placement\\content\\tokens.toml'
+
+C:\Users\shuhe\AppData\Local\Python\pythoncore-3.14-64\Lib\pathlib\__init__.py:771: FileNotFoundError
+____ ERROR at setup of test_pixel_metric_when_indicator[exclusive_height] _____
+
+repo_root = WindowsPath('C:/Users/shuhe/repo/voice-paste/.claude/worktrees/refactor-layout-config-and-ui-placement')
+
+    @pytest.fixture
+    def tokens(repo_root: Path) -> dict[str, dict[str, dict[str, str]]]:
+        """content/tokens.toml を読んだ値を返す。"""
+        tokens_file = repo_root / "content" / "tokens.toml"
+>       return tomllib.loads(tokens_file.read_text(encoding="utf-8"))
+                             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+tests\unit\voice_paste\ui\test_style.py:38: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+C:\Users\shuhe\AppData\Local\Python\pythoncore-3.14-64\Lib\pathlib\__init__.py:787: in read_text
+    with self.open(mode='r', encoding=encoding, errors=errors, newline=newline) as f:
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+self = WindowsPath('C:/Users/shuhe/repo/voice-paste/.claude/worktrees/refactor-layout-config-and-ui-placement/content/tokens.toml')
+mode = 'r', buffering = -1, encoding = 'utf-8', errors = None, newline = None
+
+    def open(self, mode='r', buffering=-1, encoding=None,
+             errors=None, newline=None):
+        """
+        Open the file pointed to by this path and return a file object, as
+        the built-in open() function does.
+        """
+        if "b" not in mode:
+            encoding = io.text_encoding(encoding)
+>       return io.open(self, mode, buffering, encoding, errors, newline)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       FileNotFoundError: [Errno 2] No such file or directory: 'C:\\Users\\shuhe\\repo\\voice-paste\\.claude\\worktrees\\refactor-layout-config-and-ui-placement\\content\\tokens.toml'
+
+C:\Users\shuhe\AppData\Local\Python\pythoncore-3.14-64\Lib\pathlib\__init__.py:771: FileNotFoundError
+================================== FAILURES ===================================
+_____________________ test_load_settings_when_sample_file _____________________
+
+paths = AppPaths(defaults_file=WindowsPath('C:/Users/shuhe/repo/voice-paste/.claude/worktrees/refactor-layout-config-and-ui-pl...th('C:/Users/shuhe/AppData/Local/Temp/pytest-of-shuhe/pytest-2121/test_load_settings_when_sample0/data/instance.lock'))
+settings_model = <class 'voice_paste.shared.settings.AppSettings'>
+repo_root = WindowsPath('C:/Users/shuhe/repo/voice-paste/.claude/worktrees/refactor-layout-config-and-ui-placement')
+
+    def test_load_settings_when_sample_file(
+        paths: AppPaths, settings_model: type[Settings], repo_root: Path
+    ) -> None:
+        """リポジトリの見本は、既定値に重ねて設定のモデルの検証に通る（正常系）。"""
+        from voice_paste.shared.settings import load_settings
+    
+        # 準備
+        paths.settings_file.parent.mkdir(parents=True)
+>       shutil.copyfile(repo_root / "config" / "settings.sample.yaml", paths.settings_file)
+
+tests\unit\voice_paste\shared\test_settings.py:497: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+src = WindowsPath('C:/Users/shuhe/repo/voice-paste/.claude/worktrees/refactor-layout-config-and-ui-placement/config/settings.sample.yaml')
+dst = WindowsPath('C:/Users/shuhe/AppData/Local/Temp/pytest-of-shuhe/pytest-2121/test_load_settings_when_sample0/data/settings.yaml')
+follow_symlinks = True
+
+    def copyfile(src, dst, *, follow_symlinks=True):
+        """Copy data from src to dst in the most efficient way possible.
+    
+        If follow_symlinks is not set and src is a symbolic link, a new
+        symlink will be created instead of copying the file it points to.
+    
+        """
+        sys.audit("shutil.copyfile", src, dst)
+    
+        if _samefile(src, dst):
+            raise SameFileError("{!r} and {!r} are the same file".format(src, dst))
+    
+        file_size = 0
+        for i, fn in enumerate([src, dst]):
+            try:
+                st = _stat(fn)
+            except OSError:
+                # File most likely does not exist
+                pass
+            else:
+                # XXX What about other special files? (sockets, devices...)
+                if stat.S_ISFIFO(st.st_mode):
+                    fn = fn.path if isinstance(fn, os.DirEntry) else fn
+                    raise SpecialFileError("`%s` is a named pipe" % fn)
+                if _WINDOWS and i == 0:
+                    file_size = st.st_size
+    
+        if not follow_symlinks and _islink(src):
+            os.symlink(os.readlink(src), dst)
+        else:
+>           with open(src, 'rb') as fsrc:
+                 ^^^^^^^^^^^^^^^
+E           FileNotFoundError: [Errno 2] No such file or directory: 'C:\\Users\\shuhe\\repo\\voice-paste\\.claude\\worktrees\\refactor-layout-config-and-ui-placement\\config\\settings.sample.yaml'
+
+C:\Users\shuhe\AppData\Local\Python\pythoncore-3.14-64\Lib\shutil.py:313: FileNotFoundError
+============================== warnings summary ===============================
+.venv\Lib\site-packages\fastapi\testclient.py:1
+  C:\Users\shuhe\repo\voice-paste\.claude\worktrees\refactor-layout-config-and-ui-placement\.venv\Lib\site-packages\fastapi\testclient.py:1: StarletteDeprecationWarning: Using `httpx` with `starlette.testclient` is deprecated; install `httpx2` instead.
+    from starlette.testclient import TestClient as TestClient  # noqa
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+=========================== short test summary info ===========================
+FAILED tests/unit/voice_paste/shared/test_settings.py::test_load_settings_when_sample_file
+ERROR tests/unit/voice_paste/ui/test_style.py::test_build_stylesheet - FileNo...
+ERROR tests/unit/voice_paste/ui/test_style.py::test_build_stylesheet_when_window_frame
+ERROR tests/unit/voice_paste/ui/test_style.py::test_build_stylesheet_when_check_indicator
+ERROR tests/unit/voice_paste/ui/test_style.py::test_write_arrow_image - FileN...
+ERROR tests/unit/voice_paste/ui/test_style.py::test_apply_theme_when_dark - F...
+ERROR tests/unit/voice_paste/ui/test_style.py::test_apply_theme_when_system
+ERROR tests/unit/voice_paste/ui/test_style.py::test_apply_theme_when_switched
+ERROR tests/unit/voice_paste/ui/test_style.py::test_theme_color_when_not_applied
+ERROR tests/unit/voice_paste/ui/test_style.py::test_theme_color_when_applied
+ERROR tests/unit/voice_paste/ui/test_style.py::test_draw_checkbox_when_on - F...
+ERROR tests/unit/voice_paste/ui/test_style.py::test_draw_checkbox_when_off - ...
+ERROR tests/unit/voice_paste/ui/test_style.py::test_draw_checkbox_when_disabled
+ERROR tests/unit/voice_paste/ui/test_style.py::test_draw_radio_when_checked
+ERROR tests/unit/voice_paste/ui/test_style.py::test_pixel_metric_when_indicator[indicator_width]
+ERROR tests/unit/voice_paste/ui/test_style.py::test_pixel_metric_when_indicator[indicator_height]
+ERROR tests/unit/voice_paste/ui/test_style.py::test_pixel_metric_when_indicator[exclusive_width]
+ERROR tests/unit/voice_paste/ui/test_style.py::test_pixel_metric_when_indicator[exclusive_height]
+= 1 failed, 919 passed, 57 skipped, 1 warning, 17 errors in 405.08s (0:06:45) =

@@ -65,8 +65,10 @@ tasks:
     updated_by: planner
     updated_at: '2026-11-14T09:46:40.769017+00:00'
   - process: ドキュメント修正
-    status: todo
+    status: done
     note: docs/dev-command/CMD-1.yaml に publish・generate の分類を追加し、docs/layout/LAY-1.yaml の生成物のエントリに generated_from を記載する
+    updated_by: planner
+    updated_at: '2026-11-14T09:56:16.816991+00:00'
   - process: 単体テスト作成
     status: skipped
     reason: コードを変えない

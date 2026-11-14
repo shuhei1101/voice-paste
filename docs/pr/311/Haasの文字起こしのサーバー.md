@@ -35,4 +35,15 @@
 
 ## テスト結果
 
-なし
+### 単体
+
+| ファイル | メソッド | 変更種別 | 結果 | 補足 |
+| --- | --- | --- | --- | --- |
+| [tests/unit/haas_server/](https://github.com/shuhei1101/voice-paste/tree/7d9ae053c7ce87a869492c465d3ada707cca6a6b/tests/unit/haas_server) | 全実行 | 実行のみ | ✅ | 18 テスト pass。移した後の `haas_server/src/haas_server/` を pytest の `pythonpath` で import する<br>`テスト結果/20261114193142_df193eb_単体テスト.log` |
+| `tests/unit` の残り | 全実行 | 実行のみ | ✅ | 全体で 937 passed、57 skipped<br>`テスト結果/20261114193142_df193eb_単体テスト.log` |
+
+### 起動
+
+| 確認 | 結果 | 補足 |
+| --- | --- | --- |
+| `wsl.exe -d Ubuntu-24.04 --cd {haas_server/ の Windows のパス} -e bash start.sh --help` | ✅ | 終了コード 0 で `haas_server.main` の使い方を出した。端末で常駐アプリのサーバー（ポート 47824）が GPU を使用しているため、モデルを読み込む起動はしていない |

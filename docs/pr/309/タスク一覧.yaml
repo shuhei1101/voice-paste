@@ -74,7 +74,9 @@ tasks:
     updated_by: planner
     updated_at: '2026-11-14T09:00:20.148369+00:00'
   - process: 実装
-    status: todo
+    status: done
+    updated_by: planner
+    updated_at: '2026-11-14T09:19:39.173697+00:00'
   - process: 結合テスト作成
     status: skipped
     reason: 動きを変えないため新しい結合テストは作らない。関係する既存の結合テストは実装で流す

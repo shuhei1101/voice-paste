@@ -2,11 +2,15 @@ docs:
   - page: .gitignore
     new: false
     change: .claude/worktrees/ の行を加える
-    status: todo
+    status: done
+    updated_by: planner
+    updated_at: '2026-11-14T13:08:11.182705+00:00'
   - page: docs/layout/LAY-1.yaml
     new: false
     change: gitignore[] に .claude/worktrees/ の行を理由（作業ブランチの worktree）つきで加える
-    status: todo
+    status: done
+    updated_by: planner
+    updated_at: '2026-11-14T13:08:11.182705+00:00'
 scope_out:
   - item: 手元のクローンの .git/info/exclude から **/.claude/worktrees/ の行を外すこと
     reason: クローンごとの手元の設定で、リポジトリの変更ではない。残しても .gitignore と同じものを除外するだけで害が無い

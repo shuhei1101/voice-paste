@@ -15,3 +15,8 @@
 | ファイル | 中身 |
 | --- | --- |
 | [要件](./要件.md) | 要望の整理 |
+
+## テスト結果
+
+`.gitignore` とフォルダ構成の設計書の `gitignore[]` に行を足すだけでコードを変えないため、関係する単体・結合テストは無い。
+代わりに、`.git/info/exclude` を持たない新しいリポジトリへ `.gitignore` を写し、`git check-ignore -v .claude/worktrees/x/a` が `.gitignore:49:.claude/worktrees/` で除外と判定することと、`gitignore[]` の `pattern` の並びが `.gitignore` の行と一致することを確かめた。

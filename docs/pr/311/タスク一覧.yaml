@@ -60,8 +60,10 @@ tasks:
     updated_by: planner
     updated_at: '2026-11-14T09:54:49.634941+00:00'
   - process: モジュール構成設計
-    status: todo
+    status: done
     note: haas_server/ の分け方を決め、MOD-96・MOD-98〜101 の container と directory、フォルダ構成の設計書 LAY-1 を直す
+    updated_by: planner
+    updated_at: '2026-11-14T10:05:00.286530+00:00'
   - process: ドキュメント修正
     status: todo
     note: 要件.yaml の docs の行（開発コマンド・公開ドキュメント・アーキテクチャ図・ER 図・外部 API・外部ライブラリ・テスト実行方法・dev-docs.yaml）

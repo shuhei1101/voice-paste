@@ -13,66 +13,70 @@ docs:
   - page: docs/layout/LAY-1.yaml
     new: false
     change: haas_server/ の中のエントリを、決めた分け方の構成に直す
-    status: todo
+    status: done
+    updated_by: planner
+    updated_at: '2026-11-14T10:04:57.309156+00:00'
   - page: docs/module/MOD-98.yaml
     new: false
     change: directory の図と、起動スクリプト・テストの notes を移した後のパスに直す
-    status: todo
+    status: done
+    updated_by: planner
+    updated_at: '2026-11-14T10:04:57.309156+00:00'
   - page: docs/module/MOD-99.py.yaml
     new: false
     change: container を移した後の app.py のパスに直す
-    status: todo
+    status: done
+    updated_by: planner
+    updated_at: '2026-11-14T10:04:57.309156+00:00'
   - page: docs/module/MOD-100.py.yaml
     new: false
     change: container を移した後の audio.py のパスに直す
-    status: todo
+    status: done
+    updated_by: planner
+    updated_at: '2026-11-14T10:04:57.309156+00:00'
   - page: docs/module/MOD-101.py.yaml
     new: false
     change: container と起動スクリプトの notes を移した後のパスに直す
-    status: todo
-  - page: docs/module/MOD-96.py.yaml
-    new: false
-    change: HAAS_SERVER_DIR の値・説明を、起動スクリプトの置き場所に合わせて直す（変わる場合）
-    status: todo
+    status: done
+    updated_by: planner
+    updated_at: '2026-11-14T10:04:57.309156+00:00'
   - page: docs/architecture/ARCH-1.yaml
     new: false
     change: Haas の文字起こしのサーバーの implementation を移した後の main.py のパスに直す
-    status: todo
+    status: done
+    updated_by: planner
+    updated_at: '2026-11-14T10:04:57.309156+00:00'
   - page: docs/er/ER-2.yaml
     new: false
     change: サーバーのログの implementation を移した後の main.py のパスに直す
-    status: todo
+    status: done
+    updated_by: planner
+    updated_at: '2026-11-14T10:04:57.309156+00:00'
   - page: docs/external-api/API-1.yaml
     new: false
     change: 呼び出し元の main.py のパスを直す
-    status: todo
+    status: done
+    updated_by: planner
+    updated_at: '2026-11-14T10:04:57.309156+00:00'
   - page: docs/library/LIB-30.yaml
     new: false
-    change: 使用箇所の main.py のパスを直す（pyproject.toml・uv.lock の場所が変わる場合はそれも）
-    status: todo
-  - page: docs/library/LIB-31.yaml
-    new: false
-    change: pyproject.toml・uv.lock の場所が変わる場合にパスを直す
-    status: todo
-  - page: docs/dev-command/CMD-1.yaml
-    new: false
-    change: Haas のサーバーの環境を作る手順のフォルダ・コマンドを、決めた構成に合わせて直す（変わる場合）
-    status: todo
+    change: 使用箇所の main.py のパスを直す
+    status: done
+    updated_by: planner
+    updated_at: '2026-11-14T10:04:57.309156+00:00'
   - page: docs/test-procedure/TP-1.yaml
     new: false
-    change: Haas のサーバーの単体・結合テストの記述を、決めた構成に合わせて直す（テストのパス・import の通し方が変わる場合）
-    status: todo
-  - page: docs/guide/起動と設定.md
-    new: false
-    change: Haas のサーバーの環境を作る・消す手順のフォルダ・コマンドを、決めた構成に合わせて直す（変わる場合）
+    change: Haas のサーバーのテストが直下の pyproject.toml の pytest の pythonpath で haas_server/src を import する旨を、単体テストの記述に加える
     status: todo
   - page: dev-docs.yaml
     new: false
-    change: files_haas_server の paths を、files.yml の置き場所に合わせて直す（変わる場合）
-    status: todo
+    change: files_haas_server の paths を haas_server/src/files.yml に直す
+    status: done
+    updated_by: planner
+    updated_at: '2026-11-14T10:04:57.309156+00:00'
   - page: haas_server/files.yml
     new: false
-    change: コードの行の path を、移した後のパスに直す
+    change: haas_server/src/files.yml へ移動し、コードの行の path を src/ からのパスに直す
     status: todo
   - page: tests/files.yml
     new: false
@@ -86,5 +90,5 @@ scope_out:
     reason: 要望は置き場所の整理だけで、版は haas-asr・NeMo・torch の対応で決まっており動きが変わる
     plan: none
   - item: haas_server/pyproject.toml の build backend を hatchling にして配布できるパッケージにすること
-    reason: スコープに含めるか判断が分かれる。サーバーは配布せず WSL の環境で動かすだけのため、今の時点では含めない（package = false のまま、置き場所だけを変える）と判断する。モジュール構成設計のレビューで確定する
+    reason: サーバーは配布せず WSL の環境で動かすだけで、package = false のまま src/ へ移って起動すれば利用者の環境を作り直さずに済むため
     plan: none

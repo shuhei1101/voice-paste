@@ -65,8 +65,10 @@ tasks:
     updated_by: planner
     updated_at: '2026-11-14T23:37:47.061553+00:00'
   - process: ドキュメント修正
-    status: todo
+    status: done
     note: フォルダ構成の設計書 LAY-1（schemas・rules.yaml・docs/data・_theme のエントリ）、docs/_config.yml の除外、CLAUDE.md・README の索引の置き場所の記述
+    updated_by: planner
+    updated_at: '2026-11-14T23:44:58.686827+00:00'
   - process: 単体テスト作成
     status: skipped
     reason: コードを変えない

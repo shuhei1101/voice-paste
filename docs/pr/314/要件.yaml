@@ -6,7 +6,9 @@ docs:
   - page: docs/_config.yml
     new: false
     change: 配布元で増えたキーを足し、除外の `rules.yaml` を索引の移動に合わせて外し、`data/` を除外に足す
-    status: todo
+    status: done
+    updated_by: planner
+    updated_at: '2026-11-14T23:44:52.853797+00:00'
   - page: docs/index.yaml
     new: false
     change: '`docs/data/` のフォルダの行を足す'

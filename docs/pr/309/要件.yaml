@@ -95,4 +95,4 @@ docs:
 scope_out:
   - item: knowledge の規約『トップレベルレイアウト + feature 内構造』へ ui/ を加える修正
     reason: knowledge の文書で、このリポジトリの作業 PR では変えられない
-    plan: to_file
+    plan: shuhei1101/knowledge#381

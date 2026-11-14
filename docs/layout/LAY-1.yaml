@@ -190,6 +190,34 @@ entries:
                 contents: 画面ごとのウィンドウとダイアログ
                 content_types: [source]
               - type: file
+                name: __init__.py
+                contents: 画面のパッケージの初期化
+                content_types: [source]
+              - type: file
+                name: bridge.py
+                contents: ほかのスレッドからメインスレッドの画面へ知らせを渡す橋渡し
+                content_types: [source]
+              - type: file
+                name: controller.py
+                contents: 知らせを受けて、トレイ・録音の画面・文字起こし中の表示・ダイアログを開く・閉じる・替える
+                content_types: [source]
+              - type: file
+                name: indicator_style.py
+                contents: チェックボックスの箱・ラジオボタンの丸を、テーマの色で描くスタイル
+                content_types: [source]
+              - type: file
+                name: placement.py
+                contents: 窓を配置する位置
+                content_types: [source]
+              - type: file
+                name: style.py
+                contents: tokens.toml からアプリ全体のスタイルシートを作る
+                content_types: [source]
+              - type: file
+                name: tray.py
+                contents: システムトレイのアイコン・メニュー・通知
+                content_types: [source]
+              - type: file
                 name: tokens.toml
                 contents: 画面の色・余白のデザイントークン
                 content_types: [config]
@@ -201,7 +229,12 @@ entries:
               - type: folder
                 name: web
                 contents: 外の端末の画面
+                content_types: [source, web_transcription]
                 children:
+                  - type: file
+                    name: index.html
+                    contents: 外の端末の画面の HTML
+                    content_types: [source, web_transcription]
                   - type: folder
                     name: assets
                     contents: 外の端末の画面のスクリプトとスタイル
@@ -286,7 +319,7 @@ entries:
         name: nfr
         contents: 非機能要件のテスト
         content_types: [test]
-        naming: ["test_{requirement}.py"]
+        naming: ["test_{requirement}.py", __init__.py]
         children:
           - type: folder
             name: fixtures
@@ -343,6 +376,7 @@ entries:
           - type: folder
             name: _data
             contents: GitHub Pages のナビゲーションのデータ
+            content_types: [tool_config]
             children:
               - type: file
                 name: nav.project.yml
@@ -423,6 +457,11 @@ entries:
         contents: GitHub Pages に出す公開ドキュメント（はじめに・使い方・リファレンス）
         content_types: [guide]
         naming: ["{page}.md"]
+        children:
+          - type: file
+            name: files.yml
+            contents: docs/guide/ の Markdown の行（project-index の配信元の公開ドキュメントの Markdown）
+            content_types: [doc_index]
       - type: folder
         name: mock
         contents: 画面のモック
@@ -432,6 +471,10 @@ entries:
             name: index.md
             contents: モックの入口
             content_types: [mock]
+          - type: file
+            name: files.yml
+            contents: docs/mock/ の Markdown の行（project-index の配信元のモックの Markdown）
+            content_types: [doc_index]
           - type: folder
             name: pages
             contents: 画面ごとのモック
@@ -484,7 +527,7 @@ gitignore:
   - pattern: .env
     reason: 秘匿値を持つ環境変数
   - pattern: .env.migrated
-    reason: 廃止した `--migrate-env` が `.env` を設定ファイルへ移した後に残したファイル
+    reason: 環境変数を設定ファイルへ移した後に残る、移行前の `.env`（秘匿値）
   - pattern: venv/
     reason: Python の仮想環境
   - pattern: .venv/
@@ -532,5 +575,5 @@ refs:
   - CMD-1#categories
 notes:
   目次と行のファイル: |-
-    フォルダごとの `index.yaml`・`README.md`・`files.yml` は、フォルダの目次と、配信元に記載する行を持つファイルで、エントリに記載しない。
-    フォルダの `content_types` は、これらを除いた中身で決める。
+    `docs/{種類}/`（設計書と公開ドキュメントの種類のフォルダ）の `index.yaml` と、そこから生成する `README.md` は、エントリに記載しない。
+    フォルダの `content_types` は、`index.yaml`・`README.md`・`files.yml` を除いた中身で決める。

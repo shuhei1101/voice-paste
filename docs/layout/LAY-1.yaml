@@ -46,6 +46,9 @@ content_types:
   - name: asset
     group: role
     summary: アプリが読み込む画像・モデル
+  - name: design_token
+    group: role
+    summary: 画面の色・書体・余白のデザイントークン
   - name: agent_instruction
     group: role
     summary: Claude Code に参照させる指示
@@ -114,10 +117,6 @@ entries:
     contents: 外の端末の画面のスクリプトから JavaScript を生成するときの設定
     content_types: [tool_config]
   - type: file
-    name: settings.sample.yaml
-    contents: 利用者が手元に作る settings.yaml の見本
-    content_types: [config]
-  - type: file
     name: voice-paste.bat
     contents: Windows のショートカットから常駐アプリを起動するスクリプト
     content_types: [launcher]
@@ -135,27 +134,35 @@ entries:
     content_types: [tool_config]
   - type: folder
     name: config
-    contents: 常駐アプリの設定の既定値
+    contents: 常駐アプリの設定の既定値と、利用者が手元に作る設定ファイルの見本
     content_types: [config]
     children:
       - type: file
         name: defaults.yaml
         contents: 全てのキーを持つ設定の既定値。settings.yaml と settings.local.yaml をこの上に重ねる
         content_types: [config]
-  - type: folder
-    name: resources
-    contents: 常駐アプリが読み込む画像と、用語集の CSV の見本
-    content_types: [config]
-    children:
-      - type: folder
-        name: tray
-        contents: トレイの状態ごとのアイコン
-        content_types: [asset]
-        naming: ["{state}.png"]
       - type: file
-        name: yogo.csv
+        name: settings.sample.yaml
+        contents: 利用者が手元に作る settings.yaml・settings.local.yaml の見本
+        content_types: [config]
+      - type: file
+        name: yogo.sample.csv
         contents: 用語集の CSV（誤変換と正しい表記）の見本
         content_types: [config]
+  - type: folder
+    name: resources
+    contents: 常駐アプリが読み込む画像（トレイの状態ごとのアイコン）
+    content_types: [asset]
+    naming: ["tray_{state}.png"]
+  - type: folder
+    name: content
+    contents: 常駐アプリが読み込む、設定で上書きしない定義の原本
+    content_types: [design_token]
+    children:
+      - type: file
+        name: tokens.toml
+        contents: 画面の色・書体・余白のデザイントークン
+        content_types: [design_token]
   - type: folder
     name: schemas
     contents: 設計書のスキーマのコピーと、スキーマのバージョンを上げたときの設計書の変換
@@ -211,16 +218,12 @@ entries:
                 content_types: [source]
               - type: file
                 name: style.py
-                contents: tokens.toml からアプリ全体のスタイルシートを作る
+                contents: content/tokens.toml からアプリ全体のスタイルシートを作る
                 content_types: [source]
               - type: file
                 name: tray.py
                 contents: システムトレイのアイコン・メニュー・通知
                 content_types: [source]
-              - type: file
-                name: tokens.toml
-                contents: 画面の色・余白のデザイントークン
-                content_types: [config]
           - type: folder
             name: server
             contents: API と外の端末の画面を配信する FastAPI のサーバー

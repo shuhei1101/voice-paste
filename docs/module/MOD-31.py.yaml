@@ -8,7 +8,7 @@ enums:
     title: トレイの状態
     container: ui/tray.py
     usecase: トレイから操作する
-    summary: トレイのアイコンとヒントの出し分け。値は `resources/tray/{値}.png` のファイル名
+    summary: トレイのアイコンとヒントの出し分け。値は `resources/tray_{値}.png` のファイル名
     values:
       - value: starting
         member: STARTING
@@ -67,7 +67,7 @@ classes:
     summary: QSystemTrayIcon で状態ごとのアイコン・メニュー・通知を出す。選ばれた操作は Signal で伝える
     description: |-
       メニューの並び・文言・押せない条件は画面設計「トレイ」、通知の文言は画面設計「トレイの通知」が持つ。
-      アイコンの画像は `resources/tray/{TrayState の値}.png` を起動時に読み込む。
+      アイコンの画像は `shared/constants.py` の REPO_ROOT の下の `resources/tray_{TrayState の値}.png` を起動時に読み込む。
       アイコンの左クリックは、「録音の画面を表示」が押せれば show_window_requested、「録音を開始」が押せれば start_requested を emit し、どちらも押せなければ何もしない。
       通知を押したとき（`messageClicked`）はどの通知かが渡らないため、最後に出した通知がコピーの完了ならその起こした文字を `_copied_text` に持ち、押されたときに出し分ける（_on_message_clicked）。
     kind: クラス

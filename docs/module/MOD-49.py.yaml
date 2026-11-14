@@ -66,7 +66,7 @@ constants:
     container: shared/constants.py
     usecase: 常駐アプリを起動する
     role: 配置先
-    summary: config/defaults.yaml と settings.local.yaml を取得する、リポジトリの直下のフォルダ
+    summary: config/defaults.yaml・settings.local.yaml・content/tokens.toml・resources/ のトレイのアイコンを取得する、リポジトリの直下のフォルダ
     value: Path(__file__).resolve().parents[3]
     status: planned
   - name: DEFAULTS_FILE_NAME

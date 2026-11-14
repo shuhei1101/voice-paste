@@ -15,7 +15,6 @@ directory: |-
   ├── placement.py                  # place_window（カーソルのあるモニターの設定の位置）
   ├── style.py                      # build_stylesheet（tokens.toml から QSS を作る）・write_arrow_image（選択欄の開くマーカーの SVG）・is_dark_theme・resolve_dark・apply_theme・theme_color（画面の明暗）
   ├── indicator_style.py            # IndicatorStyle（チェックボックス・ラジオボタンのマーカーを tokens.toml の色で描く）
-  ├── tokens.toml                   # 色・書体・余白のトークン（デザイン方針）
   └── windows/
       ├── recording_window.py       # RecordingWindow
       ├── transcribing_indicator.py # TranscribingIndicator
@@ -27,8 +26,10 @@ directory: |-
       ├── settings_glossaries.py    # GlossaryPanel（設定画面の用語集の一覧と行の表）・find_glossary_row_errors
       ├── settings_hints.py         # HintPresetPanel（設定画面の表記のヒントの長さとプリセットの一覧）
       └── settings_edge_phrases.py  # EdgePhrasePanel（設定画面のハルシネーションの文言の一覧）
-  resources/tray/
-  └── starting.png・idle.png・recording.png・transcribing.png・failed.png  # トレイのアイコン（状態ごと）
+  resources/
+  └── tray_starting.png・tray_idle.png・tray_recording.png・tray_transcribing.png・tray_failed.png  # トレイのアイコン（状態ごと）
+  content/
+  └── tokens.toml                   # 色・書体・余白のトークン（デザイン方針）
   ```
 notes:
   画面が触ってよいもの: |-

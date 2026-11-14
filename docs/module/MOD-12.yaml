@@ -16,7 +16,7 @@ directory: |-
       └── timer.py             # RepeatingTimer（上限での打ち切りを定期に呼ぶ）
   ```
 
-  リポジトリの直下は `pyproject.toml`・`uv.lock`・`.python-version`・起動のバッチファイル（`voice-paste.bat`）・Linux の起動のスクリプト（`voice-paste.sh`）・自動起動の雛形（`voice-paste.desktop`）・`config/`・`settings.sample.yaml`・`README.md`・`CLAUDE.md`・`src/`・`resources/`・`tests/`・`dev/`・`docs/` に絞る。
+  リポジトリの直下は `pyproject.toml`・`uv.lock`・`.python-version`・起動のバッチファイル（`voice-paste.bat`）・Linux の起動のスクリプト（`voice-paste.sh`）・自動起動の雛形（`voice-paste.desktop`）・`config/`・`README.md`・`CLAUDE.md`・`src/`・`resources/`・`content/`・`tests/`・`dev/`・`docs/` に絞る。
 
   動かす環境は、リポジトリの直下で Windows の uv（WSL からは `uv.exe`）で `uv sync --frozen` を実行して `.venv/` に作り、ローカルの Whisper（faster-whisper・nvidia-*）を使用する環境は `--extra local-whisper` を付けて流す（`uv.lock` のバージョンで入り、Python のバージョンは `.python-version` の 3.14）。
   Windows のクローンで WSL の uv で実行すると `.venv/` を Linux の構成に作り直すため、Windows のクローンの環境を作るコマンドと環境で実行するコマンドは Windows の uv で実行する（`uv lock` はどちらでもよい）。
@@ -47,7 +47,7 @@ directory: |-
   | 起動しない | 上の表の理由の行（`voice-paste.bat` は `voice-paste.sh` に読み替える）と `See log: {launcher.log のパス}` を標準エラーに出し、同じ終了コードで終わる。`pause` に当たる止めは持たず、標準エラーが端末でなく `notify-send` があるときは同じ 2 行を通知する |
   | 起動の記録 | `${XDG_DATA_HOME:-~/.local/share}/voice-paste/log/launcher.log` へ起動ごとに上書きで書き込む（platformdirs の user_data_dir の `log/` と同じ場所） |
 
-  自動起動の雛形（`voice-paste.desktop`）は `Type=Application`・`Name=voice-paste`・`Exec="@REPO_DIR@/voice-paste.sh"`・`Icon=@REPO_DIR@/resources/tray/idle.png`・`Terminal=false`・`X-GNOME-Autostart-enabled=true` を持つ。手順のページの `sed` で `@REPO_DIR@` をクローンの絶対パスに置き換えて、`~/.config/autostart/`（ログイン時の自動起動）と `~/.local/share/applications/`（アプリの一覧）へ書き出す。
+  自動起動の雛形（`voice-paste.desktop`）は `Type=Application`・`Name=voice-paste`・`Exec="@REPO_DIR@/voice-paste.sh"`・`Icon=@REPO_DIR@/resources/tray_idle.png`・`Terminal=false`・`X-GNOME-Autostart-enabled=true` を持つ。手順のページの `sed` で `@REPO_DIR@` をクローンの絶対パスに置き換えて、`~/.config/autostart/`（ログイン時の自動起動）と `~/.local/share/applications/`（アプリの一覧）へ書き出す。
   起動のスクリプトと雛形は単体テストを持たず、検証環境の VM での起動から貼り付けまでの通しの確認で確認する（`voice-paste.bat` と同じ）。
   `pyproject.toml` の `[project.scripts]` の `voice-paste` は `voice_paste.main:main` を指す。
 diagrams:

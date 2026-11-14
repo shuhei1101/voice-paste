@@ -1,0 +1,98 @@
+use_cases:
+  - kind: single
+    scenario: docs/scenario/SC-5.yaml
+    impact: run_only
+    detail: 既定値・トレイのアイコン・画面のデザイントークンの読み込み先が変わりうるため、起動して待機中になることを確かめる
+    depends_on: []
+  - kind: single
+    scenario: docs/scenario/SC-6.yaml
+    impact: run_only
+    detail: 設定の画面の部品の置き場所が変わりうるため、設定を開いて保存できることを確かめる
+    depends_on: []
+  - kind: single
+    scenario: docs/scenario/SC-2.yaml
+    impact: run_only
+    detail: トレイの部品の置き場所が変わりうるため、トレイから操作できることを確かめる
+    depends_on: []
+  - kind: single
+    scenario: docs/scenario/SC-8.yaml
+    impact: run_only
+    detail: 録音の画面の部品の置き場所が変わりうるため、録音の画面が開くことを確かめる
+    depends_on: []
+docs:
+  - page: docs/layout/LAY-1.yaml
+    new: false
+    change: 見本・既定値・ui/・tokens.toml のエントリを移した後の場所へ修正する
+    status: done
+    updated_by: planner
+    updated_at: '2026-11-14T08:34:03.318183+00:00'
+  - page: docs/config/CFG-1.yaml
+    new: false
+    change: 見本・既定値のファイルの場所を修正する
+    status: done
+    updated_by: planner
+    updated_at: '2026-11-14T08:34:03.318183+00:00'
+  - page: docs/guide/起動と設定.md
+    new: false
+    change: 見本・既定値の場所の記載を修正する
+    status: done
+    updated_by: planner
+    updated_at: '2026-11-14T08:34:03.318183+00:00'
+  - page: docs/nonfunctional/NFR-1.yaml
+    new: false
+    change: 用語集の見本 resources/yogo.csv の記載を移した後の場所へ修正する
+    status: done
+    updated_by: planner
+    updated_at: '2026-11-14T08:34:03.318183+00:00'
+  - page: docs/design-policy.md
+    new: false
+    change: デザイントークンの値の配置先を移した後の場所へ修正する
+    status: done
+    updated_by: planner
+    updated_at: '2026-11-14T08:34:03.318183+00:00'
+  - page: docs/screen/SCR-9.py.yaml
+    new: false
+    change: tokens.toml・voice_paste.ui の記載を決めた場所へ揃える
+    status: done
+    updated_by: planner
+    updated_at: '2026-11-14T08:34:03.318183+00:00'
+  - page: docs/module/MOD-12.yaml
+    new: false
+    change: settings.sample.yaml・voice_paste.ui の記載を決めた場所へ揃える
+    status: done
+    updated_by: planner
+    updated_at: '2026-11-14T08:34:03.318183+00:00'
+  - page: docs/module/MOD-5.yaml
+    new: false
+    change: 構成図の tokens.toml を content/ へ、トレイのアイコンを resources/tray_{state}.png へ修正する
+    status: done
+    updated_by: planner
+    updated_at: '2026-11-14T08:45:37.098790+00:00'
+  - page: docs/module/MOD-44.py.yaml
+    new: false
+    change: build_stylesheet が読む tokens.toml を REPO_ROOT の下の content/tokens.toml に修正する
+    status: done
+    updated_by: planner
+    updated_at: '2026-11-14T08:45:37.098790+00:00'
+  - page: docs/module/MOD-50.py.yaml
+    new: false
+    change: test_load_settings_when_sample_file の見本のパスを config/settings.sample.yaml に修正する
+    status: done
+    updated_by: planner
+    updated_at: '2026-11-14T08:45:37.098790+00:00'
+  - page: docs/module/MOD-31.py.yaml
+    new: false
+    change: トレイのアイコンのパスを REPO_ROOT の下の resources/tray_{state}.png に修正する
+    status: done
+    updated_by: planner
+    updated_at: '2026-11-14T08:45:37.098790+00:00'
+  - page: docs/module/MOD-49.py.yaml
+    new: false
+    change: REPO_ROOT から取得するものに content/tokens.toml とトレイのアイコンを追加する
+    status: done
+    updated_by: planner
+    updated_at: '2026-11-14T08:45:37.098790+00:00'
+scope_out:
+  - item: knowledge の規約『トップレベルレイアウト + feature 内構造』へ ui/ を加える修正
+    reason: knowledge の文書で、このリポジトリの作業 PR では変えられない
+    plan: shuhei1101/knowledge#381

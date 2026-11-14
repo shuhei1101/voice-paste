@@ -1,11 +1,11 @@
 id: CFG-1
 visibility: internal
 title: '設定: 常駐アプリ'
-lead: 常駐アプリが既定値（`config/defaults.yaml`）・環境の値（`settings.yaml`）・checkout の上書き（`settings.local.yaml`）の順に重ねて読み込む設定の一覧。読み書きは `src/voice_paste/shared/settings.py`、見本は `settings.sample.yaml`。
+lead: 常駐アプリが既定値（`config/defaults.yaml`）・環境の値（`settings.yaml`）・checkout の上書き（`settings.local.yaml`）の順に重ねて読み込む設定の一覧。読み書きは `src/voice_paste/shared/settings.py`、見本は `config/settings.sample.yaml`。
 files:
-  - file: resources/yogo.csv
+  - file: yogo.csv
     manages: 用語集（誤変換 → 正しい表記。正しい表記が空の行は誤変換を削除する）
-    notes: 列は `誤変換`・`正しい表記` と、行のオン・オフの `使う`（`0` がオフ。列が無い行はオン）。録音を確定するたびに読み直す。配置先は `glossary_path` で変えられる。設定画面で追加した用語集は `glossaries[].path` の CSV に同じ列で持つ（列の定義は ER 図『常駐アプリのファイル』の用語集の CSV）。
+    notes: 列は `誤変換`・`正しい表記` と、行のオン・オフの `使う`（`0` がオフ。列が無い行はオン）。録音を確定するたびに読み直す。既定の配置先は settings.yaml と同じフォルダで、`glossary_path` で変えられる。見本はリポジトリの `config/yogo.sample.csv`。設定画面で追加した用語集は `glossaries[].path` の CSV に同じ列で持つ（列の定義は ER 図『常駐アプリのファイル』の用語集の CSV）。
   - file: config/defaults.yaml
     manages: 設定の全てのキーの既定値と、OS ごとの既定値の上書き（`os_overrides.{windows|linux}`）
     notes: git で管理する。3 レイヤーの 1 つ目で、全てのキーを持つ（欠けていれば起動時に設定を読み込めない扱い）。`os_overrides` の中は動いている OS の分だけを共通の既定値に重ねる（表はキーごと、一覧は丸ごと）。
@@ -18,7 +18,7 @@ files:
   - file: settings.toml
     manages: 前のバージョンの設定
     notes: settings.yaml が無く、同じフォルダにこのファイルがあれば、起動時に既定値と違うキーだけを settings.yaml へ移す（このファイルは残す）。settings.yaml があれば読み込まない。
-  - file: settings.sample.yaml
+  - file: config/settings.sample.yaml
     manages: settings.yaml・settings.local.yaml の見本
     notes: git で管理する。よく変えるキーを、コメントにした行で並べる（コメントを除外したキーだけが既定値に勝つ）。既定値に重ねて設定のモデルの検証に通ることを単体テストで確認する。
   - file: secrets/openai_api_key

@@ -33,8 +33,8 @@ if TYPE_CHECKING:
 
 @pytest.fixture
 def tokens(repo_root: Path) -> dict[str, dict[str, dict[str, str]]]:
-    """src/voice_paste/ui/tokens.toml を読んだ値を返す。"""
-    tokens_file = repo_root / "src" / "voice_paste" / "ui" / "tokens.toml"
+    """content/tokens.toml を読んだ値を返す。"""
+    tokens_file = repo_root / "content" / "tokens.toml"
     return tomllib.loads(tokens_file.read_text(encoding="utf-8"))
 
 

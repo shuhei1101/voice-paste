@@ -1,0 +1,90 @@
+use_cases:
+  - kind: single
+    scenario: docs/scenario/SC-5.yaml
+    impact: run_only
+    detail: Haas を使う設定で常駐アプリを起動すると、WSL の中で Haas の文字起こしのサーバーを起動する。起動スクリプトとサーバーのコードの置き場所を変えるため、起動できることを確かめる
+    depends_on: []
+  - kind: single
+    scenario: docs/scenario/SC-9.yaml
+    impact: none
+    detail: Haas で起こすシナリオはテスト用のエンドポイントへ向けるため、サーバーの置き場所の影響を受けない
+    depends_on: []
+docs:
+  - page: docs/layout/LAY-1.yaml
+    new: false
+    change: haas_server/ の中のエントリを、決めた分け方の構成に直す
+    status: todo
+  - page: docs/module/MOD-98.yaml
+    new: false
+    change: directory の図と、起動スクリプト・テストの notes を移した後のパスに直す
+    status: todo
+  - page: docs/module/MOD-99.py.yaml
+    new: false
+    change: container を移した後の app.py のパスに直す
+    status: todo
+  - page: docs/module/MOD-100.py.yaml
+    new: false
+    change: container を移した後の audio.py のパスに直す
+    status: todo
+  - page: docs/module/MOD-101.py.yaml
+    new: false
+    change: container と起動スクリプトの notes を移した後のパスに直す
+    status: todo
+  - page: docs/module/MOD-96.py.yaml
+    new: false
+    change: HAAS_SERVER_DIR の値・説明を、起動スクリプトの置き場所に合わせて直す（変わる場合）
+    status: todo
+  - page: docs/architecture/ARCH-1.yaml
+    new: false
+    change: Haas の文字起こしのサーバーの implementation を移した後の main.py のパスに直す
+    status: todo
+  - page: docs/er/ER-2.yaml
+    new: false
+    change: サーバーのログの implementation を移した後の main.py のパスに直す
+    status: todo
+  - page: docs/external-api/API-1.yaml
+    new: false
+    change: 呼び出し元の main.py のパスを直す
+    status: todo
+  - page: docs/library/LIB-30.yaml
+    new: false
+    change: 使用箇所の main.py のパスを直す（pyproject.toml・uv.lock の場所が変わる場合はそれも）
+    status: todo
+  - page: docs/library/LIB-31.yaml
+    new: false
+    change: pyproject.toml・uv.lock の場所が変わる場合にパスを直す
+    status: todo
+  - page: docs/dev-command/CMD-1.yaml
+    new: false
+    change: Haas のサーバーの環境を作る手順のフォルダ・コマンドを、決めた構成に合わせて直す（変わる場合）
+    status: todo
+  - page: docs/test-procedure/TP-1.yaml
+    new: false
+    change: Haas のサーバーの単体・結合テストの記述を、決めた構成に合わせて直す（テストのパス・import の通し方が変わる場合）
+    status: todo
+  - page: docs/guide/起動と設定.md
+    new: false
+    change: Haas のサーバーの環境を作る・消す手順のフォルダ・コマンドを、決めた構成に合わせて直す（変わる場合）
+    status: todo
+  - page: dev-docs.yaml
+    new: false
+    change: files_haas_server の paths を、files.yml の置き場所に合わせて直す（変わる場合）
+    status: todo
+  - page: haas_server/files.yml
+    new: false
+    change: コードの行の path を、移した後のパスに直す
+    status: todo
+  - page: tests/files.yml
+    new: false
+    change: haas_server のテストの行の related の to を、移した後のコードのパスに直す
+    status: todo
+scope_out:
+  - item: haas_server/files.yml・tests/files.yml・MOD-96〜101 の行へのタグ・エイリアス・description の付与
+    reason: '別の要望で、この PR で移した後のパスへ付ける（計画で #285 を #303 の後ろへ回した）'
+    plan: '#285'
+  - item: haas_server の Python の版（3.11）を knowledge の規約『pyproject.toml 標準テンプレート』の最低ライン 3.14 へ上げること
+    reason: 要望は置き場所の整理だけで、版は haas-asr・NeMo・torch の対応で決まっており動きが変わる
+    plan: none
+  - item: haas_server/pyproject.toml の build backend を hatchling にして配布できるパッケージにすること
+    reason: スコープに含めるか判断が分かれる。サーバーは配布せず WSL の環境で動かすだけのため、今の時点では含めない（package = false のまま、置き場所だけを変える）と判断する。モジュール構成設計のレビューで確定する
+    plan: none

@@ -1,0 +1,17 @@
+docs:
+  - page: docs/dev-command/CMD-1.yaml
+    new: false
+    change: AI Monitor の ai_monitor.design_docs の publish（docs/README.md・docs/{種類}/README.md・docs/_theme/_data/nav.project.yml を書き出す）と generate（docs/generated/ を生成する）を実行する分類を、前提と verification つきで追加する
+    status: done
+    updated_by: planner
+    updated_at: '2026-11-14T09:56:12.260613+00:00'
+  - page: docs/layout/LAY-1.yaml
+    new: false
+    change: docs/README.md・docs/_theme/_data/nav.project.yml・docs/generated/ のエントリに generated_from を記載し、notes の「目次と行のファイル」に docs/{種類}/README.md を生成する分類を記載する
+    status: done
+    updated_by: planner
+    updated_at: '2026-11-14T09:56:12.260613+00:00'
+scope_out:
+  - item: publish で作り直すと差分が出る目次の README.md を index.yaml と揃えること
+    reason: コマンドの記載とは別の、生成物の内容の不一致の是正で、別の Issue がある
+    plan: '#306'

@@ -2,7 +2,7 @@ title: haas_asr
 kind: ライブラリ
 lead: Haas-ja-v1.0 のモデルで日本語の音声を文字に起こす Python のライブラリ。
 used_in:
-  - haas_server/main.py
+  - haas_server/src/haas_server/main.py
 version:
   current: 0.1.0（acc614f）
   checked_on: '2026-11-06'

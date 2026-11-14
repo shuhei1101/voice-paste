@@ -4,7 +4,7 @@ test_files:
 classes:
   - name: AudioDecodeError
     title: 音声の復号の失敗
-    container: haas_server/audio.py
+    container: haas_server/src/haas_server/audio.py
     usecase: 録音を文字に起こす
     role: 例外
     kind: クラス
@@ -15,7 +15,7 @@ functions:
   - name: decode_audio
     title: 音声の復号
     kind: 関数
-    container: haas_server/audio.py
+    container: haas_server/src/haas_server/audio.py
     usecase: 録音を文字に起こす
     scope: public
     summary: 受けた音声のバイト列を PyAV で復号し、16 kHz モノラルの float32 の配列にする

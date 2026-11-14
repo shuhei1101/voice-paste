@@ -1,14 +1,14 @@
-# yaml-language-server: $schema=../schemas/files.schema.yaml
+# yaml-language-server: $schema=../../schemas/files.schema.yaml
 files:
-  - path: app.py
+  - path: haas_server/app.py
     related:
       - to: MOD-99
         type: implements
-  - path: audio.py
+  - path: haas_server/audio.py
     related:
       - to: MOD-100
         type: implements
-  - path: main.py
+  - path: haas_server/main.py
     related:
       - to: MOD-101
         type: implements

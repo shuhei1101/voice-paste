@@ -4,7 +4,7 @@ test_files:
 constants:
   - name: DEFAULT_MODEL_NAME
     title: 既定のモデルの名前
-    container: haas_server/main.py
+    container: haas_server/src/haas_server/main.py
     usecase: 常駐アプリを起動する
     summary: 起動の引数にモデルが無いときに Hugging Face Hub から取得するモデル
     value: '"third-intelligence/Haas-ja-v1.0"'
@@ -13,21 +13,21 @@ constants:
     status: planned
   - name: DEFAULT_DTYPE
     title: 既定の計算の精度
-    container: haas_server/main.py
+    container: haas_server/src/haas_server/main.py
     usecase: 常駐アプリを起動する
     summary: 起動の引数に計算の精度が無いときの値（haas_asr.load_model の既定と同じ）
     value: '"auto"'
     status: planned
   - name: DEFAULT_DEVICE
     title: 既定の装置
-    container: haas_server/main.py
+    container: haas_server/src/haas_server/main.py
     usecase: 常駐アプリを起動する
     summary: 起動の引数に装置が無いときの値（haas_asr.load_model の既定と同じ）
     value: '"cuda"'
     status: planned
   - name: DTYPE_NAMES
     title: 計算の精度の名前
-    container: haas_server/main.py
+    container: haas_server/src/haas_server/main.py
     usecase: 常駐アプリを起動する
     summary: 起動の引数で受ける計算の精度。`auto` はそのまま、ほかは同じ名前の torch の型にして load_model に引き渡す（load_model は `auto` 以外の文字列を受けない）
     value: ("auto", "bfloat16", "float16", "float32")
@@ -38,7 +38,7 @@ functions:
   - name: parse_args
     title: 起動の引数の読み取り
     kind: 関数
-    container: haas_server/main.py
+    container: haas_server/src/haas_server/main.py
     usecase: 常駐アプリを起動する
     scope: public
     summary: argparse で位置の引数（ポート・モデル・計算の精度・装置）を読み込む
@@ -81,7 +81,7 @@ functions:
   - name: load_engine
     title: Haas のモデルの読み込み
     kind: 関数
-    container: haas_server/main.py
+    container: haas_server/src/haas_server/main.py
     usecase: 常駐アプリを起動する
     scope: public
     summary: haas_asr を import して起動の引数のモデルを読み込み、HaasEngine にする
@@ -121,7 +121,7 @@ functions:
   - name: main
     title: サーバーの入口
     kind: 関数
-    container: haas_server/main.py
+    container: haas_server/src/haas_server/main.py
     usecase: 常駐アプリを起動する
     scope: public
     summary: ログを設定し、モデルを読み込んでから 127.0.0.1 で待ち受ける
@@ -159,7 +159,7 @@ visibility: internal
 data_models:
   - name: ServerArgs
     title: サーバーの起動の引数
-    container: haas_server/main.py
+    container: haas_server/src/haas_server/main.py
     usecase: 常駐アプリを起動する
     role: DTO
     summary: start.sh から受けたポート・モデル・計算の精度・装置

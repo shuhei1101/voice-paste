@@ -4,7 +4,7 @@ test_files:
 function_types:
   - name: TranscribeFn
     title: 音声の文字起こし
-    container: haas_server/app.py
+    container: haas_server/src/haas_server/app.py
     usecase: 録音を文字に起こす
     summary: 音声を起こす（haas_asr の transcribe・transcribe_longform）
     args:
@@ -23,7 +23,7 @@ function_types:
     status: planned
   - name: BuildVocabularyFn
     title: Vocabulary の組み立て
-    container: haas_server/app.py
+    container: haas_server/src/haas_server/app.py
     usecase: 録音を文字に起こす
     summary: 表記 → 読みの一覧の対応と手がかりの強さから Vocabulary を作る（haas_asr.Vocabulary）
     args:
@@ -40,7 +40,7 @@ function_types:
 data_models:
   - name: HaasEngine
     title: Haas のモデルの関数の束
-    container: haas_server/app.py
+    container: haas_server/src/haas_server/app.py
     usecase: 録音を文字に起こす
     role: DTO
     summary: create_app に引き渡す、モデルの関数と、起動の引数で受けたモデル・計算の精度・装置
@@ -66,7 +66,7 @@ data_models:
     status: planned
   - name: TranscribeOptions
     title: 要求の調整の値
-    container: haas_server/app.py
+    container: haas_server/src/haas_server/app.py
     usecase: 録音を文字に起こす
     role: DTO
     summary: POST /transcriptions の調整の値を検証した後の値
@@ -110,7 +110,7 @@ data_models:
 constants:
   - name: TUNING_FLOAT_RANGES
     title: 小数の調整の値の範囲
-    container: haas_server/app.py
+    container: haas_server/src/haas_server/app.py
     usecase: 録音を文字に起こす
     summary: 小数の調整の値ごとの下限と上限（両端を含む）
     entries:
@@ -131,7 +131,7 @@ constants:
     status: planned
   - name: BATCH_SIZE_RANGE
     title: バッチの大きさの範囲
-    container: haas_server/app.py
+    container: haas_server/src/haas_server/app.py
     usecase: 録音を文字に起こす
     summary: batch_size の下限と上限（両端を含む）
     value: (1, 256)
@@ -140,7 +140,7 @@ constants:
     status: planned
   - name: SEPARATOR_MAX_LENGTH
     title: 区切りをつなぐ文字の長さの上限
-    container: haas_server/app.py
+    container: haas_server/src/haas_server/app.py
     usecase: 録音を文字に起こす
     summary: separator の文字数の上限
     value: '16'
@@ -149,7 +149,7 @@ constants:
     status: planned
   - name: SAMPLE_RATE
     title: モデルのサンプリングレート
-    container: haas_server/app.py
+    container: haas_server/src/haas_server/app.py
     usecase: 録音を文字に起こす
     summary: 音声の長さを秒にするときに使用する
     value: '16000'
@@ -158,7 +158,7 @@ functions:
   - name: parse_tuning
     title: 調整の値の読み取り
     kind: 関数
-    container: haas_server/app.py
+    container: haas_server/src/haas_server/app.py
     usecase: 録音を文字に起こす
     scope: public
     summary: multipart の項目の文字列から調整の値を読み込み、範囲を確認して TranscribeOptions にする
@@ -227,7 +227,7 @@ functions:
   - name: create_app
     title: サーバーの app の組み立て
     kind: 関数
-    container: haas_server/app.py
+    container: haas_server/src/haas_server/app.py
     usecase: 録音を文字に起こす
     scope: public
     summary: 3 つの API と Host・Origin の守りを持つ FastAPI の app を作る
@@ -288,7 +288,7 @@ visibility: internal
 classes:
   - name: TuningValueError
     title: 調整の値の誤り
-    container: haas_server/app.py
+    container: haas_server/src/haas_server/app.py
     usecase: 録音を文字に起こす
     role: 例外
     kind: クラス

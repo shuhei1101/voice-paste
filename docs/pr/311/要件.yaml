@@ -1,0 +1,100 @@
+use_cases:
+  - kind: single
+    scenario: docs/scenario/SC-5.yaml
+    impact: run_only
+    detail: Haas を使う設定で常駐アプリを起動すると、WSL の中で Haas の文字起こしのサーバーを起動する。起動スクリプトとサーバーのコードの置き場所を変えるため、起動できることを確かめる
+    depends_on: []
+  - kind: single
+    scenario: docs/scenario/SC-9.yaml
+    impact: none
+    detail: Haas で起こすシナリオはテスト用のエンドポイントへ向けるため、サーバーの置き場所の影響を受けない
+    depends_on: []
+docs:
+  - page: docs/layout/LAY-1.yaml
+    new: false
+    change: haas_server/ の中のエントリを、決めた分け方の構成に直す
+    status: done
+    updated_by: planner
+    updated_at: '2026-11-14T10:04:57.309156+00:00'
+  - page: docs/module/MOD-98.yaml
+    new: false
+    change: directory の図と、起動スクリプト・テストの notes を移した後のパスに直す
+    status: done
+    updated_by: planner
+    updated_at: '2026-11-14T10:04:57.309156+00:00'
+  - page: docs/module/MOD-99.py.yaml
+    new: false
+    change: container を移した後の app.py のパスに直す
+    status: done
+    updated_by: planner
+    updated_at: '2026-11-14T10:04:57.309156+00:00'
+  - page: docs/module/MOD-100.py.yaml
+    new: false
+    change: container を移した後の audio.py のパスに直す
+    status: done
+    updated_by: planner
+    updated_at: '2026-11-14T10:04:57.309156+00:00'
+  - page: docs/module/MOD-101.py.yaml
+    new: false
+    change: container と起動スクリプトの notes を移した後のパスに直す
+    status: done
+    updated_by: planner
+    updated_at: '2026-11-14T10:04:57.309156+00:00'
+  - page: docs/architecture/ARCH-1.yaml
+    new: false
+    change: Haas の文字起こしのサーバーの implementation を移した後の main.py のパスに直す
+    status: done
+    updated_by: planner
+    updated_at: '2026-11-14T10:04:57.309156+00:00'
+  - page: docs/er/ER-2.yaml
+    new: false
+    change: サーバーのログの implementation を移した後の main.py のパスに直す
+    status: done
+    updated_by: planner
+    updated_at: '2026-11-14T10:04:57.309156+00:00'
+  - page: docs/external-api/API-1.yaml
+    new: false
+    change: 呼び出し元の main.py のパスを直す
+    status: done
+    updated_by: planner
+    updated_at: '2026-11-14T10:04:57.309156+00:00'
+  - page: docs/library/LIB-30.yaml
+    new: false
+    change: 使用箇所の main.py のパスを直す
+    status: done
+    updated_by: planner
+    updated_at: '2026-11-14T10:04:57.309156+00:00'
+  - page: docs/test-procedure/TP-1.yaml
+    new: false
+    change: Haas のサーバーのテストが直下の pyproject.toml の pytest の pythonpath で haas_server/src を import する旨を、単体テストの記述に加える
+    status: done
+    updated_by: planner
+    updated_at: '2026-11-14T10:20:24.948546+00:00'
+  - page: dev-docs.yaml
+    new: false
+    change: files_haas_server の paths を haas_server/src/files.yml に直す
+    status: done
+    updated_by: planner
+    updated_at: '2026-11-14T10:04:57.309156+00:00'
+  - page: haas_server/files.yml
+    new: false
+    change: haas_server/src/files.yml へ移動し、コードの行の path を src/ からのパスに直す
+    status: done
+    updated_by: planner
+    updated_at: '2026-11-14T10:32:14.643528+00:00'
+  - page: tests/files.yml
+    new: false
+    change: haas_server のテストの行の related の to を、移した後のコードのパスに直す
+    status: done
+    updated_by: planner
+    updated_at: '2026-11-14T10:32:14.643528+00:00'
+scope_out:
+  - item: haas_server/files.yml・tests/files.yml・MOD-96〜101 の行へのタグ・エイリアス・description の付与
+    reason: '別の要望で、この PR で移した後のパスへ付ける（計画で #285 を #303 の後ろへ回した）'
+    plan: '#285'
+  - item: haas_server の Python の版（3.11）を knowledge の規約『pyproject.toml 標準テンプレート』の最低ライン 3.14 へ上げること
+    reason: 要望は置き場所の整理だけで、版は haas-asr・NeMo・torch の対応で決まっており動きが変わる
+    plan: none
+  - item: haas_server/pyproject.toml の build backend を hatchling にして配布できるパッケージにすること
+    reason: サーバーは配布せず WSL の環境で動かすだけで、package = false のまま src/ へ移って起動すれば利用者の環境を作り直さずに済むため
+    plan: none

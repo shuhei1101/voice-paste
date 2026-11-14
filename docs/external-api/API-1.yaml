@@ -19,7 +19,7 @@ endpoints:
 lead: 機械学習のモデルを配るリポジトリのサービス。
 used_in:
   - src/voice_paste/integrations/whisper/worker.py
-  - haas_server/main.py（haas_asr が Haas-ja-v1.0 のモデルを取得する）
+  - haas_server/src/haas_server/main.py（haas_asr が Haas-ja-v1.0 のモデルを取得する）
 verification:
   state: 未確認
   detail: コードは直接呼ばず、faster-whisper がモデルを読み込むときに手元に無ければ取得する。動かしてはいない

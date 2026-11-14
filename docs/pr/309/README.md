@@ -1,0 +1,1 @@
+# 設定の見本・既定値と src/voice_paste/ui/・tokens.toml の置き場所を決めて直す

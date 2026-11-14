@@ -277,10 +277,6 @@ entries:
     contents: WSL の中で動かす Haas の文字起こしのサーバー。常駐アプリとは別の Python のプロジェクト
     children:
       - type: file
-        name: files.yml
-        contents: haas_server/ のコードの行（project-index の配信元の Haas の文字起こしのサーバーのコード）
-        content_types: [doc_index]
-      - type: file
         name: pyproject.toml
         contents: Haas の文字起こしのサーバーの依存
         content_types: [manifest]
@@ -292,22 +288,35 @@ entries:
         name: start.sh
         contents: 常駐アプリが WSL の中でサーバーを起動するスクリプト
         content_types: [launcher]
-      - type: file
-        name: __init__.py
-        contents: パッケージの初期化
-        content_types: [source]
-      - type: file
-        name: main.py
-        contents: 起動の入口
-        content_types: [source]
-      - type: file
-        name: app.py
-        contents: HTTP のエンドポイント
-        content_types: [source]
-      - type: file
-        name: audio.py
-        contents: 受信した音声の読み込み
-        content_types: [source]
+      - type: folder
+        name: src
+        contents: Haas の文字起こしのサーバーのコード
+        children:
+          - type: file
+            name: files.yml
+            contents: haas_server/src/ のコードの行（project-index の配信元の Haas の文字起こしのサーバーのコード）
+            content_types: [doc_index]
+          - type: folder
+            name: haas_server
+            contents: Haas の文字起こしのサーバーのパッケージ
+            content_types: [source]
+            children:
+              - type: file
+                name: __init__.py
+                contents: パッケージの初期化
+                content_types: [source]
+              - type: file
+                name: main.py
+                contents: 起動の入口
+                content_types: [source]
+              - type: file
+                name: app.py
+                contents: HTTP のエンドポイント
+                content_types: [source]
+              - type: file
+                name: audio.py
+                contents: 受信した音声の読み込み
+                content_types: [source]
   - type: folder
     name: tests
     contents: 常駐アプリと Haas の文字起こしのサーバーのテスト

@@ -357,6 +357,9 @@ entries:
         name: README.md
         contents: docs/index.yaml から生成した目次
         content_types: [doc_index]
+        generated_from:
+          path: docs/index.yaml
+          command: CMD-1#categories[ビルド・生成]
       - type: file
         name: index.md
         contents: GitHub Pages のトップページ
@@ -394,6 +397,9 @@ entries:
                 name: nav.project.yml
                 contents: AI Monitor の publish が docs/guide/ の文書の分類から書き出す上タブ
                 content_types: [tool_config]
+                generated_from:
+                  path: docs/guide/
+                  command: CMD-1#categories[ビルド・生成]
       - type: folder
         name: architecture
         contents: アーキテクチャ図の設計書
@@ -474,6 +480,13 @@ entries:
             name: files.yml
             contents: docs/guide/ の Markdown の行（project-index の配信元の公開ドキュメントの Markdown）
             content_types: [doc_index]
+          - type: file
+            name: "{category}.md"
+            contents: AI Monitor の publish が docs/guide/ の文書の分類から書き出す、分類のトップページ（はじめに・使い方・リファレンス）
+            content_types: [guide]
+            generated_from:
+              path: docs/guide/
+              command: CMD-1#categories[ビルド・生成]
       - type: folder
         name: mock
         contents: 画面のモック
@@ -535,6 +548,9 @@ entries:
       - type: folder
         name: generated
         contents: AI Monitor の generate が YAML の設計書から生成した Markdown
+        generated_from:
+          path: docs/
+          command: CMD-1#categories[ビルド・生成]
 gitignore:
   - pattern: .env
     reason: 秘匿値を持つ環境変数
@@ -588,4 +604,5 @@ refs:
 notes:
   目次と行のファイル: |-
     `docs/{種類}/`（設計書と公開ドキュメントの種類のフォルダ）の `index.yaml` と、そこから生成する `README.md` は、エントリに記載しない。
+    `README.md` は `CMD-1#categories[ビルド・生成]` の publish で生成する。
     フォルダの `content_types` は、`index.yaml`・`README.md`・`files.yml` を除いた中身で決める。

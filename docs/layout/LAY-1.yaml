@@ -471,6 +471,13 @@ entries:
             name: files.yml
             contents: docs/guide/ の Markdown の行（project-index の配信元の公開ドキュメントの Markdown）
             content_types: [doc_index]
+          - type: file
+            name: "{category}.md"
+            contents: AI Monitor の publish が docs/guide/ の文書の分類から書き出す、分類のトップページ（はじめに・使い方・リファレンス）
+            content_types: [guide]
+            generated_from:
+              path: docs/guide/
+              command: CMD-1#categories[ビルド・生成]
       - type: folder
         name: mock
         contents: 画面のモック

@@ -70,7 +70,7 @@ categories:
       npm install --save-dev {パッケージ}
       ```
 
-      4. `docs/index.yaml`・`docs/{種類}/index.yaml` から `docs/README.md`・`docs/{種類}/README.md` を、`docs/guide/` の文書の分類から `docs/_theme/_data/nav.project.yml` を書き出す（書き出したファイルはコミットする。`--check` を付けると書き換えずに、書き換えが要るファイルを出す）
+      4. `docs/index.yaml`・`docs/{種類}/index.yaml` から `docs/README.md`・`docs/{種類}/README.md` を、`docs/guide/` の文書の分類から `docs/_theme/_data/nav.project.yml` と分類のトップページ `docs/guide/{分類}.md` を書き出し、文書の公開範囲から `docs/_config.yml` の `exclude` を書き換える（書き出したファイルはコミットする。`--check` を付けると書き換えずに、書き換えが要るファイルを出す）
 
       ```bash
       cd "$AI_MONITOR_HOME" && PYTHONPATH=src uv run python -m ai_monitor.design_docs publish --root {voice-paste の作業ツリーの直下}

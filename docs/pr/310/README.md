@@ -1,0 +1,1 @@
+# 開発コマンドに AI Monitor の publish・generate を加え、フォルダ構成の生成物に generated_from を記載する

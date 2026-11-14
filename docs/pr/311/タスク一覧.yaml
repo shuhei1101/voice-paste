@@ -65,10 +65,15 @@ tasks:
     updated_by: planner
     updated_at: '2026-11-14T10:05:00.286530+00:00'
   - process: ドキュメント修正
-    status: todo
-    note: 要件.yaml の docs の行（開発コマンド・公開ドキュメント・アーキテクチャ図・ER 図・外部 API・外部ライブラリ・テスト実行方法・dev-docs.yaml）
+    status: done
+    note: 設計の工程と TP-1 で更新した。haas_server/files.yml・tests/files.yml は実装で移すコードとあわせて修正する
+    updated_by: planner
+    updated_at: '2026-11-14T10:20:31.582119+00:00'
   - process: 単体テスト作成
-    status: todo
+    status: skipped
+    reason: モジュール構成の単体テストの表も、テストのコードの import 文（haas_server.*）も変わらない。移した後の import は実装の後の単体テストの全件実行で確かめる
+    updated_by: planner
+    updated_at: '2026-11-14T10:20:52.237233+00:00'
   - process: 実装
     status: todo
     note: 実装の後に wsl.exe から start.sh を起動して確かめ直し、MOD-98 の notes の『起動スクリプト』の確認の記録を差し替える（reviewer の任意の指摘の案 A）

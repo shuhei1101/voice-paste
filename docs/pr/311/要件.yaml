@@ -67,7 +67,9 @@ docs:
   - page: docs/test-procedure/TP-1.yaml
     new: false
     change: Haas のサーバーのテストが直下の pyproject.toml の pytest の pythonpath で haas_server/src を import する旨を、単体テストの記述に加える
-    status: todo
+    status: done
+    updated_by: planner
+    updated_at: '2026-11-14T10:20:24.948546+00:00'
   - page: dev-docs.yaml
     new: false
     change: files_haas_server の paths を haas_server/src/files.yml に直す

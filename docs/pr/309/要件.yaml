@@ -62,7 +62,37 @@ docs:
     status: done
     updated_by: planner
     updated_at: '2026-11-14T08:34:03.318183+00:00'
+  - page: docs/module/MOD-5.yaml
+    new: false
+    change: 構成図の tokens.toml を content/ へ、トレイのアイコンを resources/tray_{state}.png へ修正する
+    status: done
+    updated_by: planner
+    updated_at: '2026-11-14T08:45:37.098790+00:00'
+  - page: docs/module/MOD-44.py.yaml
+    new: false
+    change: build_stylesheet が読む tokens.toml を REPO_ROOT の下の content/tokens.toml に修正する
+    status: done
+    updated_by: planner
+    updated_at: '2026-11-14T08:45:37.098790+00:00'
+  - page: docs/module/MOD-50.py.yaml
+    new: false
+    change: test_load_settings_when_sample_file の見本のパスを config/settings.sample.yaml に修正する
+    status: done
+    updated_by: planner
+    updated_at: '2026-11-14T08:45:37.098790+00:00'
+  - page: docs/module/MOD-31.py.yaml
+    new: false
+    change: トレイのアイコンのパスを REPO_ROOT の下の resources/tray_{state}.png に修正する
+    status: done
+    updated_by: planner
+    updated_at: '2026-11-14T08:45:37.098790+00:00'
+  - page: docs/module/MOD-49.py.yaml
+    new: false
+    change: REPO_ROOT から取得するものに content/tokens.toml とトレイのアイコンを追加する
+    status: done
+    updated_by: planner
+    updated_at: '2026-11-14T08:45:37.098790+00:00'
 scope_out:
   - item: knowledge の規約『トップレベルレイアウト + feature 内構造』へ ui/ を加える修正
-    reason: knowledge の文書で、このリポジトリの作業 PR では変えられない。ui/ の置き場所を案 A に決めたときだけ要る
+    reason: knowledge の文書で、このリポジトリの作業 PR では変えられない
     plan: to_file

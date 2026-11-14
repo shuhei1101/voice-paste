@@ -598,6 +598,8 @@ gitignore:
     reason: checkout ごとの上書きの設定
   - pattern: docs/generated/
     reason: YAML の設計書から生成した Markdown
+  - pattern: .claude/worktrees/
+    reason: Claude Code の作業ブランチの worktree
 refs:
   - ARCH-1#subsystems
   - CMD-1#categories

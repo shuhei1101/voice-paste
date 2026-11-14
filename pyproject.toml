@@ -63,7 +63,7 @@ voice_paste = [
     "integrations/vad/assets/LICENSE.*",
 ]
 
-[tool.pytest.ini_options]
+[tool.pytest]
 # Haas の文字起こしのサーバーは別の Python のプロジェクトで、この環境には入れないため、テストから import できるようにする
 pythonpath = ["haas_server/src"]
 

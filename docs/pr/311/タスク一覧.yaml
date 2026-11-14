@@ -75,7 +75,9 @@ tasks:
     updated_by: planner
     updated_at: '2026-11-14T10:20:52.237233+00:00'
   - process: 実装
-    status: todo
+    status: done
     note: 実装の後に wsl.exe から start.sh を起動して確かめ直し、MOD-98 の notes の『起動スクリプト』の確認の記録を差し替える（reviewer の任意の指摘の案 A）
+    updated_by: planner
+    updated_at: '2026-11-14T10:32:19.486017+00:00'
   - process: 結合テスト作成
     status: todo

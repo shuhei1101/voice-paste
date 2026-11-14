@@ -79,11 +79,15 @@ docs:
   - page: haas_server/files.yml
     new: false
     change: haas_server/src/files.yml へ移動し、コードの行の path を src/ からのパスに直す
-    status: todo
+    status: done
+    updated_by: planner
+    updated_at: '2026-11-14T10:32:14.643528+00:00'
   - page: tests/files.yml
     new: false
     change: haas_server のテストの行の related の to を、移した後のコードのパスに直す
-    status: todo
+    status: done
+    updated_by: planner
+    updated_at: '2026-11-14T10:32:14.643528+00:00'
 scope_out:
   - item: haas_server/files.yml・tests/files.yml・MOD-96〜101 の行へのタグ・エイリアス・description の付与
     reason: '別の要望で、この PR で移した後のパスへ付ける（計画で #285 を #303 の後ろへ回した）'

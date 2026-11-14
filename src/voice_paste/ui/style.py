@@ -13,12 +13,14 @@ from PySide6.QtCore import Qt
 from PySide6.QtGui import QColor, QGuiApplication
 from PySide6.QtWidgets import QApplication
 
+from voice_paste.shared.constants import REPO_ROOT
+
 if TYPE_CHECKING:
     from voice_paste.ui.indicator_style import IndicatorStyle
 
 logger = logging.getLogger(__name__)
 
-TOKENS_FILE: Path = Path(__file__).with_name("tokens.toml")
+TOKENS_FILE: Path = REPO_ROOT / "content" / "tokens.toml"
 """色・書体・余白のトークンのファイル。"""
 
 PLACEHOLDER_FORMAT: str = "@{name}@"

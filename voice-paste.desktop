@@ -2,6 +2,6 @@
 Type=Application
 Name=voice-paste
 Exec="@REPO_DIR@/voice-paste.sh"
-Icon=@REPO_DIR@/resources/tray/idle.png
+Icon=@REPO_DIR@/resources/tray_idle.png
 Terminal=false
 X-GNOME-Autostart-enabled=true

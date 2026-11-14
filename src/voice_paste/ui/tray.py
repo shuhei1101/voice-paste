@@ -12,12 +12,13 @@ from PySide6.QtCore import QObject, QUrl, Signal
 from PySide6.QtGui import QAction, QDesktopServices, QIcon
 from PySide6.QtWidgets import QMenu, QSystemTrayIcon
 
+from voice_paste.shared.constants import REPO_ROOT
 from voice_paste.ui.windows.settings_window import format_hotkey
 
 logger = logging.getLogger(__name__)
 
-TRAY_ICON_DIR: Path = Path(__file__).resolve().parents[3] / "resources" / "tray"
-"""トレイのアイコンの画像（`{TrayState の値}.png`）を置いたフォルダ。"""
+TRAY_ICON_DIR: Path = REPO_ROOT / "resources"
+"""トレイのアイコンの画像（`tray_{TrayState の値}.png`）を置いたフォルダ。"""
 
 TOOLTIP_PREFIX: str = "voice-paste: "
 """アイコンのヒントの先頭。"""
@@ -87,7 +88,7 @@ PATH_SEPARATOR: str = "・"
 
 
 class TrayState(StrEnum):
-    """トレイのアイコンとヒントの出し分け。値は `resources/tray/{値}.png` のファイル名。"""
+    """トレイのアイコンとヒントの出し分け。値は `resources/tray_{値}.png` のファイル名。"""
 
     STARTING = "starting"
     """準備中（起動してから待機中になるまで）。"""
@@ -187,7 +188,7 @@ class Tray(QObject):
         self._start_hotkey = ""
         self._start_label = START_TEXT
         self._window_state = RecordingWindowState.NOT_RECORDING
-        self._icons = {state: QIcon(str(TRAY_ICON_DIR / f"{state.value}.png")) for state in TrayState}
+        self._icons = {state: QIcon(str(TRAY_ICON_DIR / f"tray_{state.value}.png")) for state in TrayState}
 
         self._icon = QSystemTrayIcon(self)
         menu = QMenu()

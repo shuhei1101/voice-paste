@@ -71,5 +71,6 @@ tasks:
     status: todo
   - process: 実装
     status: todo
+    note: 実装の後に wsl.exe から start.sh を起動して確かめ直し、MOD-98 の notes の『起動スクリプト』の確認の記録を差し替える（reviewer の任意の指摘の案 A）
   - process: 結合テスト作成
     status: todo

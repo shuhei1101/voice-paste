@@ -5,6 +5,8 @@ files:
   tags:
   - topic:目次
   - topic:ドキュメント
+  - topic:使い方
+  - topic:リファレンス
 - path: ../design-policy.md
   visibility: internal
   description: '画面全体に通すデザインスタイルと、色・書体・文言の役割を記載し、画面やモックの見た目と文言を決めるときに参照する。'
@@ -16,3 +18,12 @@ files:
   - topic:色
   - topic:書体
   - topic:文言
+  - topic:方針
+  - topic:雰囲気
+  - topic:モチーフ
+  - topic:装飾
+  - topic:文字
+  - topic:形状
+  - topic:奥行き
+  - topic:動き
+  - action:採用

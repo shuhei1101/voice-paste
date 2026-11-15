@@ -28,3 +28,6 @@ scope_out:
   - item: テスト実行方法の層ごとの実行場所の決定と GitHub Actions への移行
     reason: この追従で schemas/ のコピーを削除した後に行う別の要望
     plan: '#298'
+  - item: 配布元の反映作業『配布先のデータの設計書の作成』の ID の決め方の修正
+    reason: AI Monitor の配布物の不具合で、配布元の shuhei1101/ai-monitor#3473 で直す
+    plan: '#3473'

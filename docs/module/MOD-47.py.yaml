@@ -49,3 +49,10 @@ functions:
         expected: 2 が返る
         exception: 引数の数が違う
     status: planned
+lead: GNOME のカスタムショートカットから起動し、押されたホットキーを常駐サービスへ送信する処理を受け持ち、Wayland でのホットキーの伝え方を変えるときに参照する。
+tags:
+  - name: topic:ホットキー
+    main: true
+  - name: topic:wayland
+  - name: tool:gnome
+  - name: action:送信

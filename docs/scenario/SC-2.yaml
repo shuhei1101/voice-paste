@@ -193,3 +193,11 @@ notes:
     Ctrl+Break は、テストが自分のプロセスの中で SIGBREAK を上げて（`signal.raise_signal`）引き渡す。
     再起動で起動し直す新しいプロセスは別プロセスで動き（Qt は offscreen）、待機中になったことをログとトークンのファイルで確認する
 test_file: tests/e2e/単一ユースケース/test_operate_from_tray.py
+tags:
+  - name: topic:トレイ
+    main: true
+  - name: topic:メニュー
+  - name: topic:フォルダ
+  - name: action:操作
+  - name: action:再起動
+  - name: action:終了

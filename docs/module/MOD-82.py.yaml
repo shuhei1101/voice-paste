@@ -45,3 +45,9 @@ function_types:
       - target: 外部連携の HaasTranscriber.transcribe
         notes: エンジンが haas のとき。on_progress を呼ばず（サーバーは途中の進みを返却しない）、hint を使用しない（表記と読みの組を get_vocabulary で読み込む）
     status: implemented
+lead: 設定で選ぶ文字起こしのエンジンの名前と、エンジン 1 つの関数型を受け持ち、エンジンを追加するときに参照する。
+tags:
+  - name: topic:エンジン
+    main: true
+  - name: topic:文字起こし
+  - name: topic:型

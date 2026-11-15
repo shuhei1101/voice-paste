@@ -170,3 +170,10 @@ functions:
         mock: なし
         expected: ()
     status: planned
+lead: クリップボードへの書き込み・貼り付けのキーと、間を空けた Enter の送信を受け持ち、貼り付けて送信の動きを変えるときに参照する。
+tags:
+  - name: topic:貼り付け
+    main: true
+  - name: topic:クリップボード
+  - name: topic:キーボード
+  - name: action:送信

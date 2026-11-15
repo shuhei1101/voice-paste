@@ -38,3 +38,11 @@ official_url: https://manpages.ubuntu.com/manpages/noble/man1/gnome-session-inhi
 install: Ubuntu 24.04 の GNOME のデスクトップには gnome-session-bin として入っている。無い環境では起動できず、常駐アプリは画面の消灯を抑止せずに録音を続ける
 refs:
   - SC-8#
+tags:
+  - name: tool:gnome-session-inhibit
+    main: true
+  - name: tool:gnome
+  - name: topic:画面
+  - name: topic:消灯
+  - name: topic:linux
+  - name: action:抑制

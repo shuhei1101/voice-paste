@@ -56,3 +56,9 @@ data_models:
         type: str
         description: 設定で選んでいるプリセットの名前
     status: planned
+lead: ブラウザの文字起こしの API の応答の本文の型を受け持ち、`/web/` の下の API の応答を変えるときに参照する。
+tags:
+  - name: topic:dto
+    main: true
+  - name: topic:ブラウザ
+  - name: topic:api

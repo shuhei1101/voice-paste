@@ -275,3 +275,11 @@ tables:
     refs:
       - MOD-101#functions[main]
     status: planned
+tags:
+  - name: topic:ファイル
+    main: true
+  - name: topic:データストア
+  - name: topic:履歴
+  - name: topic:ログ
+  - name: topic:トークン
+  - name: tool:platformdirs

@@ -4,9 +4,14 @@ title: 'データ: クラッシュと起動の記録'
 lead: 文字起こしワーカーのネイティブのクラッシュのスタック（`worker_crash.log`）と、起動のバッチファイルと Linux の起動のスクリプト（`voice-paste.sh`）の記録（`launcher.log`。import の確認の結果と `uv sync --frozen` の出力を含む。Linux は `~/.local/share/voice-paste/log/` の下）。
 datastore: ファイル（テキスト）
 fields:
-- key: line
-  title: 記録の行
-  type: string
-  description: スタックトレースや起動の手順の行
+  - key: line
+    title: 記録の行
+    type: string
+    description: スタックトレースや起動の手順の行
 refs:
-- ER-2#tables[%LOCALAPPDATA%\voice-paste\log\worker_crash.log ほか]
+  - ER-2#tables[%LOCALAPPDATA%\voice-paste\log\worker_crash.log ほか]
+tags:
+  - name: topic:ログ
+    main: true
+  - name: topic:起動
+  - name: topic:クラッシュ

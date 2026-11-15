@@ -675,3 +675,12 @@ notes:
     登録は、トレイの終了・再起動、SIGTERM での終了、新しい常駐サービスからの終わる依頼で除外し、設定画面のホットキーの欄が入力待ちの間も除外する（入力待ちが終わったら登録し直す）。
     残った登録は押したキーを GNOME が受けてアプリへ届けないため、起動のたびに前の登録の残りを解除してから登録する。
     Wayland のセッションのシナリオの E2E は、Linux で E2E を自動で実行する仕組み（[#219](https://github.com/shuhei1101/voice-paste/issues/219)）ができるまで持たず、検証環境の VM で確認する。
+tags:
+  - name: topic:起動
+    main: true
+  - name: topic:常駐
+  - name: topic:エンジン
+  - name: topic:api
+  - name: topic:ホットキー
+  - name: action:起動
+  - name: action:排他

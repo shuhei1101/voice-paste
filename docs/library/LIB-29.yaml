@@ -37,3 +37,8 @@ verification:
   detail: WSL（Linux・Python 3.12）で、Server.serve() を専用のスレッドで動かし started が True になること、同じポートで 2 つ目を起こすと例外を出さずにスレッドが終わり started が False のままであること、should_exit で止まることを確認した。Windows の実機では未確認
 license: BSD-3-Clause（商用利用可）
 official_url: https://www.uvicorn.org/
+tags:
+  - name: tool:uvicorn
+    main: true
+  - name: topic:サーバー
+  - name: topic:asgi

@@ -420,3 +420,12 @@ notes:
     停止は録音を停止し（以降の音を貯めない）、完了を待つ。完了は停止した録音を確定し、録音を文字に起こす へ進める。
     停止せずに完了を呼ぶと、録音を停止してから確定する。
   守り: 待ち受けは 127.0.0.1 に限り、Host が 127.0.0.1 か localhost であること、Origin が付いていないこと、トークンが今回の起動のものと一致することを、どの要求でも確認する。
+tags:
+  - name: topic:api
+    main: true
+  - name: topic:録音
+  - name: topic:録音セッション
+  - name: topic:コールバック
+  - name: action:開始
+  - name: action:停止
+  - name: action:操作

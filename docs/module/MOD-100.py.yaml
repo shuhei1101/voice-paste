@@ -61,3 +61,9 @@ refs:
   - LIB-4#
 id: MOD-100
 visibility: internal
+lead: 受けた音声を PyAV で 16 kHz モノラルの配列に復号する処理を受け持ち、受け付ける音声の形式を変えるときに参照する。
+tags:
+  - name: topic:音声
+    main: true
+  - name: tool:av
+  - name: action:復号

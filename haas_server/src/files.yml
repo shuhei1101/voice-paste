@@ -1,14 +1,29 @@
 # yaml-language-server: $schema=../../schemas/files.schema.yaml
 files:
   - path: haas_server/app.py
+    description: "文字起こし・準備の確認・停止の API と Host・Origin の守り、調整の値の確認を持つ FastAPI の app を受け持ち、Haas のサーバーの API を変えるときに参照する。"
+    tags:
+      - topic:api
+      - topic:サーバー
+      - tool:fastapi
     related:
       - to: MOD-99
         type: implements
   - path: haas_server/audio.py
+    description: "受けた音声を PyAV で 16 kHz モノラルの配列に復号する処理を受け持ち、受け付ける音声の形式を変えるときに参照する。"
+    tags:
+      - topic:音声
+      - tool:av
     related:
       - to: MOD-100
         type: implements
   - path: haas_server/main.py
+    description: "起動の引数を読み込み、モデルを読み込んでから 127.0.0.1 で待ち受ける処理を受け持ち、Haas のサーバーの起動の引数やモデルを変えるときに参照する。"
+    tags:
+      - topic:起動
+      - topic:モデル
+      - topic:サーバー
+      - tool:haas-asr
     related:
       - to: MOD-101
         type: implements

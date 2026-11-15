@@ -331,3 +331,9 @@ function_types:
       type: Callable[[], None]
       description: 予約を取りやめる関数（呼ばれた後は callback を呼ばない）
     status: implemented
+lead: 録音セッションの状態・配線する関数型・連続録音の終わりのマーカーの型を受け持ち、録音セッションが受け取る関数や状態を変えるときに参照する。
+tags:
+  - name: topic:録音セッション
+    main: true
+  - name: topic:型
+  - name: topic:状態遷移

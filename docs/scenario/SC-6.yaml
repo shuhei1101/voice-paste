@@ -636,3 +636,10 @@ notes:
     設定画面はトレイの「設定…」を trigger して開き、まとまりのメニュー・欄・ボタンはクリックとキーを Qt のイベントで引き渡す。
     「保存して再起動する」で起動し直す新しいプロセスは別プロセスで動き（Qt は offscreen）、ログとトークンのファイルで確認する
 test_file: tests/e2e/単一ユースケース/test_change_settings.py
+tags:
+  - name: topic:設定
+    main: true
+  - name: topic:画面
+  - name: action:編集
+  - name: action:検証
+  - name: action:保存

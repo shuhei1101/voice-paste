@@ -67,3 +67,9 @@ functions:
         mock: shutil.which・subprocess.Popen
         expected: DeliveryError が送出され、理由が `ブラウザ添付のプリセットの画面を開けませんでした（` で始まり「起動できない」を含む（「AI チャット」を含まない）
         exception: Edge も既定のブラウザも起動できない
+lead: URL を Microsoft Edge のアプリのウィンドウで開く処理を受け持ち、ブラウザ添付のプリセットで開くブラウザを変えるときに参照する。
+tags:
+  - name: topic:ブラウザ
+    main: true
+  - name: tool:edge
+  - name: action:起動

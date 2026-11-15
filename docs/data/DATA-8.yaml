@@ -4,15 +4,20 @@ title: 'データ: API のトークンのファイル'
 lead: 起動ごとに作る API のトークンと待ち受けのポート。同じユーザーのほかのプロセスが読み込んで API を呼ぶ。
 datastore: JSON
 fields:
-- key: port
-  title: ポート
-  type: int
-  description: API を待ち受けている 127.0.0.1 のポート（設定の api.port）
-  required: true
-- key: token
-  title: トークン
-  type: string
-  description: '今回の起動のトークン。`Authorization: Bearer {トークン}` で付ける'
-  required: true
+  - key: port
+    title: ポート
+    type: int
+    description: API を待ち受けている 127.0.0.1 のポート（設定の api.port）
+    required: true
+  - key: token
+    title: トークン
+    type: string
+    description: '今回の起動のトークン。`Authorization: Bearer {トークン}` で付ける'
+    required: true
 refs:
-- ER-2#tables[%LOCALAPPDATA%\voice-paste\api_token]
+  - ER-2#tables[%LOCALAPPDATA%\voice-paste\api_token]
+tags:
+  - name: topic:トークン
+    main: true
+  - name: topic:api
+  - name: topic:ポート

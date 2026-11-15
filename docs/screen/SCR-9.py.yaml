@@ -1308,3 +1308,12 @@ notes:
 
     色の役割は `content/tokens.toml` の色のトークンに従う。部品ごとの状態の見本は `docs/mock/components/check-indicator/`。
 test_file: tests/integration/ui/test_settings_window.py
+tags:
+  - name: topic:設定
+    main: true
+  - name: topic:画面
+  - name: topic:用語集
+  - name: topic:ショートカット
+  - name: topic:プリセット
+  - name: action:編集
+  - name: action:保存

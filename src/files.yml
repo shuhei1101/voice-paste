@@ -1,358 +1,795 @@
 # yaml-language-server: $schema=../schemas/files.schema.yaml
 files:
   - path: voice_paste/features/correction/service.py
+    description: "用語集の CSV の読み書きと、誤変換を正しい表記へ置き換える補正を受け持ち、用語集や補正の決まりを変えるときに参照する。"
+    tags:
+      - topic:補正
+      - topic:用語集
+      - topic:プリセット
+      - topic:ハルシネーション
+      - tool:csv
     related:
       - to: MOD-11
         type: implements
       - to: ER-2
         type: implements
   - path: voice_paste/features/history/service.py
+    description: "確定した録音と起こした文字の履歴への保存と、保持期間を過ぎた履歴の削除を受け持ち、履歴の残し方や削除を変えるときに参照する。"
+    tags:
+      - topic:履歴
+      - topic:ファイル
+      - topic:保持期間
     related:
       - to: MOD-9
         type: implements
   - path: voice_paste/features/outputs/browser/service.py
+    description: "ブラウザ添付のプリセットの URL を Edge のアプリの画面で開いて貼り付ける処理を受け持ち、ブラウザ添付のプリセットの動きを変えるときに参照する。"
+    tags:
+      - topic:プリセット
+      - topic:ブラウザ
+      - tool:edge
     related:
       - to: MOD-64
         type: implements
   - path: voice_paste/features/outputs/callback/service.py
+    description: "コールバック先を許可するかの確認と、結果の POST と再送を受け持ち、呼び出し元への返送や再送の決まりを変えるときに参照する。"
+    tags:
+      - topic:コールバック
+      - topic:リトライ
+      - topic:api
     related:
       - to: MOD-59
         type: implements
   - path: voice_paste/features/outputs/copy_only/service.py
+    description: "クリップボードへの書き込みとコピーの完了の通知を受け持ち、コピーのみの動きを変えるときに参照する。"
+    tags:
+      - topic:クリップボード
     related:
       - to: MOD-63
         type: implements
   - path: voice_paste/features/outputs/copy_only/settings.py
+    description: "出力先「コピーのみ」の設定のモデルを受け持ち、その出力先の設定のキーを変えるときに参照する。"
+    tags:
+      - topic:出力先
+      - topic:設定
+      - topic:クリップボード
     related:
       - to: MOD-57
         type: implements
   - path: voice_paste/features/outputs/endpoint/service.py
+    description: "エンドポイントへ送信のプリセットの URL へ結果を 1 回 POST する処理を受け持ち、エンドポイントへの送信の動きを変えるときに参照する。"
+    tags:
+      - topic:エンドポイント
+      - topic:プリセット
     related:
       - to: MOD-65
         type: implements
   - path: voice_paste/features/outputs/paste_and_send/service.py
+    description: "クリップボードへの書き込み・貼り付けのキーと、間を空けた Enter の送信を受け持ち、貼り付けて送信の動きを変えるときに参照する。"
+    tags:
+      - topic:貼り付け
+      - topic:クリップボード
+      - topic:キーボード
     related:
       - to: MOD-61
         type: implements
   - path: voice_paste/features/outputs/paste_and_send/settings.py
+    description: "出力先「貼り付けて送信」の設定のモデルを受け持ち、その出力先の設定のキーを変えるときに参照する。"
+    tags:
+      - topic:出力先
+      - topic:設定
+      - topic:貼り付け
     related:
       - to: MOD-55
         type: implements
       - to: CFG-1
         type: implements
   - path: voice_paste/features/outputs/paste_only/service.py
+    description: "クリップボードへの書き込みと貼り付けのキーの送信を受け持ち、貼り付けのみの動きを変えるときに参照する。"
+    tags:
+      - topic:貼り付け
+      - topic:クリップボード
     related:
       - to: MOD-62
         type: implements
   - path: voice_paste/features/outputs/paste_only/settings.py
+    description: "出力先「貼り付けのみ」の設定のモデルを受け持ち、その出力先の設定のキーを変えるときに参照する。"
+    tags:
+      - topic:出力先
+      - topic:設定
+      - topic:貼り付け
     related:
       - to: MOD-56
         type: implements
   - path: voice_paste/features/outputs/registry.py
+    description: "登録した出力先とカスタムプリセットの種類の一覧を受け持ち、出力先やプリセットの種類を追加するときに参照する。"
+    tags:
+      - topic:出力先
+      - topic:プリセット
     related:
       - to: MOD-58
         type: implements
   - path: voice_paste/features/outputs/service.py
+    description: "入口と確定の操作から出力先かカスタムプリセットを 1 つ選んで届ける処理を受け持ち、届け先の選び方を変えるときに参照する。"
+    tags:
+      - topic:出力先
+      - topic:プリセット
     related:
       - to: MOD-60
         type: implements
   - path: voice_paste/features/outputs/types.py
+    description: "出力先とカスタムプリセットの種類の組・届ける関数型・送信する JSON の型を受け持ち、出力先やプリセットの種類を追加するときに参照する。"
+    tags:
+      - topic:出力先
+      - topic:型
+      - topic:プリセット
+      - topic:コールバック
     related:
       - to: MOD-54
         type: implements
   - path: voice_paste/features/recording/client.py
+    description: "既定の入力デバイスを 16 kHz・モノラルで開く処理を受け持ち、マイクの入力の形式を変えるときに参照する。"
+    tags:
+      - topic:マイク
+      - tool:sounddevice
     related:
       - to: MOD-92
         type: implements
   - path: voice_paste/features/recording/segmenter.py
+    description: "届いた音を窓に組み直し、話し声の確率から区間を切り出して順に引き渡す処理を受け持ち、連続録音の区切り方を変えるときに参照する。"
+    tags:
+      - topic:区間
+      - topic:連続録音
+      - topic:話し声
+      - topic:無音
     related:
       - to: MOD-91
         type: implements
   - path: voice_paste/features/recording/service.py
+    description: "マイクの入力・貯めた音・下げる前の音量・画面の消灯の抑止を持つ録音の処理を受け持ち、録音の開始・停止の動きを変えるときに参照する。"
+    tags:
+      - topic:録音
+      - topic:マイク
+      - topic:音量
+      - topic:画面
+      - topic:消灯
+      - topic:連続録音
     related:
       - to: MOD-90
         type: implements
   - path: voice_paste/features/recording/types.py
+    description: "録音が受け取る音量・画面の消灯の抑止・マイク・話し声の判定の関数型を受け持ち、録音が使用する外部連携の関数を変えるときに参照する。"
+    tags:
+      - topic:型
+      - topic:録音
+      - topic:音量
+      - topic:話し声
     related:
       - to: MOD-93
         type: implements
   - path: voice_paste/features/session/route.py
+    description: "録音の開始・停止・完了の API のルートを受け持ち、`/sessions` の API の入口を変えるときに参照する。"
+    tags:
+      - topic:api
+      - topic:録音セッション
+      - topic:ルート
     related:
       - to: MOD-25
         type: implements
   - path: voice_paste/features/session/schemas.py
+    description: "録音の開始の API の要求と応答の本文の型を受け持ち、`POST /sessions` の本文を変えるときに参照する。"
+    tags:
+      - topic:api
+      - topic:dto
+      - topic:録音セッション
     related:
       - to: MOD-23
         type: implements
   - path: voice_paste/features/session/service.py
+    description: "録音セッションを同時に 1 つだけ持ち、入口からの操作で状態を進める処理を受け持ち、録音から出力までの流れや排他を変えるときに参照する。"
+    tags:
+      - topic:録音セッション
+      - topic:連続録音
+      - topic:状態遷移
     related:
       - to: MOD-24
         type: implements
   - path: voice_paste/features/session/types.py
+    description: "録音セッションの状態・配線する関数型・連続録音の終わりのマーカーの型を受け持ち、録音セッションが受け取る関数や状態を変えるときに参照する。"
+    tags:
+      - topic:録音セッション
+      - topic:型
+      - topic:状態遷移
     related:
       - to: MOD-22
         type: implements
   - path: voice_paste/features/transcription/service.py
+    description: "設定のエンジンで録音を起こし、区間を改行でつなぐ処理を受け持ち、文字起こしの呼び出し方を変えるときに参照する。"
+    tags:
+      - topic:文字起こし
+      - topic:エンジン
+      - topic:区間
     related:
       - to: MOD-83
         type: implements
   - path: voice_paste/features/transcription/types.py
+    description: "設定で選ぶ文字起こしのエンジンの名前と、エンジン 1 つの関数型を受け持ち、エンジンを追加するときに参照する。"
+    tags:
+      - topic:エンジン
+      - topic:文字起こし
+      - topic:型
     related:
       - to: MOD-82
         type: implements
   - path: voice_paste/features/web_transcription/route.py
+    description: "ブラウザの音声の受け付け・結果の取得・用語集のプリセットの一覧の API のルートを受け持ち、`/web/` の下の API を変えるときに参照する。"
+    tags:
+      - topic:api
+      - topic:ブラウザ
+      - topic:ルート
     related:
       - to: MOD-29
         type: implements
   - path: voice_paste/features/web_transcription/schemas.py
+    description: "ブラウザの文字起こしの API の応答の本文の型を受け持ち、`/web/` の下の API の応答を変えるときに参照する。"
+    tags:
+      - topic:dto
+      - topic:ブラウザ
+      - topic:api
     related:
       - to: MOD-27
         type: implements
   - path: voice_paste/features/web_transcription/service.py
+    description: "ブラウザから受けた音声の受け付けと、ジョブを 1 件ずつ起こす待ち行列を受け持ち、ジョブの受け付けや処理の順番・上限を変えるときに参照する。"
+    tags:
+      - topic:ジョブ
+      - topic:キュー
+      - topic:ブラウザ
+      - topic:上限
     related:
       - to: MOD-28
         type: implements
   - path: voice_paste/features/web_transcription/types.py
+    description: "ブラウザの音声のジョブの状態と、ジョブの処理が呼ぶ関数型の型を受け持ち、ジョブの状態や配線する関数を変えるときに参照する。"
+    tags:
+      - topic:ブラウザ
+      - topic:ジョブ
+      - topic:型
     related:
       - to: MOD-26
         type: implements
   - path: voice_paste/integrations/audio/probe.py
+    description: "受けた音声を PyAV で開いて形式・秒数・大きさを読み込む処理を受け持ち、受け付ける音声の確認を変えるときに参照する。"
+    tags:
+      - topic:音声
+      - tool:av
     related:
       - to: MOD-79
         type: implements
   - path: voice_paste/integrations/browser/opener.py
+    description: "URL を Microsoft Edge のアプリのウィンドウで開く処理を受け持ち、ブラウザ添付のプリセットで開くブラウザを変えるときに参照する。"
+    tags:
+      - topic:ブラウザ
+      - tool:edge
     related:
       - to: MOD-73
         type: implements
   - path: voice_paste/integrations/browser/opener_linux.py
+    description: "Linux で URL を Chromium 系のブラウザのアプリのウィンドウで開く処理を受け持ち、Linux で開くブラウザを変えるときに参照する。"
+    tags:
+      - topic:ブラウザ
+      - topic:linux
     related:
       - to: MOD-74
         type: implements
   - path: voice_paste/integrations/haas/server.py
+    description: "WSL の中の Haas の文字起こしのサーバーを必要なら起動して応答を待ち、自分が起動したサーバーだけを止める処理を受け持ち、Haas のサーバーの起動と停止を変えるときに参照する。"
+    tags:
+      - topic:サーバー
+      - tool:wsl
+      - tool:haas-asr
     related:
       - to: MOD-96
         type: implements
   - path: voice_paste/integrations/haas/transcriber.py
+    description: "録音を Haas の文字起こしのサーバーへ送信して起こした文字を受け取る処理を受け持ち、Haas での文字起こしの呼び出しを変えるときに参照する。"
+    tags:
+      - topic:文字起こし
+      - topic:タイムアウト
+      - tool:haas-asr
+      - tool:httpx
     related:
       - to: MOD-97
         type: implements
   - path: voice_paste/integrations/http/client.py
+    description: "httpx での JSON の POST と、タイムアウト・接続の失敗の変換を受け持ち、HTTP の送信の扱いを変えるときに参照する。"
+    tags:
+      - topic:http
+      - tool:httpx
     related:
       - to: MOD-78
         type: implements
   - path: voice_paste/integrations/http/types.py
+    description: "JSON の POST の結果と、POST する関数型を受け持ち、HTTP の送信の関数の型を変えるときに参照する。"
+    tags:
+      - topic:http
+      - topic:型
     related:
       - to: MOD-66
         type: implements
   - path: voice_paste/integrations/keyboard/active_window_linux.py
+    description: "Xorg でアクティブなウィンドウの WM_CLASS を読み込む処理を受け持ち、Xorg での端末アプリの見分け方を変えるときに参照する。"
+    tags:
+      - topic:ウィンドウ
+      - topic:xorg
+      - tool:python-xlib
     related:
       - to: MOD-81
         type: implements
   - path: voice_paste/integrations/keyboard/active_window_wayland.py
+    description: "Wayland のセッションでフォーカスしているウィンドウの wm_class を読み込む処理を受け持ち、端末アプリの見分け方を変えるときに参照する。"
+    tags:
+      - topic:ウィンドウ
+      - topic:wayland
+      - tool:focused-window-d-bus
     related:
       - to: MOD-77
         type: implements
   - path: voice_paste/integrations/keyboard/sender.py
+    description: "クリップボードへの書き込みと、貼り付けのキー・Enter の送信を受け持ち、キーの送信やクリップボードの扱いを変えるときに参照する。"
+    tags:
+      - topic:貼り付け
+      - topic:クリップボード
+      - topic:キーボード
+      - tool:pyperclip
+      - tool:pynput
     related:
       - to: MOD-72
         type: implements
   - path: voice_paste/integrations/keyboard/sender_linux.py
+    description: "Linux の Xorg で端末アプリかどうかに応じた貼り付けのキーを送信する処理を受け持ち、Linux での貼り付けのキーを変えるときに参照する。"
+    tags:
+      - topic:貼り付け
+      - topic:linux
+      - topic:xorg
+      - topic:キーボード
     related:
       - to: MOD-80
         type: implements
   - path: voice_paste/integrations/keyboard/sender_wayland.py
+    description: "Wayland のセッションで仮想キーボードから貼り付けのキーと Enter を送信する処理を受け持ち、Wayland でのキーの送信を変えるときに参照する。"
+    tags:
+      - topic:キーボード
+      - topic:wayland
+      - tool:evdev
     related:
       - to: MOD-70
         type: implements
   - path: voice_paste/integrations/openai/credentials.py
+    description: "OpenAI の API キーを環境変数か秘匿のファイルから読み込む処理を受け持ち、API キーの配置先を変えるときに参照する。"
+    tags:
+      - topic:シークレット
+      - topic:環境変数
+      - tool:openai
     related:
       - to: MOD-76
         type: implements
   - path: voice_paste/integrations/openai/transcriber.py
+    description: "録音を OpenAI API の文字起こしへ送信し、一時的な失敗を再送する処理を受け持ち、OpenAI での文字起こしを変えるときに参照する。"
+    tags:
+      - tool:openai
+      - topic:文字起こし
+      - topic:リトライ
+      - tool:httpx
     related:
       - to: MOD-69
         type: implements
   - path: voice_paste/integrations/vad/adapter.py
+    description: "同梱した Silero VAD で窓ごとの話し声の確率を求める処理を受け持ち、連続録音の区切りの判定を変えるときに参照する。"
+    tags:
+      - topic:話し声
+      - tool:silero-vad
+      - tool:onnxruntime
     related:
       - to: MOD-68
         type: implements
   - path: voice_paste/integrations/volume/adapter.py
+    description: "pycaw でのシステムの音量の下げ・戻しとフェードを受け持ち、録音中の音量の扱いを変えるときに参照する。"
+    tags:
+      - topic:音量
+      - topic:windows
+      - tool:pycaw
     related:
       - to: MOD-71
         type: implements
   - path: voice_paste/integrations/volume/noop.py
+    description: "Linux で音量を変えない代わりの関数を受け持ち、Linux での音量の扱いを変えるときに参照する。"
+    tags:
+      - topic:音量
+      - topic:linux
     related:
       - to: MOD-75
         type: implements
   - path: voice_paste/integrations/whisper/client.py
+    description: "文字起こしワーカーの子プロセスを持ち、標準入出力の JSON Lines で録音を引き渡して結果を受け取る処理を受け持ち、ローカルの文字起こしの呼び出しを変えるときに参照する。"
+    tags:
+      - topic:ワーカー
+      - topic:子プロセス
+      - topic:標準入出力
+      - tool:faster-whisper
     related:
       - to: MOD-67
         type: implements
   - path: voice_paste/integrations/whisper/protocol.py
+    description: "文字起こしワーカーと標準入出力でやり取りする 1 行の JSON の型を受け持ち、ワーカーとのやり取りを変えるときに参照する。"
+    tags:
+      - topic:標準入出力
+      - topic:ワーカー
+      - topic:型
+      - tool:json
     related:
       - to: MOD-94
         type: implements
   - path: voice_paste/integrations/whisper/worker.py
+    description: "モデルを読み込み、標準入力で受けた録音を 1 件ずつ文字に起こす文字起こしワーカーの本体を受け持ち、ローカルの文字起こしの処理を変えるときに参照する。"
+    tags:
+      - topic:ワーカー
+      - topic:文字起こし
+      - topic:標準入出力
+      - tool:faster-whisper
     related:
       - to: MOD-95
         type: implements
       - to: ARCH-1
         type: implements
   - path: voice_paste/main.py
+    description: "常駐サービスの起動と、設定から feature・外部連携・画面を配線する処理を受け持ち、起動の流れや配線を変えるときに参照する。"
+    tags:
+      - topic:起動
+      - topic:コンポジションルート
+      - topic:常駐
     related:
       - to: MOD-84
         type: implements
       - to: ARCH-1
         type: implements
   - path: voice_paste/runtime/hotkey.py
+    description: "設定のホットキーを pynput で受け付け、押されたら配線した関数を呼ぶ処理を受け持ち、ホットキーの受付を変えるときに参照する。"
+    tags:
+      - topic:ホットキー
+      - tool:pynput
     related:
       - to: MOD-33
         type: implements
   - path: voice_paste/runtime/hotkey_gnome.py
+    description: "Wayland のセッションで設定のホットキーを GNOME のカスタムショートカットへ登録して受け付ける処理を受け持ち、Wayland でのホットキーの受付を変えるときに参照する。"
+    tags:
+      - topic:ホットキー
+      - topic:ショートカット
+      - topic:wayland
+      - tool:gnome
     related:
       - to: MOD-42
         type: implements
   - path: voice_paste/runtime/process.py
+    description: "同じ Python と引数で常駐サービスを切り離して起動し直す処理を受け持ち、再起動の方法を変えるときに参照する。"
+    tags:
+      - topic:プロセス
     related:
       - to: MOD-89
         type: implements
   - path: voice_paste/runtime/send_hotkey.py
+    description: "GNOME のカスタムショートカットから起動し、押されたホットキーを常駐サービスへ送信する処理を受け持ち、Wayland でのホットキーの伝え方を変えるときに参照する。"
+    tags:
+      - topic:ホットキー
+      - topic:wayland
+      - tool:gnome
     related:
       - to: MOD-47
         type: implements
   - path: voice_paste/runtime/settings_store.py
+    description: "動いている間の今の設定を 1 つ持ち、保存した設定に入れ替える処理を受け持ち、動作中の設定の反映を変えるときに参照する。"
+    tags:
+      - topic:設定
     related:
       - to: MOD-86
         type: implements
   - path: voice_paste/runtime/single_instance.py
+    description: "Windows で名前付きのミューテックスにより単一インスタンスを保ち、前のプロセスに終了を依頼する処理を受け持ち、多重起動の扱いを変えるときに参照する。"
+    tags:
+      - topic:排他ロック
+      - topic:windows
     related:
       - to: MOD-87
         type: implements
   - path: voice_paste/runtime/single_instance_linux.py
+    description: "Linux でロックファイルとソケットにより単一インスタンスを保ち、前のプロセスに終了を依頼する処理を受け持ち、Linux での多重起動の扱いを変えるときに参照する。"
+    tags:
+      - topic:排他ロック
+      - topic:linux
+      - topic:ソケット
     related:
       - to: MOD-88
         type: implements
       - to: ER-2
         type: implements
   - path: voice_paste/runtime/timer.py
+    description: "関数を一定の間隔で呼ぶデーモンスレッドのタイマーを受け持ち、定期の処理の呼び方を変えるときに参照する。"
+    tags:
+      - topic:タイマー
+      - topic:スレッド
     related:
       - to: MOD-85
         type: implements
   - path: voice_paste/server/app.py
+    description: "route・画面の配信・middleware・例外ハンドラを組み込んだ FastAPI の app の組み立てを受け持ち、API にルートや middleware を加えるときに参照する。"
+    tags:
+      - topic:api
+      - tool:fastapi
     related:
       - to: MOD-19
         type: implements
   - path: voice_paste/server/body_limit.py
+    description: "`POST /web/transcriptions` の本文の大きさの上限を確認する middleware を受け持ち、本文の上限を変えるときに参照する。"
+    tags:
+      - topic:上限
+      - topic:ミドルウェア
+      - topic:ブラウザ
     related:
       - to: MOD-17
         type: implements
   - path: voice_paste/server/error_handlers.py
+    description: "アプリの例外を RFC 9457 の problem+json へ変える例外ハンドラを受け持ち、API のエラーの応答を変えるときに参照する。"
+    tags:
+      - topic:例外ハンドラ
+      - topic:エラー
+      - topic:api
     related:
       - to: MOD-20
         type: implements
   - path: voice_paste/server/middleware.py
+    description: "全ての要求の Host・Origin・トークンを確認して断る middleware を受け持ち、API の要求を許可する条件を変えるときに参照する。"
+    tags:
+      - topic:ミドルウェア
+      - topic:api
+      - topic:セキュリティ
+      - topic:トークン
     related:
       - to: MOD-15
         type: implements
   - path: voice_paste/server/runner.py
+    description: "uvicorn を専用のスレッドで動かし、待ち受けを始められたかを確認する処理を受け持ち、API サーバーの起動と停止を変えるときに参照する。"
+    tags:
+      - topic:サーバー
+      - topic:スレッド
+      - tool:uvicorn
     related:
       - to: MOD-16
         type: implements
   - path: voice_paste/server/token.py
+    description: "起動ごとの API のトークンの生成と、トークンのファイルへの書き込みを受け持ち、トークンの作り方や置き場所を変えるときに参照する。"
+    tags:
+      - topic:トークン
+      - topic:api
     related:
       - to: MOD-18
         type: implements
   - path: voice_paste/server/web_page.py
+    description: "外の端末の画面の HTML と JS・CSS の配信を受け持ち、画面の配信の経路やキャッシュの扱いを変えるときに参照する。"
+    tags:
+      - topic:画面
+      - topic:ブラウザ
+      - topic:アセット
     related:
       - to: MOD-21
         type: implements
   - path: voice_paste/shared/constants.py
+    description: "アプリの名前・リポジトリの直下・設定のファイル名とデータの配置先を受け持ち、ファイルの配置先や名前を変えるときに参照する。"
+    tags:
+      - topic:定数
+      - topic:パス
+      - topic:設定
+      - tool:platformdirs
     related:
       - to: MOD-49
         type: implements
   - path: voice_paste/shared/errors.py
+    description: "アプリが送出する例外の根を受け持ち、例外を追加するときや HTTP のステータスへの対応を変えるときに参照する。"
+    tags:
+      - topic:例外
+      - topic:エラー
     related:
       - to: MOD-52
         type: implements
   - path: voice_paste/shared/logger.py
+    description: "日付ごとのファイルへのログの書き込みと、保持期間を過ぎたログの削除を受け持ち、ログの出力先や保持を変えるときに参照する。"
+    tags:
+      - topic:ログ
+      - topic:ロガー
+      - topic:保持期間
     related:
       - to: MOD-53
         type: implements
   - path: voice_paste/shared/os_kind.py
+    description: "動いている OS とディスプレイのセッションの判定と、OS ごとに使用できない機能の表を受け持ち、OS で分かれる機能を変えるときに参照する。"
+    tags:
+      - topic:os
+      - topic:windows
+      - topic:linux
+      - topic:wayland
     related:
       - to: MOD-51
         type: implements
   - path: voice_paste/shared/settings.py
+    description: "既定値・環境の値・checkout の上書きを重ねた設定のモデルと、設定の読み込み・保存・移行を受け持ち、設定のキーや読み書きを変えるときに参照する。"
+    tags:
+      - topic:設定
+      - topic:既定値
+      - topic:レイヤー
+      - tool:pydantic
     related:
       - to: MOD-50
         type: implements
       - to: CFG-1
         type: implements
   - path: voice_paste/shared/types.py
+    description: "録音・結果・区間・用語集の行など feature の間を渡る型を受け持ち、feature をまたぐデータや関数の型を変えるときに参照する。"
+    tags:
+      - topic:型
+      - topic:共通
+      - topic:録音
+      - topic:出力先
     related:
       - to: MOD-48
         type: implements
   - path: voice_paste/shared/yaml_document.py
+    description: "コメントを保った YAML の読み書きと、キーの追加・削除・レイヤーの重ね合わせを受け持ち、設定ファイルの読み書きを変えるときに参照する。"
+    tags:
+      - tool:ruamel.yaml
+      - tool:yaml
+      - topic:設定
+      - topic:コメント
+      - topic:レイヤー
     related:
       - to: MOD-2
         type: implements
   - path: voice_paste/ui/bridge.py
+    description: "ほかのスレッドからの通知を Qt のシグナルでメインスレッドへ引き渡す処理を受け持ち、画面への通知を追加・変更するときに参照する。"
+    tags:
+      - topic:スレッド
+      - topic:シグナル
+      - topic:画面
+      - tool:pyside6
     related:
       - to: MOD-32
         type: implements
   - path: voice_paste/ui/controller.py
+    description: "通知を受けてトレイ・録音の画面・文字起こし中の表示・ダイアログを切り替える処理を受け持ち、画面を開く・閉じる条件を変えるときに参照する。"
+    tags:
+      - topic:画面
+      - topic:トレイ
+      - topic:ダイアログ
+      - tool:pyside6
     related:
       - to: MOD-30
         type: implements
   - path: voice_paste/ui/indicator_style.py
+    description: "チェックボックスとラジオボタンの印をテーマの色で描くスタイルを受け持ち、選択の部品の見た目を変えるときに参照する。"
+    tags:
+      - topic:スタイル
+      - topic:テーマ
+      - tool:qt
     related:
       - to: MOD-40
         type: implements
   - path: voice_paste/ui/placement.py
+    description: "設定のモニターと位置から窓を配置する座標を求める処理を受け持ち、録音の画面の出る位置を変えるときに参照する。"
+    tags:
+      - topic:ウィンドウ
+      - topic:モニター
     related:
       - to: MOD-43
         type: implements
   - path: voice_paste/ui/style.py
+    description: "tokens.toml の色・書体・余白からアプリ全体のスタイルシートを作り、明暗のテーマを適用する処理を受け持ち、画面の見た目やテーマを変えるときに参照する。"
+    tags:
+      - topic:スタイル
+      - topic:テーマ
+      - topic:デザイントークン
+      - tool:qt
     related:
       - to: MOD-44
         type: implements
   - path: voice_paste/ui/tray.py
+    description: "状態ごとのトレイのアイコン・メニュー・通知を受け持ち、トレイの表示や操作を変えるときに参照する。"
+    tags:
+      - topic:トレイ
+      - topic:アイコン
+      - topic:メニュー
+      - topic:通知
+      - tool:pyside6
     related:
       - to: MOD-31
         type: implements
   - path: voice_paste/ui/windows/busy_dialog.py
+    description: "録音を始められない理由を手前に出すダイアログを受け持ち、処理中に録音を始めようとしたときの通知を変えるときに参照する。"
+    tags:
+      - topic:ダイアログ
+      - topic:録音
     related:
       - to: MOD-45
         type: implements
   - path: voice_paste/ui/windows/recording_window.py
+    description: "状態・経過時間・波形と一時停止・取り消し・確定のボタンを並べる録音の画面を受け持ち、録音の画面の表示や操作を変えるときに参照する。"
+    tags:
+      - topic:録音
+      - topic:画面
+      - topic:波形
     related:
       - to: MOD-34
         type: implements
   - path: voice_paste/ui/windows/settings_edge_phrases.py
+    description: "設定画面のハルシネーションの文言の一覧と行の追加・削除・並べ替えを受け持ち、文頭・文末から削除する文言の編集の操作を変えるときに参照する。"
+    tags:
+      - topic:ハルシネーション
+      - topic:設定
+      - topic:画面
     related:
       - to: MOD-41
         type: implements
   - path: voice_paste/ui/windows/settings_fields.py
+    description: "設定画面の列挙を選ぶラジオボタンの欄の組み立てと、選んだ値の読み取りを受け持ち、選択の欄の並びを変えるときに参照する。"
+    tags:
+      - topic:設定
+      - topic:画面
+      - topic:フォーム
     related:
       - to: MOD-46
         type: implements
   - path: voice_paste/ui/windows/settings_glossaries.py
+    description: "設定画面の用語集と用語集のプリセットの一覧・行の表と、行の入力チェックを受け持ち、用語集の編集の操作を変えるときに参照する。"
+    tags:
+      - topic:用語集
+      - topic:プリセット
+      - topic:設定
+      - topic:画面
     related:
       - to: MOD-38
         type: implements
   - path: voice_paste/ui/windows/settings_hints.py
+    description: "設定画面の表記のヒントのプリセットと単語の編集、長さの数え直しを受け持ち、表記のヒントの編集の操作を変えるときに参照する。"
+    tags:
+      - topic:ヒント
+      - topic:プリセット
+      - topic:設定
+      - topic:画面
     related:
       - to: MOD-39
         type: implements
   - path: voice_paste/ui/windows/settings_presets.py
+    description: "設定画面のプリセットの並びと追加・削除・並べ替えを受け持ち、プリセットの編集の操作を変えるときに参照する。"
+    tags:
+      - topic:プリセット
+      - topic:設定
+      - topic:画面
     related:
       - to: MOD-37
         type: implements
   - path: voice_paste/ui/windows/settings_window.py
+    description: "設定のモデルから欄を組み立てて並べ、確認してから保存する設定画面を受け持ち、設定画面の欄や保存の流れを変えるときに参照する。"
+    tags:
+      - topic:設定
+      - topic:画面
+      - topic:ホットキー
     related:
       - to: MOD-36
         type: implements
   - path: voice_paste/ui/windows/transcribing_indicator.py
+    description: "確定から届けるまでの経過と残りの時間・進みを出す表示を受け持ち、文字起こし中の表示を変えるときに参照する。"
+    tags:
+      - topic:文字起こし
+      - topic:画面
+      - topic:インジケーター
     related:
       - to: MOD-35
         type: implements

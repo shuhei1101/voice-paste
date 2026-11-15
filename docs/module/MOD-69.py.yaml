@@ -280,3 +280,12 @@ constants:
     summary: 含むと OpenAI API が要求ごと拒む文字。改行は手がかりの単語に入らない（HINT_WORD_FORBIDDEN_CHARS）ため持たない
     value: ("<", ">")
     status: planned
+aliases:
+  - OpenAITranscriber
+lead: 録音を OpenAI API の文字起こしへ送信し、一時的な失敗を再送する処理を受け持ち、OpenAI での文字起こしを変えるときに参照する。
+tags:
+  - name: tool:openai
+    main: true
+  - name: topic:文字起こし
+  - name: topic:リトライ
+  - name: tool:httpx

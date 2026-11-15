@@ -352,3 +352,12 @@ functions:
         expected: GlossaryPresetNotFoundError が送出され、メッセージに「無いプリセット」を含む。probe_audio・submit が呼ばれず、tmp_dir が空
         exception: 指定した用語集のプリセットが今の設定の一覧に無い
     status: planned
+aliases:
+  - WebJobQueue
+lead: ブラウザから受けた音声の受け付けと、ジョブを 1 件ずつ起こす待ち行列を受け持ち、ジョブの受け付けや処理の順番・上限を変えるときに参照する。
+tags:
+  - name: topic:ジョブ
+    main: true
+  - name: topic:キュー
+  - name: topic:ブラウザ
+  - name: topic:上限

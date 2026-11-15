@@ -51,3 +51,10 @@ functions:
         mock: WebJobQueue・probe_audio
         expected: 順に 404・413・415・503 と application/problem+json が返る
     status: implemented
+lead: アプリの例外を RFC 9457 の problem+json へ変える例外ハンドラを受け持ち、API のエラーの応答を変えるときに参照する。
+tags:
+  - name: topic:例外ハンドラ
+    main: true
+  - name: topic:エラー
+  - name: topic:api
+  - name: action:変換

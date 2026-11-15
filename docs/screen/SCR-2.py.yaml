@@ -70,3 +70,9 @@ notes:
     Linux の Wayland のセッションで貼り付けのキーを送信できないときは、`delivery_failed` の {理由} を「貼り付けのキーを送信できません。起こした文字はクリップボードにあります」にする。
   通知の操作: PySide6 のトレイの通知（`QSystemTrayIcon.showMessage`）は通知の中にボタンを配置できないため、「ログフォルダを開く」「もう一度コピー」は「通知を押す（`messageClicked`）」で実現する。`messageClicked` はどの通知を押したかを引き渡さないため、トレイは最後に出した通知の種類と、コピーの完了なら起こした文字を持ち、押されたときにその種類で出し分ける。次の通知を出すと、種類を問わず持つものを置き換える
 test_file: tests/integration/ui/test_tray_notification.py
+tags:
+  - name: topic:通知
+    main: true
+  - name: topic:トレイ
+  - name: topic:エラー
+  - name: action:通知

@@ -280,3 +280,12 @@ functions:
         mock: なし
         expected: os.getuid()
     status: planned
+aliases:
+  - LinuxSingleInstanceLock
+lead: Linux でロックファイルとソケットにより単一インスタンスを保ち、前のプロセスに終了を依頼する処理を受け持ち、Linux での多重起動の扱いを変えるときに参照する。
+tags:
+  - name: topic:排他ロック
+    main: true
+  - name: topic:linux
+  - name: topic:ソケット
+  - name: action:排他

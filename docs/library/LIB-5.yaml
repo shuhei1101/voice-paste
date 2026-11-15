@@ -33,3 +33,8 @@ install: |-
   ```bash
   uv sync --frozen
   ```
+tags:
+  - name: tool:comtypes
+    main: true
+  - name: topic:windows
+  - name: topic:com

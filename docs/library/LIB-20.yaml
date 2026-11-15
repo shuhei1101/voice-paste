@@ -37,3 +37,8 @@ install: |-
   ```bash
   sudo apt install xclip
   ```
+tags:
+  - name: tool:pyperclip
+    main: true
+  - name: topic:クリップボード
+  - name: action:書き込み

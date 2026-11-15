@@ -97,3 +97,10 @@ classes:
             mock: なし
             expected: get().recording.volume_percent が 30
     status: implemented
+aliases:
+  - SettingsStore
+lead: 動いている間の今の設定を 1 つ持ち、保存した設定に入れ替える処理を受け持ち、動作中の設定の反映を変えるときに参照する。
+tags:
+  - name: topic:設定
+    main: true
+  - name: action:切り替え

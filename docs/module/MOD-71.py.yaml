@@ -239,3 +239,9 @@ functions:
         mock: _open_endpoint_volume
         expected: None が返る
     status: implemented
+lead: pycaw でのシステムの音量の下げ・戻しとフェードを受け持ち、録音中の音量の扱いを変えるときに参照する。
+tags:
+  - name: topic:音量
+    main: true
+  - name: topic:windows
+  - name: tool:pycaw

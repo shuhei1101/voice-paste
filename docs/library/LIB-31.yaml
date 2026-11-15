@@ -23,3 +23,8 @@ catalogs:
         purpose: haas_asr の依存として入れる
 id: LIB-31
 visibility: internal
+tags:
+  - name: tool:nemo
+    main: true
+  - name: tool:haas-asr
+  - name: topic:モデル

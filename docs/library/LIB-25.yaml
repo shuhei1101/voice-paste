@@ -95,3 +95,9 @@ issues:
       - method: str の representer を差し替え、YAML 1.1 で読み込むと文字列でなくなる値を単引用符で囲んで書き込む
         result: YAML 1.1 で読み込んでも文字列で戻る（PoC で確認）。ユーザーが引用符なしで書き込んだ触っていない値にも、保存のたびに引用符が付く。値は変わらないため受け入れ、往復の単体テストの期待値もそれに合わせる
         recommended: true
+tags:
+  - name: tool:ruamel.yaml
+    main: true
+  - name: tool:yaml
+  - name: topic:設定
+  - name: topic:コメント

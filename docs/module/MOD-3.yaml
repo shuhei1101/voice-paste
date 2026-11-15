@@ -19,3 +19,9 @@ diagrams:
       ```
 
       <!-- /map -->
+tags:
+  - name: topic:録音セッション
+    main: true
+  - name: topic:連続録音
+  - name: topic:状態遷移
+  - name: action:排他

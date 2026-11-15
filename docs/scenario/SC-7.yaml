@@ -788,3 +788,12 @@ notes:
     「コピーのみ」で書き込んだ文字は、常駐サービスの終了後も貼り付けられる。
     Wayland のセッションのシナリオの E2E は、Linux で E2E を自動で実行する仕組み（[#219](https://github.com/shuhei1101/voice-paste/issues/219)）ができるまで持たず、検証環境の VM で確認する。
 test_file: tests/e2e/単一ユースケース/test_deliver_transcript.py
+tags:
+  - name: topic:出力先
+    main: true
+  - name: topic:貼り付け
+  - name: topic:クリップボード
+  - name: topic:プリセット
+  - name: topic:コールバック
+  - name: action:送信
+  - name: action:貼り付け

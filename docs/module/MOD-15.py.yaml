@@ -131,3 +131,13 @@ classes:
     refs:
       - LIB-7#
     status: implemented
+aliases:
+  - RequestGuardMiddleware
+lead: 全ての要求の Host・Origin・トークンを確認して断る middleware を受け持ち、API の要求を許可する条件を変えるときに参照する。
+tags:
+  - name: topic:ミドルウェア
+    main: true
+  - name: topic:api
+  - name: topic:セキュリティ
+  - name: topic:トークン
+  - name: action:検証

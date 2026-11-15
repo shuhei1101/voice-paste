@@ -37,3 +37,9 @@ verification:
   detail: WSL（Linux・Python 3.12）で、127.0.0.1 のエンドポイントへ結果の JSON（session_id・result・text）を POST して 200 と受け取りを確認した。Windows の実機では未確認
 license: BSD-3-Clause（商用利用可）
 official_url: https://www.python-httpx.org/
+tags:
+  - name: tool:httpx
+    main: true
+  - name: topic:http
+  - name: topic:クライアント
+  - name: action:送信

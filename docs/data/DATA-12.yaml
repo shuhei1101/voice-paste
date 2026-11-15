@@ -4,9 +4,14 @@ title: 'データ: 開くマーカーの画像'
 lead: 選択欄の開くマーカー（V 字）の画像。スタイルシートの `::down-arrow` が指す。
 datastore: SVG
 fields:
-- key: svg
-  title: 画像
-  type: string
-  description: text_muted の色の線で描いた V 字の SVG
+  - key: svg
+    title: 画像
+    type: string
+    description: text_muted の色の線で描いた V 字の SVG
 refs:
-- ER-2#tables[%LOCALAPPDATA%\voice-paste\ui\{ハッシュ}.svg]
+  - ER-2#tables[%LOCALAPPDATA%\voice-paste\ui\{ハッシュ}.svg]
+tags:
+  - name: topic:画像
+    main: true
+  - name: topic:スタイル
+  - name: tool:svg

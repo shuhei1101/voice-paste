@@ -199,3 +199,13 @@ id: MOD-96
 visibility: internal
 test_files:
   - tests/unit/voice_paste/integrations/haas/test_server.py
+aliases:
+  - HaasServer
+lead: WSL の中の Haas の文字起こしのサーバーを必要なら起動して応答を待ち、自分が起動したサーバーだけを止める処理を受け持ち、Haas のサーバーの起動と停止を変えるときに参照する。
+tags:
+  - name: topic:サーバー
+    main: true
+  - name: tool:wsl
+  - name: tool:haas-asr
+  - name: action:起動
+  - name: action:停止

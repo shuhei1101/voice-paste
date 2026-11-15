@@ -198,3 +198,10 @@ function_types:
       - target: UInputKeyboard.send_enter
         notes: python-evdev の UInput の仮想キーボードで送信する（外部連携。Wayland のセッション）
     status: planned
+lead: 録音・結果・区間・用語集の行など feature の間を渡る型を受け持ち、feature をまたぐデータや関数の型を変えるときに参照する。
+tags:
+  - name: topic:型
+    main: true
+  - name: topic:共通
+  - name: topic:録音
+  - name: topic:出力先

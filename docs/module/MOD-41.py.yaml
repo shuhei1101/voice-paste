@@ -138,3 +138,11 @@ classes:
     refs:
       - SCR-9#elements[文言の一覧]
     status: implemented
+aliases:
+  - EdgePhrasePanel
+lead: 設定画面のハルシネーションの文言の一覧と行の追加・削除・並べ替えを受け持ち、文頭・文末から削除する文言の編集の操作を変えるときに参照する。
+tags:
+  - name: topic:ハルシネーション
+    main: true
+  - name: topic:設定
+  - name: topic:画面

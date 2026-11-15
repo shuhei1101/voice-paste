@@ -104,3 +104,11 @@ error_format: |-
   ```json
   {"error": {"message": "...", "type": "invalid_request_error", "param": null, "code": "invalid_api_key"}}
   ```
+aliases:
+  - OpenAI API
+tags:
+  - name: tool:openai
+    main: true
+  - name: topic:文字起こし
+  - name: topic:api
+  - name: topic:料金

@@ -27,3 +27,8 @@ base_urls:
   - env: 本番
     url: https://huggingface.co
 official_url: https://huggingface.co
+tags:
+  - name: tool:hugging-face-hub
+    main: true
+  - name: topic:モデル
+  - name: action:ダウンロード

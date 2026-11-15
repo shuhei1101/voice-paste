@@ -87,3 +87,9 @@ functions:
         mock: engine・get_hint
         expected: engine が hint=None で呼ばれる
     status: implemented
+lead: 設定のエンジンで録音を起こし、区間を改行でつなぐ処理を受け持ち、文字起こしの呼び出し方を変えるときに参照する。
+tags:
+  - name: topic:文字起こし
+    main: true
+  - name: topic:エンジン
+  - name: topic:区間

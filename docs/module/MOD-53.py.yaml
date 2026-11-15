@@ -107,3 +107,10 @@ functions:
         mock: なし（一時フォルダ）
         expected: 10 日前だけが消え、戻り値が 1
     status: implemented
+lead: 日付ごとのファイルへのログの書き込みと、保持期間を過ぎたログの削除を受け持ち、ログの出力先や保持を変えるときに参照する。
+tags:
+  - name: topic:ログ
+    main: true
+  - name: topic:ロガー
+  - name: topic:保持期間
+  - name: action:削除

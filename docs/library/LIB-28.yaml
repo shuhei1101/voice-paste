@@ -35,3 +35,8 @@ verification:
 license: MIT（商用利用可）
 official_url: https://github.com/python-poetry/tomlkit
 docs_url: https://tomlkit.readthedocs.io/
+tags:
+  - name: tool:tomlkit
+    main: true
+  - name: tool:toml
+  - name: topic:設定

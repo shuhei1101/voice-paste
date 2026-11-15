@@ -57,3 +57,11 @@ install: |-
   ```bash
   sudo apt install libxcb-cursor0
   ```
+aliases:
+  - PySide6
+tags:
+  - name: tool:pyside6
+    main: true
+  - name: tool:qt
+  - name: topic:画面
+  - name: topic:トレイ

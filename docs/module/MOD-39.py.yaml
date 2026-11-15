@@ -222,3 +222,12 @@ classes:
     refs:
       - SCR-9#
     status: implemented
+aliases:
+  - HintPresetPanel
+lead: 設定画面の表記のヒントのプリセットと単語の編集、長さの数え直しを受け持ち、表記のヒントの編集の操作を変えるときに参照する。
+tags:
+  - name: topic:ヒント
+    main: true
+  - name: topic:プリセット
+  - name: topic:設定
+  - name: topic:画面

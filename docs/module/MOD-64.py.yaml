@@ -94,3 +94,10 @@ functions:
     refs:
       - LIB-2#
     status: implemented
+lead: ブラウザ添付のプリセットの URL を Edge のアプリの画面で開いて貼り付ける処理を受け持ち、ブラウザ添付のプリセットの動きを変えるときに参照する。
+tags:
+  - name: topic:プリセット
+    main: true
+  - name: topic:ブラウザ
+  - name: tool:edge
+  - name: action:貼り付け

@@ -213,3 +213,10 @@ prerequisites:
   - リポジトリの直下で、Windows では Windows の uv（WSL からは `uv.exe`）、Ubuntu 24.04 では Linux の uv（`uv`）で実行する。各分類のコマンドは Windows の uv で書き込み、Ubuntu では `uv.exe` を `uv` に読み替える
 refs:
   - MOD-12#
+tags:
+  - name: topic:コマンド
+    main: true
+  - name: topic:セットアップ
+  - name: topic:依存
+  - name: tool:uv
+  - name: action:起動

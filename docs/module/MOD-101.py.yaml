@@ -182,3 +182,10 @@ data_models:
     status: planned
 notes:
   起動スクリプト: '`haas_server/start.sh` は受けた引数を全て（`"$@"`）`python -m haas_server.main` へ引き渡す。'
+lead: 起動の引数を読み込み、モデルを読み込んでから 127.0.0.1 で待ち受ける処理を受け持ち、Haas のサーバーの起動の引数やモデルを変えるときに参照する。
+tags:
+  - name: topic:起動
+    main: true
+  - name: topic:モデル
+  - name: topic:サーバー
+  - name: tool:haas-asr

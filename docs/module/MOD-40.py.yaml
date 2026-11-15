@@ -123,3 +123,11 @@ classes:
       - SCR-9#notes.マーカーの見え方
       - LIB-21#
     status: implemented
+aliases:
+  - IndicatorStyle
+lead: チェックボックスとラジオボタンの印をテーマの色で描くスタイルを受け持ち、選択の部品の見た目を変えるときに参照する。
+tags:
+  - name: topic:スタイル
+    main: true
+  - name: topic:テーマ
+  - name: tool:qt

@@ -230,3 +230,10 @@ functions:
         mock: なし
         expected: フォルダが作られ、明暗で別のファイルに tokens.toml のそれぞれの text_muted の色を持つ SVG が書き込まれる
     status: implemented
+lead: tokens.toml の色・書体・余白からアプリ全体のスタイルシートを作り、明暗のテーマを適用する処理を受け持ち、画面の見た目やテーマを変えるときに参照する。
+tags:
+  - name: topic:スタイル
+    main: true
+  - name: topic:テーマ
+  - name: topic:デザイントークン
+  - name: tool:qt

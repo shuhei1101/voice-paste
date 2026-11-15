@@ -216,3 +216,12 @@ constants:
     summary: UInput の機器の名前。入力の機器の一覧で常駐サービスのものと見分ける
     value: '"voice-paste-keyboard"'
     status: planned
+aliases:
+  - UInputKeyboard
+lead: Wayland のセッションで仮想キーボードから貼り付けのキーと Enter を送信する処理を受け持ち、Wayland でのキーの送信を変えるときに参照する。
+tags:
+  - name: topic:キーボード
+    main: true
+  - name: topic:wayland
+  - name: tool:evdev
+  - name: action:送信

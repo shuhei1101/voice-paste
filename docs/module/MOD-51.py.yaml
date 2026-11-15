@@ -252,3 +252,10 @@ functions:
         mock: なし
         expected: 全てのキーを辿れる（辿れないキーがあれば fail）
     status: planned
+lead: 動いている OS とディスプレイのセッションの判定と、OS ごとに使用できない機能の表を受け持ち、OS で分かれる機能を変えるときに参照する。
+tags:
+  - name: topic:os
+    main: true
+  - name: topic:windows
+  - name: topic:linux
+  - name: topic:wayland

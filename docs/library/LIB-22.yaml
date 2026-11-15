@@ -42,3 +42,9 @@ install: |-
   ```bash
   uv add 'python-multipart~=0.0.32'
   ```
+tags:
+  - name: tool:python-multipart
+    main: true
+  - name: topic:multipart
+  - name: tool:fastapi
+  - name: action:アップロード

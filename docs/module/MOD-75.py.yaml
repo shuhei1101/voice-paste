@@ -69,3 +69,8 @@ functions:
       description: なし
     process: 1. 何もしない
     status: planned
+lead: Linux で音量を変えない代わりの関数を受け持ち、Linux での音量の扱いを変えるときに参照する。
+tags:
+  - name: topic:音量
+    main: true
+  - name: topic:linux

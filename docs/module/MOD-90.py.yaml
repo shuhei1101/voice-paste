@@ -500,3 +500,14 @@ constants:
     summary: 連続録音で、待ち行列の音を Segmenter へ流すスレッドの名前
     value: '"recording-segmenter"'
     status: planned
+aliases:
+  - Recorder
+lead: マイクの入力・貯めた音・下げる前の音量・画面の消灯の抑止を持つ録音の処理を受け持ち、録音の開始・停止の動きを変えるときに参照する。
+tags:
+  - name: topic:録音
+    main: true
+  - name: topic:マイク
+  - name: topic:音量
+  - name: topic:画面
+  - name: topic:消灯
+  - name: topic:連続録音

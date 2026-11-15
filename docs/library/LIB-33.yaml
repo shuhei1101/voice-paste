@@ -49,3 +49,12 @@ official_url: https://learn.microsoft.com/en-us/windows/win32/api/winbase/nf-win
 install: 不要（Windows に入っている）
 refs:
   - SC-8#
+aliases:
+  - kernel32
+tags:
+  - name: tool:windows-power-request
+    main: true
+  - name: topic:画面
+  - name: topic:消灯
+  - name: topic:windows
+  - name: action:抑制

@@ -47,3 +47,9 @@ lead: 設定画面で欄を変えたまま取り消す・窓を閉じるとき�
 refs:
   - SC-6#
 test_file: tests/integration/ui/test_settings_window.py
+tags:
+  - name: topic:ダイアログ
+    main: true
+  - name: topic:設定
+  - name: action:確認
+  - name: action:キャンセル

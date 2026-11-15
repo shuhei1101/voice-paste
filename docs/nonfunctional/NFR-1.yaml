@@ -655,3 +655,11 @@ requirements:
     refs:
       - IF-12#
     status: planned
+lead: 外部の制約から逆算した上限・待ち時間・タイムアウトと再送の決定値を受け持ち、これらの値を決める・確かめるときに参照する。
+tags:
+  - name: topic:非機能要件
+    main: true
+  - name: topic:上限
+  - name: topic:タイムアウト
+  - name: topic:リトライ
+  - name: topic:待ち時間

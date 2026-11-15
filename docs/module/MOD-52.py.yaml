@@ -38,3 +38,10 @@ classes:
 
       全ての例外は docstring だけを持つクラス（`SettingsError` の `paths` を除く）で `shared/errors.py` に配置し、親は表に書き込まない限り `AppError`。
     status: implemented
+aliases:
+  - AppError
+lead: アプリが送出する例外の根を受け持ち、例外を追加するときや HTTP のステータスへの対応を変えるときに参照する。
+tags:
+  - name: topic:例外
+    main: true
+  - name: topic:エラー

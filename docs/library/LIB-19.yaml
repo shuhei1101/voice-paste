@@ -44,3 +44,9 @@ limitations:
   - item: Wayland のセッション
     content: Wayland のセッションでは、pynput をホットキーの受付とキーの送信に使用しない。pynput の Xorg のバックエンドは、ネイティブの Wayland のアプリにフォーカスがあるときのキー入力を受け取れず、送信したキーも届かない。pynput の uinput のバックエンドは root で動かす必要がある
     notes: ホットキーは GNOME のカスタムショートカット、キーの送信は python-evdev の UInput に替える（[evdev](id:LIB-6)）。Windows と Xorg のセッションは今のとおり pynput を使用する
+tags:
+  - name: tool:pynput
+    main: true
+  - name: topic:ホットキー
+  - name: topic:キーボード
+  - name: action:送信

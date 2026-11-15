@@ -430,3 +430,12 @@ functions:
     refs:
       - SCR-9#
     status: implemented
+aliases:
+  - GlossaryPanel
+lead: 設定画面の用語集と用語集のプリセットの一覧・行の表と、行の入力チェックを受け持ち、用語集の編集の操作を変えるときに参照する。
+tags:
+  - name: topic:用語集
+    main: true
+  - name: topic:プリセット
+  - name: topic:設定
+  - name: topic:画面

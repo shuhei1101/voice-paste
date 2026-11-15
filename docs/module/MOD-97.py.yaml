@@ -139,3 +139,12 @@ id: MOD-97
 visibility: internal
 test_files:
   - tests/unit/voice_paste/integrations/haas/test_transcriber.py
+aliases:
+  - HaasTranscriber
+lead: 録音を Haas の文字起こしのサーバーへ送信して起こした文字を受け取る処理を受け持ち、Haas での文字起こしの呼び出しを変えるときに参照する。
+tags:
+  - name: topic:文字起こし
+    main: true
+  - name: topic:タイムアウト
+  - name: tool:haas-asr
+  - name: tool:httpx

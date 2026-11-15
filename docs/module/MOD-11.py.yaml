@@ -640,3 +640,11 @@ functions:
         mock: なし
         expected: '[] が返る'
     status: planned
+tags:
+  - name: topic:補正
+    main: true
+  - name: topic:用語集
+  - name: topic:プリセット
+  - name: topic:ハルシネーション
+  - name: tool:csv
+  - name: action:変換

@@ -267,3 +267,12 @@ functions:
     refs:
       - LIB-8#
     status: planned
+aliases:
+  - WhisperWorkerClient
+lead: 文字起こしワーカーの子プロセスを持ち、標準入出力の JSON Lines で録音を引き渡して結果を受け取る処理を受け持ち、ローカルの文字起こしの呼び出しを変えるときに参照する。
+tags:
+  - name: topic:ワーカー
+    main: true
+  - name: topic:子プロセス
+  - name: topic:標準入出力
+  - name: tool:faster-whisper

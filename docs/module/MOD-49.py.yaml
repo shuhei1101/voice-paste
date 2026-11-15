@@ -139,3 +139,10 @@ functions:
     refs:
       - LIB-16#
     status: implemented
+lead: アプリの名前・リポジトリの直下・設定のファイル名とデータの配置先を受け持ち、ファイルの配置先や名前を変えるときに参照する。
+tags:
+  - name: topic:定数
+    main: true
+  - name: topic:パス
+  - name: topic:設定
+  - name: tool:platformdirs

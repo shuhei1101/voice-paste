@@ -39,3 +39,9 @@ constants:
     notes:
       配線: 各 handler が受け取るクリップボード・キー・ブラウザ・HTTP の操作と設定の値は、main.py が種類ごとに部分適用する（起動と配線の _wire_preset_kinds）。
     status: implemented
+lead: 登録した出力先とカスタムプリセットの種類の一覧を受け持ち、出力先やプリセットの種類を追加するときに参照する。
+tags:
+  - name: topic:出力先
+    main: true
+  - name: topic:プリセット
+  - name: action:登録

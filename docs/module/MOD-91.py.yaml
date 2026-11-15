@@ -285,3 +285,14 @@ constants:
     summary: 入力の int16 の音を話し声の判定が受ける -1.0〜1.0 の float32 にする除数
     value: '32768.0'
     status: planned
+aliases:
+  - Segmenter
+lead: 届いた音を窓に組み直し、話し声の確率から区間を切り出して順に引き渡す処理を受け持ち、連続録音の区切り方を変えるときに参照する。
+tags:
+  - name: topic:区間
+    main: true
+  - name: topic:連続録音
+  - name: topic:話し声
+  - name: topic:無音
+  - name: action:分割
+  - name: action:判定

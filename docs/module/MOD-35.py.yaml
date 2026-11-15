@@ -161,3 +161,11 @@ classes:
       - name: output_selected
         type: Signal(str)
         description: 今の出力先でない切り替えのボタンが押された（押したボタンの出力先の ID）
+aliases:
+  - TranscribingIndicator
+lead: 確定から届けるまでの経過と残りの時間・進みを出す表示を受け持ち、文字起こし中の表示を変えるときに参照する。
+tags:
+  - name: topic:文字起こし
+    main: true
+  - name: topic:画面
+  - name: topic:インジケーター

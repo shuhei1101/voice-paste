@@ -84,3 +84,12 @@ classes:
         type: threading.Thread | None
         access: 内部 (_)
         description: serve() を動かすスレッド。start の前は None
+aliases:
+  - ApiServerRunner
+lead: uvicorn を専用のスレッドで動かし、待ち受けを始められたかを確認する処理を受け持ち、API サーバーの起動と停止を変えるときに参照する。
+tags:
+  - name: topic:サーバー
+    main: true
+  - name: topic:スレッド
+  - name: tool:uvicorn
+  - name: action:起動

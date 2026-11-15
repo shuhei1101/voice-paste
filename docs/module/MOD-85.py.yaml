@@ -73,3 +73,10 @@ classes:
             mock: 呼ぶ関数
             expected: stop の後に呼ばれた回数が増えず、スレッドが終わっている
     status: implemented
+aliases:
+  - RepeatingTimer
+lead: 関数を一定の間隔で呼ぶデーモンスレッドのタイマーを受け持ち、定期の処理の呼び方を変えるときに参照する。
+tags:
+  - name: topic:タイマー
+    main: true
+  - name: topic:スレッド

@@ -127,3 +127,11 @@ constraints:
     decided_by: NFR-1#requirements[連続録音の録音セッションの上限時間]
     notes: 連続録音は区間ごとに録音を手放すため、上限は録音の大きさではなく、呼び出し元が異常終了したときにマイクを閉じるために持つ
 test_file: tests/integration/test_truncate_session.py
+tags:
+  - name: topic:録音セッション
+    main: true
+  - name: topic:上限
+  - name: topic:api
+  - name: topic:コールバック
+  - name: topic:連続録音
+  - name: action:打ち切り

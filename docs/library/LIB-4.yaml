@@ -99,3 +99,11 @@ verification:
 license: BSD-3-Clause（商用利用可）
 official_url: https://github.com/PyAV-Org/PyAV
 docs_url: https://pyav.basswood.io
+aliases:
+  - PyAV
+tags:
+  - name: tool:av
+    main: true
+  - name: tool:ffmpeg
+  - name: topic:音声
+  - name: action:復号

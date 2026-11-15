@@ -8,3 +8,9 @@ notes:
   Python の版: サーバーの環境は Python 3.11 で動くため、haas_server の下では 3.12 の構文（`type` 文）を使用しない
 id: MOD-98
 visibility: internal
+tags:
+  - name: topic:サーバー
+    main: true
+  - name: topic:文字起こし
+  - name: tool:haas-asr
+  - name: tool:wsl

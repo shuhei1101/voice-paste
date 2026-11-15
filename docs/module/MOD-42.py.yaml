@@ -287,3 +287,12 @@ functions:
         expected: HotkeyError が送出され、メッセージに <ctrl>+<page_up> が出る
         exception: GNOME のアクセラレーターに替えられないホットキーがある
     status: planned
+aliases:
+  - GnomeShortcutListener
+lead: Wayland のセッションで設定のホットキーを GNOME のカスタムショートカットへ登録して受け付ける処理を受け持ち、Wayland でのホットキーの受付を変えるときに参照する。
+tags:
+  - name: topic:ホットキー
+    main: true
+  - name: topic:ショートカット
+  - name: topic:wayland
+  - name: tool:gnome

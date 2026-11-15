@@ -36,3 +36,8 @@ install: |-
 
   リポジトリの直下で Windows の uv（WSL からは `uv.exe`）で実行する。
   dev グループに `; sys_platform == "win32"` を付けて宣言し、Linux の `uv sync --frozen` では入らない（Linux の wheel が無い）。使用するテストは Linux で skip する。
+tags:
+  - name: tool:pywin32
+    main: true
+  - name: topic:windows
+  - name: topic:排他ロック

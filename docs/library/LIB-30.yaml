@@ -37,3 +37,10 @@ notes:
   制限: load_audio は soundfile で読み込むため webm・mp4 を読み込めない。voice-paste は PyAV で復号した配列を引き渡す。Haas-ASR の pyproject.toml の `[tool.uv]`（compile-bytecode・override-dependencies）は依存へ伝わらないため `haas_server/pyproject.toml` へ写す。flash-linear-attention 0.5.2 は triton 3.9 でモデルの読み込みに失敗するため torch・triton を PoC のバージョンに固定する
 id: LIB-30
 visibility: internal
+aliases:
+  - Haas-ja-v1.0
+tags:
+  - name: tool:haas-asr
+    main: true
+  - name: topic:文字起こし
+  - name: topic:モデル

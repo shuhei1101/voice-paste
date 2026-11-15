@@ -218,3 +218,12 @@ minimal_guarantee: |-
   常駐サービスは止まらず、ホットキー・API の録音はそのまま使用できる。
   許可されていない Origin からの送信は受け付けない。
 test_file: tests/e2e/複合ユースケース/test_transcribe_from_browser.py
+tags:
+  - name: topic:ブラウザ
+    main: true
+  - name: topic:端末
+  - name: topic:ゲートウェイ
+  - name: topic:音声
+  - name: topic:文字起こし
+  - name: action:送信
+  - name: action:コピー

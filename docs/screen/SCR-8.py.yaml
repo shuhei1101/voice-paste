@@ -45,3 +45,9 @@ lead: 設定画面の「既定に戻す」で、全ての設定を既定の値�
 refs:
   - SC-6#
 test_file: tests/integration/ui/test_settings_window.py
+tags:
+  - name: topic:ダイアログ
+    main: true
+  - name: topic:設定
+  - name: topic:既定値
+  - name: action:リセット

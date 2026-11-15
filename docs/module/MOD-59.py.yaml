@@ -214,3 +214,10 @@ functions:
         mock: OutputDeps の全関数
         expected: allowed_hosts が frozenset({"host.local"})、retry_count が 3、retry_base_sec が 1.0 で、post を呼ぶと deps.post に timeout_sec=1.5 が渡る
     status: planned
+lead: コールバック先を許可するかの確認と、結果の POST と再送を受け持ち、呼び出し元への返送や再送の決まりを変えるときに参照する。
+tags:
+  - name: topic:コールバック
+    main: true
+  - name: topic:リトライ
+  - name: topic:api
+  - name: action:送信

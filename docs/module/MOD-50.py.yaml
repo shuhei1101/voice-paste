@@ -2031,3 +2031,12 @@ functions:
         mock: なし
         expected: '[("突合", "とつごう")]'
     status: planned
+lead: 既定値・環境の値・checkout の上書きを重ねた設定のモデルと、設定の読み込み・保存・移行を受け持ち、設定のキーや読み書きを変えるときに参照する。
+tags:
+  - name: topic:設定
+    main: true
+  - name: topic:既定値
+  - name: topic:レイヤー
+  - name: tool:pydantic
+  - name: action:検証
+  - name: action:移行

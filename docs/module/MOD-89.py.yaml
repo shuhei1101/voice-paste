@@ -68,3 +68,8 @@ functions:
         expected: 例外が出ず、ERROR のログが 1 行出る
         exception: 起動できない
     status: implemented
+lead: 同じ Python と引数で常駐サービスを切り離して起動し直す処理を受け持ち、再起動の方法を変えるときに参照する。
+tags:
+  - name: topic:プロセス
+    main: true
+  - name: action:再起動

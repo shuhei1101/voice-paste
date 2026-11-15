@@ -369,3 +369,12 @@ constraints:
     decided_by: NFR-1#requirements[区間の最大の長さ]
     notes: 話し声か無音かは常駐アプリに同梱の Silero VAD（faster-whisper 1.2.1 と同じモデル） で判定する。背景にノイズがあると区切りの無音をわずかに超える間では区切れず、区間が長くなることがある
 test_file: tests/integration/test_start_session.py
+aliases:
+  - POST /sessions
+tags:
+  - name: topic:録音
+    main: true
+  - name: topic:api
+  - name: topic:コールバック
+  - name: topic:連続録音
+  - name: action:開始

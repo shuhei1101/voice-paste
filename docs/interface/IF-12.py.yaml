@@ -418,3 +418,11 @@ flows:
     test: test_error_when_tuning_value_invalid
 id: IF-12
 visibility: internal
+aliases:
+  - POST /transcriptions
+tags:
+  - name: topic:文字起こし
+    main: true
+  - name: topic:サーバー
+  - name: tool:haas-asr
+  - name: action:変換

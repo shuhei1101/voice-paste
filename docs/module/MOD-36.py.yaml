@@ -776,3 +776,13 @@ functions:
     refs:
       - SCR-9#
     status: implemented
+aliases:
+  - SettingsWindow
+lead: 設定のモデルから欄を組み立てて並べ、確認してから保存する設定画面を受け持ち、設定画面の欄や保存の流れを変えるときに参照する。
+tags:
+  - name: topic:設定
+    main: true
+  - name: topic:画面
+  - name: topic:ホットキー
+  - name: action:検証
+  - name: action:保存

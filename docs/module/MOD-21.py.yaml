@@ -48,3 +48,10 @@ functions:
         mock: なし
         expected: app.js は 200・text/javascript、配置先の外は 404 の problem+json
     status: planned
+lead: 外の端末の画面の HTML と JS・CSS の配信を受け持ち、画面の配信の経路やキャッシュの扱いを変えるときに参照する。
+tags:
+  - name: topic:画面
+    main: true
+  - name: topic:ブラウザ
+  - name: topic:アセット
+  - name: action:配信

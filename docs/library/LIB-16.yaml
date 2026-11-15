@@ -32,3 +32,8 @@ verification:
 license: MIT（商用利用可）
 official_url: https://github.com/tox-dev/platformdirs
 docs_url: https://platformdirs.readthedocs.io/
+tags:
+  - name: tool:platformdirs
+    main: true
+  - name: topic:パス
+  - name: topic:フォルダ

@@ -1,0 +1,54 @@
+name: test
+
+on:
+  workflow_dispatch:
+    inputs:
+      layer:
+        description: 全件を回す層
+        type: choice
+        required: true
+        options:
+          - unit
+          - integration
+
+permissions:
+  contents: read
+
+concurrency:
+  group: test-${{ github.ref }}-${{ inputs.layer }}
+  cancel-in-progress: true
+
+jobs:
+  test:
+    runs-on: windows-latest
+    timeout-minutes: ${{ fromJSON('{"unit":82,"integration":26}')[inputs.layer] }}
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - name: ブランチを取得する
+        uses: actions/checkout@v7
+
+      - name: uv を入れる
+        uses: astral-sh/setup-uv@v10
+
+      - name: Python の依存を入れる
+        run: uv sync --frozen
+
+      - name: 層の全件を回す
+        env:
+          LAYER: ${{ inputs.layer }}
+        run: |
+          case "$LAYER" in
+            unit) limit=190 ;;
+            integration) limit=110 ;;
+          esac
+          uv run --frozen pytest "tests/$LAYER" -v -p no:cacheprovider --timeout="$limit" > test.log 2>&1
+
+      - name: ログを成果物に上げる
+        if: ${{ always() }}
+        uses: actions/upload-artifact@v7
+        with:
+          name: test-log
+          path: test.log
+          if-no-files-found: ignore

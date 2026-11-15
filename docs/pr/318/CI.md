@@ -54,3 +54,14 @@
 
 なし。
 フォルダ構成（LAY-1）の修正だけで、規約『V字モデル』の対応表で関係する単体・結合テストは無い。
+
+### 実装
+
+| ファイル | メソッド | 変更種別 | 結果 | 補足 |
+| --- | --- | --- | --- | --- |
+| lint（テスト実行方法の lint の層の全件） | 全実行 | 実行のみ | ✅ | `uv lock --check`・`lint-imports`・`tsc`・ESLint・`app.js` の再生成・actionlint の全てが終了コード 0<br>`テスト結果/20261115155256_36f8695_lint.log` |
+
+単体・結合テストは回していない。
+変更したファイル（`.github/workflows/test.yml`・`pyproject.toml`・`uv.lock`）は、規約『V字モデル』の対応表で対応する単体・結合テストを持たない。
+`pyproject.toml` に足した pytest-timeout は、`--timeout` を渡したときだけテストに上限を設けるため、手元の全件実行の結果を変えない。
+workflow の対応テスト（`tests/e2e/workflow/test_test_yml.py`）は工程『結合テスト作成』で作る。

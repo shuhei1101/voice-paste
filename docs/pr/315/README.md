@@ -1,0 +1,1 @@
+# YAML の設計書とコード・テストの files.yml の行に、タグ・エイリアス・description を付ける

@@ -66,3 +66,14 @@
 変更したファイル（`.github/workflows/test.yml`・`pyproject.toml`・`uv.lock`）は、規約『V字モデル』の対応表で対応する単体・結合テストを持たない。
 `pyproject.toml` に足した pytest-timeout は、`--timeout` を渡したときだけテストに上限を設けるため、手元の全件実行の結果を変えない。
 workflow の対応テスト（`tests/e2e/workflow/test_test_yml.py`）は工程『結合テスト作成』で作る。
+
+### 結合テスト作成
+
+| ファイル | メソッド | 変更種別 | 結果 | 補足 |
+| --- | --- | --- | --- | --- |
+| `tests/e2e/workflow/test_test_yml.py` | 全実行 | 新規 | - | 5 テストを収集し、`--run-e2e` が無いときに全て skip することを確認した<br>`テスト結果/20261115160548_45bdf6d_結合テスト.log` |
+| lint（テスト実行方法の lint の層の全件） | 全実行 | 実行のみ | ✅ | 全ての検査が終了コード 0<br>`テスト結果/20261115160603_45bdf6d_lint.log` |
+
+E2E テストの層（`--run-e2e`）は回していない。
+workflow `test.yml` が develop に無く、`gh workflow run` が `HTTP 404: workflow test.yml not found on the default branch` で断られるため（ログの先頭）。
+5 つのフローは、この workflow が develop へ入った後に `--run-e2e` で回す。

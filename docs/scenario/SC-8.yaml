@@ -957,3 +957,14 @@ notes:
     録音の画面・文字起こし中の表示・トレイ・設定画面は XWayland で出す（ネイティブの Wayland では、画面を設定の位置に配置できず、貼り付け先のフォーカスを取る）。
     Wayland のセッションのシナリオの E2E は、Linux で E2E を自動で実行する仕組み（[#219](https://github.com/shuhei1101/voice-paste/issues/219)）ができるまで持たず、検証環境の VM で確認する。
 test_file: tests/e2e/単一ユースケース/test_record.py
+tags:
+  - name: topic:録音
+    main: true
+  - name: topic:録音セッション
+  - name: topic:履歴
+  - name: topic:音量
+  - name: topic:ホットキー
+  - name: topic:トレイ
+  - name: action:録音
+  - name: action:キャンセル
+  - name: action:保存

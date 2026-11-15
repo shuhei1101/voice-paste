@@ -30,3 +30,8 @@ verification:
   detail: scipy.io.wavfile.read / write で 16 kHz・モノラル・16 bit の WAV を読み書きできることを確認した
 license: BSD-3-Clause（商用利用可）
 official_url: https://scipy.org/
+tags:
+  - name: tool:scipy
+    main: true
+  - name: topic:音声
+  - name: topic:ファイル

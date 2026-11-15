@@ -83,3 +83,9 @@ functions:
         mock: OutputDeps の全関数
         expected: キーが copy・notify_copied だけで、値が deps のものと同じ
     status: planned
+lead: クリップボードへの書き込みとコピーの完了の通知を受け持ち、コピーのみの動きを変えるときに参照する。
+tags:
+  - name: topic:クリップボード
+    main: true
+  - name: action:コピー
+  - name: action:通知

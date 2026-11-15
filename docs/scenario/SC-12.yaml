@@ -206,3 +206,14 @@ minimal_guarantee: |-
   確定した録音は、文字起こしの成否によらず履歴に残る（履歴を残す設定のとき）。
   録音中に下げたシステム音量は、録音を確定しても取り消しても録音前の値へ戻る。
 test_file: tests/e2e/複合ユースケース/test_paste_voice_text.py
+tags:
+  - name: topic:貼り付け
+    main: true
+  - name: topic:音声入力
+  - name: topic:ホットキー
+  - name: topic:録音
+  - name: topic:文字起こし
+  - name: topic:出力先
+  - name: action:貼り付け
+aliases:
+  - 音声入力

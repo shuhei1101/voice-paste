@@ -242,3 +242,11 @@ functions:
         mock: pyperclip.set_clipboard
         expected: set_clipboard("xclip") が 1 回呼ばれる
     status: planned
+lead: クリップボードへの書き込みと、貼り付けのキー・Enter の送信を受け持ち、キーの送信やクリップボードの扱いを変えるときに参照する。
+tags:
+  - name: topic:貼り付け
+    main: true
+  - name: topic:クリップボード
+  - name: topic:キーボード
+  - name: tool:pyperclip
+  - name: tool:pynput

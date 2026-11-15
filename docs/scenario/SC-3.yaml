@@ -390,3 +390,11 @@ notes:
     録音中はチェックを変更できない（用語集のプリセットの選択欄と同じ）。
     取得できないとき（対応しないブラウザ・拒否）は抑止せずに録音を続ける。対応しないブラウザ（`navigator.wakeLock` が無い）では、チェックを外して押せなくし、使えないことを添える。ファイルを選んで送信するときは抑止しない。
 test_file: tests/e2e/単一ユースケース/test_send_audio_from_browser.py
+tags:
+  - name: topic:ブラウザ
+    main: true
+  - name: topic:音声
+  - name: topic:端末
+  - name: topic:ジョブ
+  - name: action:録音
+  - name: action:送信

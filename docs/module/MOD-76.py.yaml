@@ -62,3 +62,9 @@ functions:
         expected: どちらも StartupError が送出され、理由に OPENAI_API_KEY と key_file のパスが入り、キーの中身は入らない
         exception: 環境変数にもファイルにも API キーが無い（空白だけのときを含む）
     status: planned
+lead: OpenAI の API キーを環境変数か秘匿のファイルから読み込む処理を受け持ち、API キーの配置先を変えるときに参照する。
+tags:
+  - name: topic:シークレット
+    main: true
+  - name: topic:環境変数
+  - name: tool:openai

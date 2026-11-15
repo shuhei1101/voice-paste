@@ -214,3 +214,13 @@ constants:
     refs:
       - SC-6#
     status: planned
+aliases:
+  - ShortcutPanel
+lead: 設定画面の用語集のプリセットを切り替えるショートカットの一覧と行の追加・削除を受け持ち、ショートカットの編集の操作を変えるときに参照する。
+tags:
+  - name: topic:ショートカット
+    main: true
+  - name: topic:プリセット
+  - name: topic:用語集
+  - name: topic:設定
+  - name: topic:画面

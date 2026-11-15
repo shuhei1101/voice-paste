@@ -46,3 +46,12 @@ limitations:
     content: Linux だけ。Windows の wheel は無い
 refs:
   - LIB-20#
+aliases:
+  - python-evdev
+tags:
+  - name: tool:evdev
+    main: true
+  - name: topic:linux
+  - name: topic:wayland
+  - name: topic:キーボード
+  - name: action:送信

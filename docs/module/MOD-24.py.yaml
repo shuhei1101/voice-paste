@@ -989,3 +989,13 @@ constants:
     summary: 取り消しの判定（_cancel）を動かすスレッドの名前
     value: "'session-cancel'"
     status: implemented
+aliases:
+  - SessionManager
+lead: 録音セッションを同時に 1 つだけ持ち、入口からの操作で状態を進める処理を受け持ち、録音から出力までの流れや排他を変えるときに参照する。
+tags:
+  - name: topic:録音セッション
+    main: true
+  - name: topic:連続録音
+  - name: topic:状態遷移
+  - name: action:排他
+  - name: action:キャンセル

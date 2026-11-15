@@ -101,3 +101,9 @@ functions:
         expected: UnknownOutputError が送出される
         exception: 種類が一覧に無い
     status: implemented
+lead: 入口と確定の操作から出力先かカスタムプリセットを 1 つ選んで届ける処理を受け持ち、届け先の選び方を変えるときに参照する。
+tags:
+  - name: topic:出力先
+    main: true
+  - name: topic:プリセット
+  - name: action:送信

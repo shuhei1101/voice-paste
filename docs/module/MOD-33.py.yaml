@@ -190,3 +190,11 @@ functions:
     refs:
       - LIB-19#
     status: implemented
+aliases:
+  - HotkeyListener
+lead: 設定のホットキーを pynput で受け付け、押されたら配線した関数を呼ぶ処理を受け持ち、ホットキーの受付を変えるときに参照する。
+tags:
+  - name: topic:ホットキー
+    main: true
+  - name: tool:pynput
+  - name: action:検証

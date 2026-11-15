@@ -175,3 +175,11 @@ constraints:
     constraint: 常駐サービスが Windows で動いているときだけ。Linux では `/web/` の下のルートを登録せず、Origin によらず 404 を返却する（要求の守りは Host だけを確認し、Origin を確認せずにルートへ引き渡す）
     notes: OS ごとに使用できる機能の表で、外の端末のブラウザの機能を Linux で使用できない機能にしている。Host が合わない要求は Linux でも 403
 test_file: tests/integration/test_list_web_glossary_presets.py
+aliases:
+  - GET /web/glossary-presets
+tags:
+  - name: topic:プリセット
+    main: true
+  - name: topic:用語集
+  - name: topic:ブラウザ
+  - name: action:取得

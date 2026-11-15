@@ -55,3 +55,9 @@ functions:
       - CFG-1#settings[ui.position]
       - CFG-1#settings[ui.follow_cursor]
     status: implemented
+lead: 設定のモニターと位置から窓を配置する座標を求める処理を受け持ち、録音の画面の出る位置を変えるときに参照する。
+tags:
+  - name: topic:ウィンドウ
+    main: true
+  - name: topic:モニター
+  - name: action:配置

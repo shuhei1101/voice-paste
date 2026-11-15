@@ -183,3 +183,12 @@ functions:
     refs:
       - SCR-2#notes
     status: planned
+aliases:
+  - UiBridge
+lead: ほかのスレッドからの通知を Qt のシグナルでメインスレッドへ引き渡す処理を受け持ち、画面への通知を追加・変更するときに参照する。
+tags:
+  - name: topic:スレッド
+    main: true
+  - name: topic:シグナル
+  - name: topic:画面
+  - name: tool:pyside6

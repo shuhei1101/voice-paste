@@ -36,3 +36,9 @@ data_models:
         type: str
         description: 始めた録音セッションの ID
     status: implemented
+lead: 録音の開始の API の要求と応答の本文の型を受け持ち、`POST /sessions` の本文を変えるときに参照する。
+tags:
+  - name: topic:api
+    main: true
+  - name: topic:dto
+  - name: topic:録音セッション

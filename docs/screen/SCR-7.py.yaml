@@ -109,3 +109,9 @@ notes:
     `ui.transcribing_show_hotkeys` がオフのときは、全てのボタンを名前だけで出す（ホットキーでの切り替えはそのまま有効になる）。録音の画面の `ui.show_hotkeys` にはよらない。
   フォーカス: 窓はフォーカスを受けない窓（`WindowDoesNotAcceptFocus`）のまま出し、切り替えのボタンを押しても見出しの行をつかんでも前面にならない。貼り付けて送信・貼り付けのみは、届けるときのアクティブなウィンドウへ貼る
 test_file: tests/integration/ui/test_transcribing_indicator.py
+tags:
+  - name: topic:文字起こし
+    main: true
+  - name: topic:出力先
+  - name: action:表示
+  - name: action:切り替え

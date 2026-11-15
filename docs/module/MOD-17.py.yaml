@@ -96,3 +96,11 @@ constants:
     summary: '`POST /web/transcriptions` の本文の上限（このバイト数以上を 413）。非機能要件のブラウザの本文の上限。画面の app.js も同じ値で送信前に確認する'
     value: '100_000_000'
     status: planned
+aliases:
+  - BodyLimitMiddleware
+lead: '`POST /web/transcriptions` の本文の大きさの上限を確認する middleware を受け持ち、本文の上限を変えるときに参照する。'
+tags:
+  - name: topic:上限
+    main: true
+  - name: topic:ミドルウェア
+  - name: topic:ブラウザ

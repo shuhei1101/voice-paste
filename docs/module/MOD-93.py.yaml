@@ -103,3 +103,10 @@ function_types:
     implementations:
       - target: main.py が load_vad_session のセッションを部分適用した StreamingVad
     status: planned
+lead: 録音が受け取る音量・画面の消灯の抑止・マイク・話し声の判定の関数型を受け持ち、録音が使用する外部連携の関数を変えるときに参照する。
+tags:
+  - name: topic:型
+    main: true
+  - name: topic:録音
+  - name: topic:音量
+  - name: topic:話し声の判定

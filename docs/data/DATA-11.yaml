@@ -4,20 +4,24 @@ title: 'データ: 用語集の CSV'
 lead: 用語集 1 つの行（誤変換・正しい表記・補正に使用するか）。1 行目は列名の見出し。
 datastore: ファイル（CSV、UTF-8。BOM はあり・なしの両方を読み込み、書き込むときはあり）
 fields:
-- key: 誤変換
-  title: 誤変換
-  type: string
-  description: 置き換える前の文字。前後の空白は除いて読み込む
-  example: くろーど
-- key: 正しい表記
-  title: 正しい表記
-  type: string
-  description: 置き換えた後の文字。空の行は、起こした文字から誤変換を削除する。前後の空白は除いて読み込む
-  example: Claude
-- key: 使う
-  title: 補正に使うか
-  type: string
-  description: その行を補正に使用するか。`0` の行だけがオフで、列が無い・空・ほかの値はオン
-  example: '1'
+  - key: 誤変換
+    title: 誤変換
+    type: string
+    description: 置き換える前の文字。前後の空白は除いて読み込む
+    example: くろーど
+  - key: 正しい表記
+    title: 正しい表記
+    type: string
+    description: 置き換えた後の文字。空の行は、起こした文字から誤変換を削除する。前後の空白は除いて読み込む
+    example: Claude
+  - key: 使う
+    title: 補正に使うか
+    type: string
+    description: その行を補正に使用するか。`0` の行だけがオフで、列が無い・空・ほかの値はオン
+    example: '1'
 refs:
-- ER-2#tables[%APPDATA%\voice-paste\glossaries\glossary_{n}.csv]
+  - ER-2#tables[%APPDATA%\voice-paste\glossaries\glossary_{n}.csv]
+tags:
+  - name: topic:用語集
+    main: true
+  - name: tool:csv

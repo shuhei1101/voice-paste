@@ -209,3 +209,12 @@ functions:
         mock: なし
         expected: 名前が違う
     status: implemented
+aliases:
+  - SingleInstanceLock
+lead: Windows で名前付きのミューテックスにより単一インスタンスを保ち、前のプロセスに終了を依頼する処理を受け持ち、多重起動の扱いを変えるときに参照する。
+tags:
+  - name: topic:排他ロック
+    main: true
+  - name: topic:windows
+  - name: action:排他
+  - name: action:終了

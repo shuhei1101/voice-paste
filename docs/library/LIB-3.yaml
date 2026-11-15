@@ -62,3 +62,9 @@ install: Linux で非機能要件テストを実行する環境だけに、sudo 
 refs:
   - TP-1#layers[非機能要件テスト]
   - CMD-1#categories[環境構築（クローン直後）]
+tags:
+  - name: tool:open-jtalk
+    main: true
+  - name: topic:音声合成
+  - name: topic:testing
+  - name: action:生成

@@ -183,3 +183,10 @@ minimal_guarantee: |-
   確定した録音は、文字起こしの成否によらず履歴に残る（履歴を残す設定のとき）。
   同時に動く録音は 1 つだけで、処理中に来た開始は受け付けない。
 test_file: tests/e2e/複合ユースケース/test_transcribe_from_other_system.py
+tags:
+  - name: topic:api
+    main: true
+  - name: topic:録音
+  - name: topic:文字起こし
+  - name: topic:コールバック
+  - name: action:送信

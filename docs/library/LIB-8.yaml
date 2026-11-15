@@ -88,3 +88,12 @@ issues:
         result: 履歴の録音で起こし比べた結果、定型句が出なくなったのは 8 件中 2 件で、どの組み合わせも同じ。定型句の出ない 20 件では話した区間が欠けた（文字の変化率は最大 `word_timestamps` のみ 13.0%・しきい値 1.0 秒 66.7%・2.0 秒 25.2%）。しきい値を入れた組み合わせでは、基準に無い定型句が 1 件出た。引き渡さない。出た定型句は、文頭・文末から削除する文言の一覧（既定に「ありがとうございました」を含む）で扱う
     refs:
       - SC-9#scenarios[正常シナリオ（文頭・文末の決まった文言を消す）]
+aliases:
+  - Whisper
+tags:
+  - name: tool:faster-whisper
+    main: true
+  - name: topic:文字起こし
+  - name: topic:モデル
+  - name: topic:ハルシネーション
+  - name: action:変換

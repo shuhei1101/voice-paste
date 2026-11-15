@@ -67,3 +67,9 @@ functions:
         condition: 'web_api=None で組み立て、GET /web/ を Origin 無しと Origin: http://evil.example で、POST /web/transcriptions を Origin 無しで送信する'
         mock: SessionManager
         expected: どれも 404
+lead: route・画面の配信・middleware・例外ハンドラを組み込んだ FastAPI の app の組み立てを受け持ち、API にルートや middleware を加えるときに参照する。
+tags:
+  - name: topic:api
+    main: true
+  - name: tool:fastapi
+  - name: action:組み立て

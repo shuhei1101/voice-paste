@@ -73,3 +73,9 @@ functions:
         mock: なし
         expected: dark
     status: implemented
+lead: 設定画面の列挙を選ぶラジオボタンの欄の組み立てと、選んだ値の読み取りを受け持ち、選択の欄の並びを変えるときに参照する。
+tags:
+  - name: topic:設定
+    main: true
+  - name: topic:画面
+  - name: topic:フォーム

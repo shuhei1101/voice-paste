@@ -42,3 +42,8 @@ install: |-
   ```bash
   sudo apt install libportaudio2
   ```
+tags:
+  - name: tool:sounddevice
+    main: true
+  - name: topic:マイク
+  - name: action:録音

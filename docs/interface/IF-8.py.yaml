@@ -211,3 +211,12 @@ constraints:
     constraint: 制限なし
     notes: マイクを停止するだけで待ちが無い
 test_file: tests/integration/test_stop_session.py
+aliases:
+  - POST /sessions/{session_id}/stop
+tags:
+  - name: topic:録音
+    main: true
+  - name: topic:api
+  - name: topic:録音セッション
+  - name: topic:連続録音
+  - name: action:停止

@@ -73,3 +73,9 @@ functions:
         mock: なし
         expected: 2 つの値が違い、どちらも 43 文字以上
     status: implemented
+lead: 起動ごとの API のトークンの生成と、トークンのファイルへの書き込みを受け持ち、トークンの作り方や置き場所を変えるときに参照する。
+tags:
+  - name: topic:トークン
+    main: true
+  - name: topic:api
+  - name: action:生成

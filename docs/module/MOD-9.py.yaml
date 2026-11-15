@@ -283,3 +283,10 @@ functions:
     refs:
       - MOD-26#function_types[StoreWebAudioFn]
     status: planned
+tags:
+  - name: topic:履歴
+    main: true
+  - name: topic:ファイル
+  - name: topic:保持期間
+  - name: action:保存
+  - name: action:削除

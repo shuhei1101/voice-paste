@@ -154,3 +154,10 @@ tables:
     status: planned
 refs:
   - SCR-6#
+tags:
+  - name: topic:ブラウザ
+    main: true
+  - name: topic:データストア
+  - name: topic:端末
+  - name: tool:indexeddb
+  - name: tool:localstorage

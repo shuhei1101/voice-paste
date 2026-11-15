@@ -103,3 +103,11 @@ flows:
     test: test_error_when_origin_not_allowed
 id: IF-13
 visibility: internal
+aliases:
+  - GET /health
+tags:
+  - name: topic:ヘルスチェック
+    main: true
+  - name: topic:サーバー
+  - name: topic:モデル
+  - name: action:確認

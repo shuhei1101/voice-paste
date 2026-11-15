@@ -137,3 +137,9 @@ functions:
       type: SessionApiDeps
       description: 録音セッションの API の依存
     status: implemented
+lead: 録音の開始・停止・完了の API のルートを受け持ち、`/sessions` の API の入口を変えるときに参照する。
+tags:
+  - name: topic:api
+    main: true
+  - name: topic:録音セッション
+  - name: topic:ルート

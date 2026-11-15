@@ -159,3 +159,10 @@ notes:
   状態の受け取り: 画面はメインスレッドで `UiBridge.notified` の state_changed を受けて開く・閉じる・状態を替える。経過時間と波形はメインスレッドのタイマーで描き直す
   隠して戻す: 隠すのはその回の録音の画面だけで、次の録音ではいつもどおり出す（`recording.hide_window` は変えない）。戻すときは、隠したときの経過時間・状態（録音中・一時停止中）のまま、隠す前の位置にフォーカスを取らずに出す。録音開始と同じホットキーの出力先がある設定（既定の設定）では、録音開始のホットキーは今どおりその出力先で確定し、戻すのはトレイだけになる。隠したまま確定した回も、文字起こし中の表示は隠す前の位置に出す
 test_file: tests/integration/ui/test_recording_window.py
+tags:
+  - name: topic:録音
+    main: true
+  - name: topic:画面
+  - name: topic:波形
+  - name: action:録音
+  - name: action:キャンセル

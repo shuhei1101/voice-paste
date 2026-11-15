@@ -132,3 +132,10 @@ functions:
     status: planned
 notes:
   ハンドルの持ち方: ハンドルとロックは _ 付きのモジュール変数で持ち、inhibit_display・release_display だけが触る（音量のアダプタと同じ持ち方）。要求はハンドルに紐づき、呼んだスレッドに紐づかないため、録音を始めたスレッドが終わっても抑止は続く。プロセスが終わると OS が解くため、異常終了で抑止は残らない。
+lead: Windows の電源要求で録音の間の画面の消灯とスリープを抑止・解除する処理を受け持ち、Windows での画面の消灯の抑止を変えるときに参照する。
+tags:
+  - name: topic:画面の消灯
+    main: true
+  - name: topic:windows
+  - name: tool:windows-power-request
+  - name: action:抑制

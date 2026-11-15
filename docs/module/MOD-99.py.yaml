@@ -300,3 +300,10 @@ classes:
         access: 公開
         description: 合わない項目の名前（例 `batch_size`）
     status: planned
+lead: 文字起こし・準備の確認・停止の API と Host・Origin の守り、調整の値の確認を持つ FastAPI の app を受け持ち、Haas のサーバーの API を変えるときに参照する。
+tags:
+  - name: topic:api
+    main: true
+  - name: topic:サーバー
+  - name: tool:fastapi
+  - name: action:検証

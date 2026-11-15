@@ -22,3 +22,11 @@ data_models:
         type: str
         description: この出力先で確定するホットキー。OS で既定が変わるため既定値を持たず必須（既定の一覧の値は config/defaults.yaml の outputs と os_overrides が持ち、<ctrl>+<alt>+v、Linux は <cmd>+<alt>+v）
     status: planned
+aliases:
+  - PasteOnlySettings
+lead: 出力先「貼り付けのみ」の設定のモデルを受け持ち、その出力先の設定のキーを変えるときに参照する。
+tags:
+  - name: topic:出力先
+    main: true
+  - name: topic:設定
+  - name: topic:貼り付け

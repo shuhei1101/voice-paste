@@ -139,3 +139,12 @@ prerequisites:
   - 実機のテスト（非機能要件テスト）が起こす常駐アプリは、`tests/conftest.py` の `QT_QPA_PLATFORM=offscreen` のまま起動し、実機の画面に出さない（別プロセスで起動するもの・再起動で起動するものも同じ）
   - Ubuntu 24.04 のクローンでは、リポジトリの直下で Linux の uv の `uv sync --frozen` を実行して `.venv/` を作り（開発コマンド『環境構築（クローン直後）』）、種別のコマンドの `.venv/Scripts/python.exe` は `.venv/bin/python` に、`.venv/Scripts/lint-imports` は `.venv/bin/lint-imports` に読み替える
   - 非機能要件テストは Linux でも実行する（Linux で skip するテストは『非機能要件テスト』）
+lead: テストの種別ごとの実行コマンド・実行場所・前提を受け持ち、テストや lint を実行するときに参照する。
+tags:
+  - name: topic:testing
+    main: true
+  - name: topic:単体テスト
+  - name: topic:結合テスト
+  - name: topic:lint
+  - name: topic:コマンド
+  - name: tool:pytest

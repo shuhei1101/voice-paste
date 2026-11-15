@@ -36,3 +36,9 @@ constants:
     summary: 録音を始められない理由のうち、ホットキー・トレイから始めた録音の確定後の文字起こし中・届け中。busy の通知の detail に使用する
     value: "'finishing'"
     status: implemented
+lead: 録音を始められない理由を手前に出すダイアログを受け持ち、処理中に録音を始めようとしたときの通知を変えるときに参照する。
+tags:
+  - name: topic:ダイアログ
+    main: true
+  - name: topic:録音
+  - name: action:通知

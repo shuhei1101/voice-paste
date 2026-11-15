@@ -4,17 +4,22 @@ title: 'データ: 一時の音声'
 lead: 履歴を残さない設定のときに、確定した録音を文字に起こすまで配置する。
 datastore: ファイル（WAV）
 fields:
-- key: sample_rate
-  title: サンプリングレート
-  type: int
-  description: 録音のサンプルレート（Hz）
-- key: channels
-  title: チャンネル数
-  type: int
-  description: 1（モノラル）
-- key: samples
-  title: 音
-  type: array
-  description: 16 ビット整数の音
+  - key: sample_rate
+    title: サンプリングレート
+    type: int
+    description: 録音のサンプルレート（Hz）
+  - key: channels
+    title: チャンネル数
+    type: int
+    description: 1（モノラル）
+  - key: samples
+    title: 音
+    type: array
+    description: 16 ビット整数の音
 refs:
-- ER-2#tables[%LOCALAPPDATA%\voice-paste\tmp\{session_id}.wav]
+  - ER-2#tables[%LOCALAPPDATA%\voice-paste\tmp\{session_id}.wav]
+tags:
+  - name: topic:一時ファイル
+    main: true
+  - name: topic:録音
+  - name: action:削除

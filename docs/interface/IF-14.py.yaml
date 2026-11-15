@@ -108,3 +108,8 @@ flows:
     test: test_error_when_origin_not_allowed
 id: IF-14
 visibility: internal
+tags:
+  - name: topic:サーバー
+    main: true
+  - name: action:停止
+  - name: action:終了

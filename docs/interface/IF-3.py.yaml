@@ -355,3 +355,11 @@ notes:
     }
     ```
 test_file: tests/integration/test_deliver_to_caller.py
+tags:
+  - name: topic:コールバック
+    main: true
+  - name: topic:api
+  - name: topic:連続録音
+  - name: topic:リトライ
+  - name: action:送信
+  - name: action:返却

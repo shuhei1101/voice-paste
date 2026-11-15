@@ -4,11 +4,16 @@ title: 'データ: 録音中に画面を暗くしないか'
 lead: 「録音中は画面を暗くしない」のチェックの値。画面を再度開いたときにチェックを戻す。
 datastore: localStorage
 fields:
-- key: value
-  title: 画面を暗くしないか
-  type: string
-  description: オンは `1`、オフは `0`。JSON ではなく文字列のまま配置する。キーが無いときはオンとして扱う
-  required: true
-  example: '1'
+  - key: value
+    title: 画面を暗くしないか
+    type: string
+    description: オンは `1`、オフは `0`。JSON ではなく文字列のまま配置する。キーが無いときはオンとして扱う
+    required: true
+    example: '1'
 refs:
-- ER-1#tables[localStorage voice-paste.keep_screen_on]
+  - ER-1#tables[localStorage voice-paste.keep_screen_on]
+tags:
+  - name: topic:画面の消灯
+    main: true
+  - name: topic:ブラウザ
+  - name: tool:localstorage

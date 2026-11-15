@@ -882,3 +882,11 @@ overrides:
     key: transcription.local_whisper.device
     value: cpu
     description: 'Windows: cuda。Linux: cpu（config/defaults.yaml の os_overrides。Linux では CUDA のライブラリを読み込ませる手当てが無い）'
+aliases:
+  - settings.yaml
+tags:
+  - name: topic:設定
+    main: true
+  - name: topic:既定値
+  - name: topic:環境変数
+  - name: tool:yaml

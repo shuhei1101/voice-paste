@@ -83,3 +83,8 @@ functions:
         mock: OutputDeps の全関数
         expected: キーが copy・paste だけで、値が deps のものと同じ
     status: planned
+lead: クリップボードへの書き込みと貼り付けのキーの送信を受け持ち、貼り付けのみの動きを変えるときに参照する。
+tags:
+  - name: topic:貼り付け
+    main: true
+  - name: topic:クリップボード

@@ -570,3 +570,12 @@ classes:
       - SCR-7#
       - SCR-1#
     status: implemented
+aliases:
+  - UiController
+lead: 通知を受けてトレイ・録音の画面・文字起こし中の表示・ダイアログを切り替える処理を受け持ち、画面を開く・閉じる条件を変えるときに参照する。
+tags:
+  - name: topic:画面
+    main: true
+  - name: topic:トレイ
+  - name: topic:ダイアログ
+  - name: tool:pyside6

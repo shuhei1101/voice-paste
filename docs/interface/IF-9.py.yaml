@@ -258,3 +258,13 @@ constraints:
     constraint: 制限なし
     notes: 文字起こしを待たずに 202 を返却する
 test_file: tests/integration/test_complete_session.py
+aliases:
+  - POST /sessions/{session_id}/complete
+tags:
+  - name: topic:録音
+    main: true
+  - name: topic:api
+  - name: topic:文字起こし
+  - name: topic:履歴
+  - name: topic:連続録音
+  - name: action:確定

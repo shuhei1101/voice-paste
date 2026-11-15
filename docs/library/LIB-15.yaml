@@ -31,3 +31,9 @@ verification:
 license: MIT（商用利用可）
 official_url: https://onnxruntime.ai/
 docs_url: https://onnxruntime.ai/docs/api/python/api_summary.html
+tags:
+  - name: tool:onnxruntime
+    main: true
+  - name: tool:silero-vad
+  - name: topic:モデル
+  - name: topic:話し声の判定

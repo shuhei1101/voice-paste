@@ -43,3 +43,8 @@ function_types:
       - target: post_json
         notes: httpx で送信する
     status: implemented
+lead: JSON の POST の結果と、POST する関数型を受け持ち、HTTP の送信の関数の型を変えるときに参照する。
+tags:
+  - name: topic:http
+    main: true
+  - name: topic:型

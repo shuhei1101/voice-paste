@@ -46,3 +46,9 @@ lead: 録音を始められないとき（API から始めた録音の処理中�
 refs:
   - MOD-32#functions[notify]
 test_file: tests/integration/ui/test_busy_dialog.py
+tags:
+  - name: topic:ダイアログ
+    main: true
+  - name: topic:ホットキー
+  - name: topic:録音
+  - name: action:通知

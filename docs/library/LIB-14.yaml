@@ -26,3 +26,10 @@ verification:
   detail: 現状の棚卸しで、起動口とビルドが参照している範囲を転記しただけで、動かしてはいない
 license: NVIDIA の独自のライセンス（LicenseRef-NVIDIA-Proprietary。同梱して配布するときはライセンスの条件を確認する）
 official_url: https://developer.nvidia.com/cuda-zone
+aliases:
+  - cuDNN
+tags:
+  - name: tool:cuda
+    main: true
+  - name: topic:gpu
+  - name: topic:パッケージ

@@ -8,3 +8,10 @@ notes:
     スクリプトは外部規約『ビルドレス原則』『tsc運用』に従い `.ts` で書き込み、`tsc` で同じフォルダの `assets/app.js`（ネイティブ ES module。バンドルしない）へ出す。API の応答（`WebTranscriptionStatus` の `state`・`progress`・`text`・`error`）と、ER図『ブラウザの端末のデータ』の IndexedDB・localStorage の項目は型で持つ。
     配信はビルドせずに `assets/app.js` を直接読むため、生成した `src/voice_paste/server/web/assets/app.js` は `app.ts` と同じ階層へコミットする（コミットする生成 `.js` はこれだけ）。`tsc` の設定（`tsconfig.json`・`tsconfig.build.json`）・`eslint.config.mjs`・`package.json`・`package-lock.json` はリポジトリの直下に配置し、開発のときだけ使う。
     パッケージに同梱するため、pyproject.toml の `[tool.setuptools.package-data]` に `voice_paste = ["server/web/index.html", "server/web/assets/*.js", "server/web/assets/*.css"]` を書き込む（`.ts` は同梱しない）。
+tags:
+  - name: topic:api
+    main: true
+  - name: topic:サーバー
+  - name: topic:セキュリティ
+  - name: tool:fastapi
+  - name: tool:uvicorn

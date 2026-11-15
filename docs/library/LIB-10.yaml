@@ -38,3 +38,9 @@ verification:
 license: BSD-2-Clause（商用利用可）
 official_url: https://github.com/seddonym/import-linter
 docs_url: https://import-linter.readthedocs.io/
+tags:
+  - name: tool:import-linter
+    main: true
+  - name: topic:lint
+  - name: topic:インポート
+  - name: action:検査

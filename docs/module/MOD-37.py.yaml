@@ -153,3 +153,11 @@ classes:
     refs:
       - SCR-9#
     status: implemented
+aliases:
+  - PresetListPanel
+lead: 設定画面のプリセットの並びと追加・削除・並べ替えを受け持ち、プリセットの編集の操作を変えるときに参照する。
+tags:
+  - name: topic:プリセット
+    main: true
+  - name: topic:設定
+  - name: topic:画面

@@ -26,3 +26,9 @@ diagrams:
       ```
 
       <!-- /map -->
+tags:
+  - name: topic:ブラウザ
+    main: true
+  - name: topic:ジョブ
+  - name: topic:キュー
+  - name: topic:文字起こし

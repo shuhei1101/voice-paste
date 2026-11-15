@@ -4,3 +4,8 @@ title: "常駐アプリ / 外部連携"
 lead: 文字起こしワーカーの子プロセス・OpenAI API の文字起こし・システム音量・画面の消灯の抑止・キーボードとクリップボード・ブラウザ添付の画面を開くブラウザ・HTTP の POST・話し声の判定（Silero VAD）を包むアダプタ。feature の関数型を満たし、外の例外をアプリの例外に変える。
 notes:
   Wayland のキーの送信のテスト: integrations/keyboard/sender_wayland.py の単体テストのファイルは `tests/unit/voice_paste/integrations/keyboard/test_sender_wayland.py`。evdev は Linux だけの依存のため、Windows では skip する。evdev.UInput を差し替えて write の並びで確認し、実物の `/dev/uinput` は検証環境の VM での通しの確認で確認する。
+tags:
+  - name: topic:アダプター
+    main: true
+  - name: topic:外部連携
+  - name: action:ラップ

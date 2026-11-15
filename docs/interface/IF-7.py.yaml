@@ -122,3 +122,9 @@ notes:
 refs:
   - IF-3#notes.送信する内容
 test_file: tests/integration/test_deliver_to_endpoint.py
+tags:
+  - name: topic:エンドポイント
+    main: true
+  - name: topic:プリセット
+  - name: topic:出力先
+  - name: action:送信

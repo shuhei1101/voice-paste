@@ -58,3 +58,9 @@ functions:
         condition: get_wm_class が Xlib.error.BadWindow を送出する
         mock: Xlib.display.Display
         expected: () が返り、close が呼ばれる
+lead: Xorg でアクティブなウィンドウの WM_CLASS を読み込む処理を受け持ち、Xorg での端末アプリの見分け方を変えるときに参照する。
+tags:
+  - name: topic:ウィンドウ
+    main: true
+  - name: topic:xorg
+  - name: tool:python-xlib

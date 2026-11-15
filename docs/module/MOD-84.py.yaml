@@ -1279,3 +1279,10 @@ functions:
         mock: pyperclip.set_clipboard・evdev.UInput
         expected: send_paste・send_enter・open_key_sender・close_key_sender が同じ UInputKeyboard のメソッドで、UInput が作られていない（open の前）。create_hotkey_listener(名前, 排他) が GnomeShortcutListener を返却し、qt_platform が "xcb"、validate_hotkeys が validate_gnome_hotkeys、pyperclip.set_clipboard に "xclip" が 1 回渡る。voice_paste.integrations.keyboard.sender_linux が sys.modules に無い
     status: planned
+lead: 常駐サービスの起動と、設定から feature・外部連携・画面を配線する処理を受け持ち、起動の流れや配線を変えるときに参照する。
+tags:
+  - name: topic:起動
+    main: true
+  - name: topic:コンポジションルート
+  - name: topic:常駐
+  - name: action:配線

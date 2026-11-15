@@ -93,3 +93,9 @@ functions:
     refs:
       - LIB-9#
     status: implemented
+lead: httpx での JSON の POST と、タイムアウト・接続の失敗の変換を受け持ち、HTTP の送信の扱いを変えるときに参照する。
+tags:
+  - name: topic:http
+    main: true
+  - name: tool:httpx
+  - name: action:送信

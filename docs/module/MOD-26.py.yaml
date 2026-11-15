@@ -210,3 +210,9 @@ function_types:
     implementations:
       - target: main.py の build_handlers の list_glossary_preset_choices
     status: planned
+lead: ブラウザの音声のジョブの状態と、ジョブの処理が呼ぶ関数型の型を受け持ち、ジョブの状態や配線する関数を変えるときに参照する。
+tags:
+  - name: topic:ブラウザ
+    main: true
+  - name: topic:ジョブ
+  - name: topic:型

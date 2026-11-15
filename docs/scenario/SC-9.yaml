@@ -865,3 +865,12 @@ notes:
     文字起こし中の表示は Qt の窓で、失敗を通知したことは通知のログで確認する。ログの配置先を開くことは開く呼び出しに引き渡されたパスで確認する。
     手がかりを引き渡すシナリオは、常駐アプリを pytest のプロセスの中で `build_handlers` で配線し、音声合成の WAV を録音の入力に差し替えて確認する
 test_file: tests/e2e/単一ユースケース/test_transcribe_recording.py
+tags:
+  - name: topic:文字起こし
+    main: true
+  - name: topic:エンジン
+  - name: topic:補正
+  - name: topic:用語集
+  - name: topic:ハルシネーション
+  - name: action:変換
+  - name: action:補正

@@ -78,3 +78,9 @@ functions:
         condition: 標準出力が `('not json',)`
         mock: subprocess.run
         expected: () が返る
+lead: Wayland のセッションでフォーカスしているウィンドウの wm_class を読み込む処理を受け持ち、端末アプリの見分け方を変えるときに参照する。
+tags:
+  - name: topic:ウィンドウ
+    main: true
+  - name: topic:wayland
+  - name: tool:focused-window-d-bus

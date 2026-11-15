@@ -39,3 +39,8 @@ install: |-
   ```bash
   uv sync --frozen
   ```
+tags:
+  - name: tool:pycaw
+    main: true
+  - name: topic:音量
+  - name: topic:windows

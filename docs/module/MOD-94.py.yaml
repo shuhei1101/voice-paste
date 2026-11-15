@@ -16,3 +16,10 @@ data_models:
         type: dict
         description: '種類ごとの中身。config: model・device・compute_type・cpu_threads・num_workers・log_dir / transcribe: audio_path・language・beam_size・best_of・temperature・vad_filter・vad_threshold・vad_min_speech_ms・vad_min_silence_ms・condition_on_previous_text・no_speech_threshold・hotwords（省ける。文字起こしの手がかり） / progress: end・duration（秒） / result: segments（前後の空白を除き空でない区間の文字の並び） / error: message'
     status: implemented
+lead: 文字起こしワーカーと標準入出力でやり取りする 1 行の JSON の型を受け持ち、ワーカーとのやり取りを変えるときに参照する。
+tags:
+  - name: topic:標準入出力
+    main: true
+  - name: topic:ワーカー
+  - name: topic:型
+  - name: tool:json

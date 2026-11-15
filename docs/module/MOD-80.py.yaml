@@ -88,3 +88,10 @@ functions:
         condition: paste_key に主キーが 1 つ無い（修飾キーだけ・主キーが 2 つ以上）
       - name: DeliveryError
         condition: 主キーが 1 文字でない
+lead: Linux の Xorg で端末アプリかどうかに応じた貼り付けのキーを送信する処理を受け持ち、Linux での貼り付けのキーを変えるときに参照する。
+tags:
+  - name: topic:貼り付け
+    main: true
+  - name: topic:linux
+  - name: topic:xorg
+  - name: topic:キーボード

@@ -79,3 +79,9 @@ functions:
       - IF-7#
       - NFR-1#requirements[エンドポイントへ送信するときのタイムアウト]
     status: implemented
+lead: エンドポイントへ送信のプリセットの URL へ結果を 1 回 POST する処理を受け持ち、エンドポイントへの送信の動きを変えるときに参照する。
+tags:
+  - name: topic:エンドポイント
+    main: true
+  - name: topic:プリセット
+  - name: action:送信

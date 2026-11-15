@@ -72,3 +72,9 @@ functions:
     refs:
       - LIB-2#
     status: planned
+lead: Linux で URL を Chromium 系のブラウザのアプリのウィンドウで開く処理を受け持ち、Linux で開くブラウザを変えるときに参照する。
+tags:
+  - name: topic:ブラウザ
+    main: true
+  - name: topic:linux
+  - name: action:起動

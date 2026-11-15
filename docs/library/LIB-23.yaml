@@ -42,3 +42,9 @@ limitations:
     notes: Wayland は [#200](https://github.com/shuhei1101/voice-paste/issues/200) の範囲
 refs:
   - LIB-19#
+tags:
+  - name: tool:python-xlib
+    main: true
+  - name: topic:linux
+  - name: topic:xorg
+  - name: topic:ウィンドウ

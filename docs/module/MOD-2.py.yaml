@@ -297,3 +297,12 @@ functions:
         mock: なし
         expected: '{"a": {"y": 3}, "l": [1, 2]}。merge_layers(defaults, 戻り値) が values と等しい'
     status: planned
+tags:
+  - name: tool:ruamel.yaml
+    main: true
+  - name: tool:yaml
+  - name: topic:設定
+  - name: topic:コメント
+  - name: topic:レイヤー
+  - name: action:読み込み
+  - name: action:書き込み

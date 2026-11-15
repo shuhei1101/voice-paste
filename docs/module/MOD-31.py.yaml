@@ -410,3 +410,13 @@ classes:
       - SCR-1#
       - SCR-2#
     status: implemented
+aliases:
+  - Tray
+lead: 状態ごとのトレイのアイコン・メニュー・通知を受け持ち、トレイの表示や操作を変えるときに参照する。
+tags:
+  - name: topic:トレイ
+    main: true
+  - name: topic:アイコン
+  - name: topic:メニュー
+  - name: topic:通知
+  - name: tool:pyside6

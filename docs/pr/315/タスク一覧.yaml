@@ -65,8 +65,10 @@ tasks:
     updated_by: planner
     updated_at: '2026-11-15T01:56:57.111183+00:00'
   - process: ドキュメント修正
-    status: todo
+    status: done
     note: YAML の設計書（docs の種類のフォルダ）にタグ・エイリアス・description（lead）を、src/files.yml・tests/files.yml・haas_server/src/files.yml の行にタグ・description を記載する
+    updated_by: planner
+    updated_at: '2026-11-15T02:29:40.436494+00:00'
   - process: 単体テスト作成
     status: skipped
     reason: コードを変えない

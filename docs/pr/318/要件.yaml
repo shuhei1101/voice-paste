@@ -27,3 +27,6 @@ scope_out:
   - item: ランナーと手元の skip の件数の比較
     reason: workflow_dispatch は develop にある workflow だけを起動できるため、この作業 PR の全件実行は手元で回す。develop へ入った後の最初の作業 PR で比べる
     plan: none
+  - item: workflow の E2E（tests/e2e/workflow/test_test_yml.py）の --run-e2e での初回の実行
+    reason: workflow_dispatch は develop にある workflow だけを起動できるため、この作業 PR の中では回せない。develop へ入った後に回す
+    plan: to_file

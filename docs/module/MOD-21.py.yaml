@@ -29,7 +29,7 @@ functions:
     container: server/web_page.py
     usecase: ブラウザから音声を送信する
     scope: public
-    summary: '`/web/assets/` に `server/web/assets/` を StaticFiles で組み込む'
+    summary: '`/web/assets/` に `server/web/assets/` を WebAssetFiles で組み込む'
     args:
       - name: app
         type: FastAPI
@@ -39,14 +39,14 @@ functions:
     returns:
       type: None
       description: なし
-    process: 1. `/web/assets` に `StaticFiles(directory=server/web/assets)` を mount する（配置先の外を指す `..` と無いファイルは StaticFiles が 404 にする）
+    process: 1. `/web/assets` に `WebAssetFiles(directory=server/web/assets)` を mount する（`.js` は JS_MEDIA_TYPE で返却する。配置先の外を指す `..` と無いファイルは StaticFiles が 404 にする）
     unit_tests:
       - name: test_mount_web_assets
         case: 正常
         summary: 素材を返却し、配置先の外は 404
         condition: GET /web/assets/app.js と GET /web/assets/..%2F..%2Fapp.py
         mock: なし
-        expected: app.js は 200・text/javascript、配置先の外は 404 の problem+json
+        expected: app.js は 200・text/javascript; charset=utf-8、配置先の外は 404 の problem+json
     status: planned
 lead: 外の端末の画面の HTML と JS・CSS の配信を受け持ち、画面の配信の経路やキャッシュの扱いを変えるときに参照する。
 tags:
@@ -55,3 +55,63 @@ tags:
   - name: topic:ブラウザ
   - name: topic:アセット
   - name: action:配信
+constants:
+  - name: JS_MEDIA_TYPE
+    title: JS の素材の Content-Type
+    container: server/web_page.py
+    usecase: ブラウザから音声を送信する
+    summary: '`/web/assets/` の下の `.js` を返却するときの Content-Type。端末の `mimetypes`（Windows ではレジストリの `.js` の値）に依らず、RFC 9239 の JavaScript の型にする'
+    value: '"text/javascript; charset=utf-8"'
+    status: planned
+classes:
+  - name: WebAssetFiles
+    title: 画面の素材の配信
+    container: server/web_page.py
+    usecase: ブラウザから音声を送信する
+    role: 配信
+    kind: クラス
+    inherits: starlette.staticfiles.StaticFiles
+    summary: '`.js` の Content-Type を JS_MEDIA_TYPE に固定する StaticFiles。ほかの拡張子と、配置先の外・無いファイルの 404 は StaticFiles のまま'
+    methods:
+      - name: file_response
+        title: 素材の応答の作成
+        kind: メソッド
+        scope: public
+        summary: StaticFiles.file_response の応答のうち、`.js` で Content-Type を持つもの（304 は持たない）の Content-Type を JS_MEDIA_TYPE に変更する
+        args:
+          - name: full_path
+            type: os.PathLike[str] | str
+            required: true
+            passing: positional
+            description: 返却するファイルのパス
+          - name: stat_result
+            type: os.stat_result
+            required: true
+            passing: positional
+            description: ファイルの stat
+          - name: scope
+            type: starlette.types.Scope
+            required: true
+            passing: positional
+            description: 要求の ASGI の scope
+          - name: status_code
+            type: int
+            required: false
+            default: '200'
+            passing: positional
+            description: 応答のステータスコード
+        returns:
+          type: starlette.responses.Response
+          description: 素材の応答（変更されていなければ 304）
+        process: |-
+          1. StaticFiles.file_response で応答を作る
+          2. full_path の拡張子が `.js` で、応答の headers に content-type があれば、JS_MEDIA_TYPE に変更する
+          3. 応答を返却する
+        unit_tests:
+          - name: test_file_response_when_registry_differs
+            case: 正常
+            summary: 端末の mimetypes が別の型を返却しても、.js は JS_MEDIA_TYPE で返却する
+            condition: starlette.responses.guess_type を .js に application/javascript を返却する関数に差し替え、TestClient で GET /web/assets/app.js と GET /web/assets/style.css
+            mock: starlette.responses.guess_type（ランナーの Windows のレジストリの値を再現する）
+            expected: app.js は 200・text/javascript; charset=utf-8。style.css は差し替えた guess_type の返却する型
+    status: planned

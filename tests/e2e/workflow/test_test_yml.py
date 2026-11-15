@@ -75,12 +75,25 @@ PASS_BODY: str = "def test_pass() -> None:\n    assert True\n"
 FAIL_BODY: str = "def test_fail() -> None:\n    assert False\n"
 SLEEP_BODY: str = "import time\n\n\ndef test_sleep() -> None:\n    time.sleep(400)\n"
 
+ALL_SUCCESS: dict[str, str] = dict.fromkeys(STEPS, "success")
+"""全ての step が成功したときの step ごとの結論。"""
+
+TEST_STEP_FAILED: dict[str, str] = {**ALL_SUCCESS, "層の全件を回す": "failure"}
+"""step「層の全件を回す」だけが失敗したときの step ごとの結論。"""
+
+SETUP_FAILED: dict[str, str] = {
+    **ALL_SUCCESS,
+    "Python の依存を入れる": "failure",
+    "層の全件を回す": "skipped",
+}
+"""step「Python の依存を入れる」が失敗したときの step ごとの結論。"""
+
 
 def test_normal(branch_factory: Callable[[PrepareTree], str]) -> None:
     """正常系: 単体テストの層の全件が pass して成功で終わる。"""
     result = dispatch(branch_factory(replace_layer("unit", PASS_BODY)), "unit")
     assert result.conclusion == "success"
-    assert all(result.steps[name] == "success" for name in STEPS)
+    assert result.steps == ALL_SUCCESS
     assert result.log is not None and re.search(r"=+ 1 passed", result.log)
 
 
@@ -88,7 +101,7 @@ def test_normal_when_integration(branch_factory: Callable[[PrepareTree], str]) -
     """正常系（結合テストの層）: 結合テストの層の全件が pass して成功で終わる。"""
     result = dispatch(branch_factory(replace_layer("integration", PASS_BODY)), "integration")
     assert result.conclusion == "success"
-    assert all(result.steps[name] == "success" for name in STEPS)
+    assert result.steps == ALL_SUCCESS
     assert result.log is not None and re.search(r"=+ 1 passed", result.log)
 
 
@@ -96,8 +109,7 @@ def test_error_when_test_fails(branch_factory: Callable[[PrepareTree], str]) -> 
     """異常系（テストの fail・failure）: 層の全件に fail があり、ログを上げて失敗で終わる。"""
     result = dispatch(branch_factory(replace_layer("unit", FAIL_BODY)), "unit")
     assert result.conclusion == "failure"
-    assert result.steps["層の全件を回す"] == "failure"
-    assert result.steps["ログを成果物に上げる"] == "success"
+    assert result.steps == TEST_STEP_FAILED
     assert result.log is not None and "test_fail" in result.log and re.search(r"=+ 1 failed", result.log)
 
 
@@ -105,8 +117,7 @@ def test_error_when_test_times_out(branch_factory: Callable[[PrepareTree], str])
     """異常系（テストが上限の時間を超えた・failure）: テスト 1 件が上限の時間を超えて止められ、ログを上げて失敗で終わる。"""
     result = dispatch(branch_factory(replace_layer("unit", SLEEP_BODY)), "unit")
     assert result.conclusion == "failure"
-    assert result.steps["層の全件を回す"] == "failure"
-    assert result.steps["ログを成果物に上げる"] == "success"
+    assert result.steps == TEST_STEP_FAILED
     assert result.log is not None and "Timeout" in result.log
 
 
@@ -114,6 +125,5 @@ def test_error_when_setup_fails(branch_factory: Callable[[PrepareTree], str]) ->
     """異常系（道具の導入に失敗・failure）: Python の依存の導入に失敗し、層の全件を回さずにログを上げて失敗で終わる。"""
     result = dispatch(branch_factory(break_lock), "unit")
     assert result.conclusion == "failure"
-    assert result.steps["Python の依存を入れる"] == "failure"
-    assert result.steps["層の全件を回す"] == "skipped"
+    assert result.steps == SETUP_FAILED
 

@@ -76,7 +76,7 @@ tasks:
     updated_at: '2026-11-14T23:37:47.061553+00:00'
   - process: 実装
     status: done
-    note: 反映作業 8 件の実行（スキーマの参照への移行・データの設計書の作成を含む）、schemas/conversions/ の削除、import-site によるサイトのレイアウトの取り込み、ai-monitor-version.ini を v0.4.0 へ更新、更新ドキュメントの LAY-1・docs/index.yaml・ER-1・ER-2 の修正
+    note: import-site によるサイトのレイアウトの取り込み、ai-monitor-version.ini を v0.4.0 へ更新、schemas/conversions/ の削除、反映作業『設計書の新しいスキーマへの変換』のスクリプトと『配布先のデータの設計書の作成』の ID の分岐、更新ドキュメントの LAY-1・docs/index.yaml の修正。反映作業の実行と ER-1・ER-2 の書き換えは、マージの前に反映作業として行う
     updated_by: planner
     updated_at: '2026-11-15T01:10:06.795294+00:00'
   - process: 結合テスト作成

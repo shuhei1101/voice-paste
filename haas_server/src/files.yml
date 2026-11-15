@@ -12,3 +12,7 @@ files:
     related:
       - to: MOD-101
         type: implements
+      - to: ARCH-1
+        type: implements
+      - to: ER-2
+        type: implements

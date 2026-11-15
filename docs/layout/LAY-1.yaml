@@ -189,6 +189,10 @@ entries:
       - asset
     naming:
       - tray_{state}.png
+    children:
+      - type: file
+        name: tray_starting.png・tray_idle.png・tray_recording.png・tray_transcribing.png・tray_failed.png
+        contents: トレイのアイコン（状態ごと）
   - type: folder
     name: content
     contents: 常駐アプリが読み込む、設定で上書きしない定義の原本
@@ -232,6 +236,37 @@ entries:
                 contents: 画面ごとのウィンドウとダイアログ
                 content_types:
                   - source
+                children:
+                  - type: file
+                    name: recording_window.py
+                    contents: RecordingWindow
+                  - type: file
+                    name: transcribing_indicator.py
+                    contents: TranscribingIndicator
+                  - type: file
+                    name: window_parts.py
+                    contents: HeadRow・GripIcon・HotkeyButton（録音の画面と文字起こし中の表示が使用する見出しの行・ドラッグのハンドル・名前の下にホットキーを出すボタン）
+                  - type: file
+                    name: busy_dialog.py
+                    contents: show_busy_dialog
+                  - type: file
+                    name: settings_window.py
+                    contents: SettingsWindow・confirm_discard・confirm_reset・PRESET_KIND_NAMES
+                  - type: file
+                    name: settings_fields.py
+                    contents: make_radio_group・selected_radio など設定画面の欄の部品
+                  - type: file
+                    name: settings_presets.py
+                    contents: PresetListPanel（設定画面の種類ごとのタブのプリセットの一覧）
+                  - type: file
+                    name: settings_glossaries.py
+                    contents: GlossaryPanel（設定画面の用語集の一覧と行の表）・find_glossary_row_errors
+                  - type: file
+                    name: settings_hints.py
+                    contents: HintPresetPanel（設定画面の表記のヒントの長さとプリセットの一覧）
+                  - type: file
+                    name: settings_edge_phrases.py
+                    contents: EdgePhrasePanel（設定画面のハルシネーションの文言の一覧）
               - type: file
                 name: __init__.py
                 contents: 画面のパッケージの初期化
@@ -314,6 +349,27 @@ entries:
                         content_types:
                           - source
                           - web_transcription
+              - type: file
+                name: app.py
+                contents: build_fastapi（route の集約・middleware・例外ハンドラ）
+              - type: file
+                name: middleware.py
+                contents: RequestGuardMiddleware（Host・Origin・トークン。/web/ の下は Origin の許可リスト）
+              - type: file
+                name: body_limit.py
+                contents: BodyLimitMiddleware（/web/transcriptions の本文の上限で 413）
+              - type: file
+                name: web_page.py
+                contents: web_page_router（GET /web/・/web の移し）・mount_web_assets（/web/assets/）
+              - type: file
+                name: error_handlers.py
+                contents: register_exception_handlers（RFC 9457）
+              - type: file
+                name: token.py
+                contents: create_token・write_token_file（起動ごとのトークンを作り、待ち受けを始めてからファイルへ書き込む）
+              - type: file
+                name: runner.py
+                contents: ApiServerRunner（uvicorn をスレッドで動かし started を確認する）
           - type: folder
             name: integrations
             contents: 外部のサービス・ライブラリ・OS の機能との連携
@@ -331,6 +387,341 @@ entries:
                     contents: Silero VAD のモデルとライセンス
                     content_types:
                       - asset
+                    children:
+                      - type: file
+                        name: silero_vad_v6.onnx
+                        contents: faster-whisper 1.2.1 が同梱するものと同じ Silero VAD のモデル（MIT）
+                      - type: file
+                        name: LICENSE.silero-vad
+                        contents: Silero VAD の MIT のライセンスの全文
+                  - type: file
+                    name: adapter.py
+                    contents: load_vad_session・StreamingVad（同梱の Silero VAD を onnxruntime で窓ごとに供給する）
+              - type: folder
+                name: whisper
+                contents: 未記載
+                children:
+                  - type: file
+                    name: worker.py
+                    contents: 子プロセスの入口（python -m voice_paste.integrations.whisper.worker） / 子プロセスの本体（文字起こしワーカーのサブシステム）
+                  - type: file
+                    name: protocol.py
+                    contents: 常駐サービスとやり取りする 1 行の JSON の型（client.py と共有）
+                  - type: file
+                    name: client.py
+                    contents: WhisperWorkerClient（子プロセスの起動・監視・立て直し・やり直し）・ensure_local_whisper_installed
+              - type: folder
+                name: openai
+                contents: 未記載
+                children:
+                  - type: file
+                    name: credentials.py
+                    contents: read_openai_api_key（環境変数か秘匿のファイルから API キーを読み込む）
+                  - type: file
+                    name: transcriber.py
+                    contents: OpenAITranscriber（OpenAI API の文字起こしへ httpx で送信する）
+              - type: folder
+                name: haas
+                contents: 未記載
+                children:
+                  - type: file
+                    name: server.py
+                    contents: HaasServer（WSL のサーバーの起動・応答の確認・停止）
+                  - type: file
+                    name: transcriber.py
+                    contents: HaasTranscriber（Haas の文字起こしのサーバーへ httpx で送信する）
+              - type: folder
+                name: audio
+                contents: 未記載
+                children:
+                  - type: file
+                    name: probe.py
+                    contents: probe_audio（受けた音声を PyAV で開いて容れ物・秒数を読み込む）
+              - type: folder
+                name: volume
+                contents: 未記載
+                children:
+                  - type: file
+                    name: adapter.py
+                    contents: lower_volume・restore_volume（pycaw を == で固定して包む。Windows だけが読み込む）
+                  - type: file
+                    name: noop.py
+                    contents: lower_volume_noop・restore_volume_noop（Linux の、音量を変えない実装）
+              - type: folder
+                name: display
+                contents: 未記載
+                children:
+                  - type: file
+                    name: adapter.py
+                    contents: inhibit_display・release_display（Windows。電源要求の API を ctypes で呼ぶ。Windows だけが読み込む）
+                  - type: file
+                    name: adapter_linux.py
+                    contents: inhibit_display_linux・release_display_linux（Linux。gnome-session-inhibit の子プロセス）
+              - type: folder
+                name: keyboard
+                contents: 未記載
+                children:
+                  - type: file
+                    name: sender.py
+                    contents: copy_to_clipboard・use_xclip_clipboard・split_paste_key・send_paste・send_enter・TERMINAL_WM_CLASSES
+                  - type: file
+                    name: sender_linux.py
+                    contents: send_paste_linux（Linux。端末アプリなら Ctrl+Shift+V にし、主キーを XTEST で送信する）
+                  - type: file
+                    name: sender_wayland.py
+                    contents: UInputKeyboard（Linux の Wayland のセッション。python-evdev の UInput の仮想キーボードで貼り付けのキーと Enter を送信する）
+                  - type: file
+                    name: active_window_linux.py
+                    contents: read_active_wm_class（Linux。python-xlib でアクティブなウィンドウの WM_CLASS を読み込む）
+                  - type: file
+                    name: active_window_wayland.py
+                    contents: read_focused_wm_class（Linux の Wayland のセッション。拡張 Focused Window D-Bus からフォーカスしているウィンドウの wm_class を読み込む）
+              - type: folder
+                name: browser
+                contents: 未記載
+                children:
+                  - type: file
+                    name: opener.py
+                    contents: open_app_window（Windows。Edge の --app で開き、無ければ既定のブラウザ）
+                  - type: file
+                    name: opener_linux.py
+                    contents: open_app_window_linux（Linux。Chromium 系の --app で開き、無ければ既定のブラウザ）
+              - type: folder
+                name: http
+                contents: 未記載
+                children:
+                  - type: file
+                    name: types.py
+                    contents: PostResult・PostJsonFn
+                  - type: file
+                    name: client.py
+                    contents: post_json（httpx）
+          - type: folder
+            name: features
+            contents: 未記載
+            children:
+              - type: folder
+                name: transcription
+                contents: 未記載
+                children:
+                  - type: file
+                    name: __init__.py
+                    contents: transcribe の公開
+                  - type: file
+                    name: types.py
+                    contents: エンジンの関数型とエンジンの種類
+                  - type: file
+                    name: service.py
+                    contents: transcribe（エンジンの選択と失敗の変換）
+              - type: folder
+                name: correction
+                contents: 未記載
+                children:
+                  - type: file
+                    name: __init__.py
+                    contents: load_glossary・read_glossary_rows・save_glossary・apply_glossary・resolve_glossaries・resolve_glossary_presets・pick_glossary_preset・list_preset_glossaries・next_glossary_path・strip_edge_phrases の公開
+                  - type: file
+                    name: service.py
+                    contents: 用語集の一覧の解決、CSV の読み書き、置き換え、文頭・文末の文言の削除
+              - type: folder
+                name: recording
+                contents: 未記載
+                children:
+                  - type: file
+                    name: __init__.py
+                    contents: Recorder・Segmenter の公開
+                  - type: file
+                    name: types.py
+                    contents: 音量の操作・マイクの入力を開く・話し声の判定の関数型
+                  - type: file
+                    name: service.py
+                    contents: Recorder（開始・一時停止・再開・停止・破棄・音の大きさ・連続録音の開始と停止）
+                  - type: file
+                    name: segmenter.py
+                    contents: Segmenter（窓ごとの話し声の確率から区間を切り出す）
+                  - type: file
+                    name: client.py
+                    contents: sounddevice の入力を開く（open_input）
+              - type: folder
+                name: session
+                contents: 未記載
+                children:
+                  - type: file
+                    name: __init__.py
+                    contents: SessionManager・route の公開
+                  - type: file
+                    name: types.py
+                    contents: 録音セッションの状態・録音セッション・ほかの feature を受け取る関数型（入口・録音・結果の型は shared/types.py）
+                  - type: file
+                    name: service.py
+                    contents: SessionManager（状態の遷移と排他、録音から出力までの流れ）
+                  - type: file
+                    name: schemas.py
+                    contents: API のリクエスト・レスポンス
+                  - type: file
+                    name: route.py
+                    contents: POST /sessions・/stop・/complete
+              - type: folder
+                name: web_transcription
+                contents: 未記載
+                children:
+                  - type: file
+                    name: __init__.py
+                    contents: WebJobQueue・accept_audio・router の公開
+                  - type: file
+                    name: types.py
+                    contents: ジョブの状態・ジョブ・用語集のプリセットの選択肢・ほかの feature を受け取る関数型・API の依存
+                  - type: file
+                    name: service.py
+                    contents: WebJobQueue（ジョブの一覧とワーカースレッド）・accept_audio（受け付け）
+                  - type: file
+                    name: schemas.py
+                    contents: API のレスポンス
+                  - type: file
+                    name: route.py
+                    contents: POST /web/transcriptions・GET /web/transcriptions/{job_id}・GET /web/glossary-presets
+              - type: folder
+                name: outputs
+                contents: 未記載
+                children:
+                  - type: file
+                    name: __init__.py
+                    contents: deliver・OUTPUTS・PRESET_KINDS・is_callback_allowed の公開
+                  - type: file
+                    name: types.py
+                    contents: 出力先・プリセットの種類の関数型と定義、配線に引き渡すもの（OutputDeps）、送信する内容（pydantic）
+                  - type: file
+                    name: registry.py
+                    contents: OUTPUTS・PRESET_KINDS（出力先・プリセットの種類の一覧。追加するときはここに 1 行追加する）
+                  - type: file
+                    name: service.py
+                    contents: deliver（入口と確定の操作で出力先かプリセットを選んで呼ぶ）
+                  - type: folder
+                    name: paste_and_send
+                    contents: 未記載
+                    children:
+                      - type: file
+                        name: settings.py
+                        contents: PasteAndSendSettings（貼り付けて送信の設定のモデル）
+                      - type: file
+                        name: service.py
+                        contents: paste_and_send・inject_paste_and_send・read_enter_delay_sec・read_enter_modifiers
+                  - type: folder
+                    name: paste_only
+                    contents: 未記載
+                    children:
+                      - type: file
+                        name: settings.py
+                        contents: PasteOnlySettings
+                      - type: file
+                        name: service.py
+                        contents: paste_only・inject_paste_only
+                  - type: folder
+                    name: copy_only
+                    contents: 未記載
+                    children:
+                      - type: file
+                        name: settings.py
+                        contents: CopyOnlySettings
+                      - type: file
+                        name: service.py
+                        contents: copy_only・inject_copy_only
+                  - type: folder
+                    name: browser
+                    contents: 未記載
+                    children:
+                      - type: file
+                        name: service.py
+                        contents: send_to_browser（ブラウザ添付の種類のプリセット。Edge のアプリの画面）
+                  - type: folder
+                    name: endpoint
+                    contents: 未記載
+                    children:
+                      - type: file
+                        name: service.py
+                        contents: deliver_to_endpoint（エンドポイントへ送信の種類のプリセット）
+                  - type: folder
+                    name: callback
+                    contents: 未記載
+                    children:
+                      - type: file
+                        name: service.py
+                        contents: deliver_to_caller・is_callback_allowed・inject_callback・返送の決定値（呼び出し元へ返却する）
+              - type: folder
+                name: history
+                contents: 未記載
+                children:
+                  - type: file
+                    name: __init__.py
+                    contents: save_recording・store_web_audio・append_text・discard_temporary・purge_expired の公開
+                  - type: file
+                    name: service.py
+                    contents: 録音の保存・ブラウザの音声の保存・文字の追記・一時の音声の削除・古い履歴の削除
+          - type: file
+            name: __init__.py
+            contents: 未記載
+          - type: file
+            name: __main__.py
+            contents: python -m voice_paste で main() を呼ぶ
+          - type: file
+            name: main.py
+            contents: parse_args・build_handlers・build_ui_deps・apply_settings・start_local_session・main
+          - type: folder
+            name: runtime
+            contents: 未記載
+            children:
+              - type: file
+                name: single_instance.py
+                contents: instance_name と、Windows の名前付きのミューテックスと終了の依頼（名前付きのイベント）
+              - type: file
+                name: single_instance_linux.py
+                contents: Linux のロックファイル（flock）と終了の依頼（抽象名前空間の Unix ドメインソケット）
+              - type: file
+                name: settings_store.py
+                contents: SettingsStore（動いている間の今の設定）
+              - type: file
+                name: process.py
+                contents: relaunch（同じ引数で起動し直す）
+              - type: file
+                name: timer.py
+                contents: RepeatingTimer（上限での打ち切りを定期に呼ぶ）
+              - type: file
+                name: hotkey.py
+                contents: HotkeyListener（pynput の GlobalHotKeys を別のスレッドで動かす）
+              - type: file
+                name: hotkey_gnome.py
+                contents: GnomeShortcutListener（Wayland のセッション。設定のホットキーを GNOME のカスタムショートカットへ登録する）・to_gnome_accelerator・validate_gnome_hotkeys
+              - type: file
+                name: send_hotkey.py
+                contents: GNOME のカスタムショートカットが実行するコマンド。押されたホットキーを常駐サービスへ送信する
+          - type: folder
+            name: shared
+            contents: 未記載
+            children:
+              - type: file
+                name: yaml_document.py
+                contents: コメントを保った YAML の読み書き（ruamel.yaml）と、キーの追加・削除でのコメントの付け替え・レイヤーの重ね合わせ
+              - type: file
+                name: __init__.py
+                contents: 未記載
+              - type: file
+                name: settings.py
+                contents: 設定のモデル（pydantic）と出力先の設定の共通の親・設定のモデルの組み立て、3 レイヤーの読み込みと環境の値の書き戻し・settings.toml からの移行
+              - type: file
+                name: logger.py
+                contents: 標準の logging の設定。日付ごとのファイルと保持期間での削除
+              - type: file
+                name: errors.py
+                contents: 例外の階層
+              - type: file
+                name: constants.py
+                contents: アプリ名と配置先のパス（platformdirs）・リポジトリの直下の既定値と checkout の上書きのパス
+              - type: file
+                name: os_kind.py
+                contents: 動いている OS とデスクトップのセッションの判定と、OS ごとに使用できない機能（OS ごとの実装・既定値・機能を選ぶ唯一の場所）
+              - type: file
+                name: types.py
+                contents: feature の間を渡る型（入口・録音・文字起こしの結果・用語集の行）
   - type: folder
     name: haas_server
     contents: WSL の中で動かす Haas の文字起こしのサーバー。常駐アプリとは別の Python のプロジェクト

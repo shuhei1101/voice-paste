@@ -310,8 +310,6 @@ classes:
             mock: UiDeps の全関数
             expected: hotkey_capturing が True・False の順に emit される
         status: planned
-        introduced:
-          pr: 291
       - name: try_close
         title: 取り消し
         summary: 欄を変えていなければ閉じ、変えていれば confirm_discard で確認して捨てるなら閉じる。closeEvent・Esc・キャンセルが呼ぶ

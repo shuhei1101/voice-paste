@@ -183,5 +183,3 @@ functions:
     refs:
       - SCR-2#notes
     status: planned
-    introduced:
-      pr: 291

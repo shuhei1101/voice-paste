@@ -95,5 +95,3 @@ functions:
       1. list_glossary_presets で今の設定の選択肢を取得する
       2. presets・active を返却する（Host・Origin の守りは要求の守りのミドルウェアが `/web/` の下として持つ）
     status: planned
-    introduced:
-      pr: 180

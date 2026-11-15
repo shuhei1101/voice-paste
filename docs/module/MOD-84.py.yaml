@@ -1002,8 +1002,6 @@ functions:
     refs:
       - SC-8#
     status: planned
-    introduced:
-      pr: 291
   - name: build_ui_deps
     title: 画面の配線
     container: main.py

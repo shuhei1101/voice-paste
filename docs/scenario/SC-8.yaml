@@ -926,7 +926,6 @@ scenarios:
       設定画面が開いているとき: 設定画面を開いている間に押しても切り替える。設定画面の「補正に使うプリセット」の選択は保存するまで変えず、保存すると画面の選択で書き込む。
     test: test_normal_when_switch_glossary_preset_by_shortcut
 lead: ホットキー・トレイ・API のどれかから録音を始め、確定して履歴に残すか取り消すまでの単一ユースケース。
-issue: 14
 primary_actor: 音声入力を使用するユーザー
 trigger: 待機中に、ユーザーが録音開始のホットキーを押すかトレイのメニューから録音を始めるか、APIで録音を操作する が録音を始める
 preconditions:

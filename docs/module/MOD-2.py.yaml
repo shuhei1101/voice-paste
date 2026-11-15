@@ -4,11 +4,6 @@ title: 常駐アプリ / YAML の文書 / yaml_document.py
 lead: コメントを保った YAML の読み書き（ruamel.yaml）と、キーの追加・削除でのコメントの付け替え・レイヤーの重ね合わせを持つ。設定の読み書き（共通 の shared/settings.py）が使用する。
 test_files:
   - tests/unit/voice_paste/shared/test_yaml_document.py
-directory: |-
-  ```
-  src/voice_paste/shared/
-  └── yaml_document.py  # コメントを保った YAML の読み書き（ruamel.yaml）と、キーの追加・削除でのコメントの付け替え・レイヤーの重ね合わせ
-  ```
 functions:
   - name: make_yaml
     title: YAML の読み書きの準備

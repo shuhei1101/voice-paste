@@ -778,8 +778,6 @@ classes:
           4. 待ち行列へ ContinuousEnd(result) を追加し、True を返却する
              - `[INFO]` 連続録音を終えた（録音セッションの ID・終わった理由）
         status: planned
-        introduced:
-          pr: 78
       - name: _on_segment
         title: 区間の受け取り
         kind: メソッド
@@ -814,8 +812,6 @@ classes:
             mock: SessionDeps の全関数
             expected: save_recording・deliver が呼ばれない
         status: planned
-        introduced:
-          pr: 78
       - name: _run_segments
         title: 区間を起こして返す
         kind: メソッド
@@ -865,8 +861,6 @@ classes:
             mock: SessionDeps の全関数
             expected: deliver に segment_number=3 の区間が渡り、`[ERROR]` 区間を届けられなかったことがログに書き込まれ、連続録音は録音中のまま
         status: planned
-        introduced:
-          pr: 78
       - name: _process_segment
         title: 区間の処理
         kind: メソッド
@@ -899,8 +893,6 @@ classes:
                - `[ERROR]` 区間を届けられなかった（logger.exception）
           5. どの経路でも必ず（finally）、保存した区間が一時の音声なら削除する（一時の音声の削除）
         status: planned
-        introduced:
-          pr: 78
       - name: _on_continuous_failed
         title: 連続録音の失敗の受け取り
         kind: メソッド
@@ -928,8 +920,6 @@ classes:
             mock: SessionDeps の全関数
             expected: deliver に segment_number=1・2 の transcribed の後で result=failed・segment_number=None・segment_count=2・error=「VAD の失敗」が渡り、録音セッションが空になり、続く start が通る。同じ ID への complete は SessionNotFoundError
         status: planned
-        introduced:
-          pr: 78
       - name: switch_output
         title: 出力先の差し替え
         kind: メソッド
@@ -990,8 +980,6 @@ classes:
             mock: SessionDeps の全関数
             expected: 例外が出ず、recording の録音セッションの output_id が None のままで、notify に output_changed が渡らない
         status: planned
-        introduced:
-          pr: 108
     status: implemented
 constants:
   - name: CANCEL_THREAD_NAME

@@ -128,19 +128,16 @@ subsystems:
     role: ショートカットから起動する 1 つの常駐サービス。ホットキー・トレイ・API のどの入口からも同じ録音セッション（録音 → 文字起こし → 補正 → 出力先）を同時に 1 つだけ動かし、画面とトレイを出す（ローカルの文字起こしは文字起こしワーカーに任せる）
     runtime: Python 3.11
     runs_on: ユーザーの端末（Windows。Linux は Ubuntu 24.04 の Xorg のセッションと Wayland のセッション）
-    implementation: src/voice_paste/main.py
   - name: 文字起こしワーカー
     scope: transcription-worker
     role: 常駐アプリの子プロセスとしてローカルの Whisper のモデルを持ち、標準入出力の JSON Lines で受けた録音を文字に起こす
     runtime: Python 3.11
     runs_on: ユーザーの端末（Windows か Linux。常駐アプリが起動し、落ちたら再起動する）
-    implementation: src/voice_paste/integrations/whisper/worker.py
   - name: Haas の文字起こしのサーバー
     scope: haas-server
     role: WSL の中で Haas-ja-v1.0 のモデルを持ち、常駐アプリから HTTP で受けた音声を文字に起こす。設定のエンジンが haas のときに常駐アプリが起動し、終了・再起動で止める
     runtime: Python 3.11
     runs_on: ユーザーの端末の WSL2（Ubuntu・NVIDIA GPU。ネットワークは mirrored のモード）
-    implementation: haas_server/src/haas_server/main.py
 lead: voice-paste のサブシステムと、ユーザー・貼り付け先のアプリ・文字起こしのモデルの取得元との境界。
 external_systems:
   - name: Hugging Face Hub
@@ -183,8 +180,6 @@ external_systems:
     notes:
       事前確認: 常駐アプリはゲートウェイへ問い合わせない（受ける側のため）。公開の登録は反映作業『ゲートウェイへの登録』で行い、外の端末から `/web/` が画面を返却することで確認する。
     status: planned
-    introduced:
-      pr: 171
   - name: OpenAI API
     purpose: 設定のエンジンが openai のときに、録音とブラウザの音声を文字に起こす（文字起こしワーカーの代わり）
     direction: 双方向
@@ -196,8 +191,6 @@ external_systems:
       - NFR-1#requirements[OpenAIの文字起こしのタイムアウトと再送]
       - NFR-1#requirements[OpenAIの文字起こしの料金]
     status: planned
-    introduced:
-      pr: 204
   - name: Focused Window D-Bus（GNOME Shell の拡張）
     purpose: Linux の Wayland のセッションで、貼り付けのキーを送信する直前にフォーカスしているウィンドウの wm_class を読み込み、端末アプリかを見分ける
     direction: 双方向
@@ -206,8 +199,6 @@ external_systems:
     notes:
       事前確認: 不要。読み込めない（拡張が無い・無効）ときは設定の貼り付けのキーを送信し、貼り付けを止めない。
     status: planned
-    introduced:
-      pr: 238
   - name: Windows の電源要求の API
     purpose: 録音中に画面を暗くしない設定がオンのとき、録音の間だけ画面の消灯とアイドルによるスリープを抑止する
     direction: 送信のみ
@@ -216,8 +207,6 @@ external_systems:
     notes:
       事前確認: 不要。抑止できないときは警告をログに残して録音を続ける。
     status: planned
-    introduced:
-      pr: 292
   - name: gnome-session-inhibit
     purpose: Linux の GNOME のセッション（Xorg・Wayland）で、録音中に画面を暗くしない設定がオンのとき、録音の間だけアイドル（画面の消灯）を抑止する
     direction: 送信のみ
@@ -226,8 +215,6 @@ external_systems:
     notes:
       事前確認: 不要。起動できないとき・GNOME のセッションでないときは、警告をログに残して録音を続ける（GNOME のセッションでないことは、子プロセスが先に終わっていたことで録音を終えたときに検出する）。
     status: planned
-    introduced:
-      pr: 292
 constraints: |-
   - Windows で動かす（トレイ・ホットキー・クリップボード・キー入力・システムの音量を Windows の機能で扱う）
   - Linux（Ubuntu 24.04 の Xorg のセッションと Wayland のセッション）でも起動できる。OS で分かれる実装は配線で選び、Linux ではシステムの音量を変えず、ローカルの文字起こしの既定は CPU にする

@@ -61,8 +61,6 @@ data_models:
         type: Literal["silence", "max_length", "flush"]
         description: '区切った理由。silence: 話し声の後の無音、max_length: 区間の最大の長さ、flush: 録音を止めたときの残り'
     status: planned
-    introduced:
-      pr: 78
   - name: GlossaryEntry
     title: 用語集の行
     container: shared/types.py
@@ -104,8 +102,6 @@ data_models:
         type: int
         description: 音声の大きさ
     status: planned
-    introduced:
-      pr: 171
 enums:
   - name: Entry
     title: 入口
@@ -171,8 +167,6 @@ function_types:
       type: None
       description: なし
     status: planned
-    introduced:
-      pr: 78
   - name: OnContinuousFailedFn
     title: 連続録音の失敗の知らせ先
     container: shared/types.py
@@ -186,8 +180,6 @@ function_types:
       type: None
       description: なし
     status: planned
-    introduced:
-      pr: 78
   - name: SendEnterFn
     title: Enter の送信方法
     container: shared/types.py

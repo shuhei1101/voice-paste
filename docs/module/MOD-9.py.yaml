@@ -4,12 +4,6 @@ title: 常駐アプリ / 履歴 / service.py
 lead: 確定した録音と起こした文字を `%LOCALAPPDATA%\voice-paste\history\`（Linux は `~/.local/share/voice-paste/history/`）に残し、保持期間を過ぎたものを削除する。文字起こしの成否より先に録音を残す。
 test_files:
   - tests/unit/voice_paste/features/history/test_service.py
-directory: |-
-  ```
-  src/voice_paste/features/history/
-  ├── __init__.py   # save_recording・store_web_audio・append_text・discard_temporary・purge_expired の公開
-  └── service.py    # 録音の保存・ブラウザの音声の保存・文字の追記・一時の音声の削除・古い履歴の削除
-  ```
 functions:
   - name: save_recording
     title: 録音の保存

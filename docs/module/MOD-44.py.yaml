@@ -230,5 +230,3 @@ functions:
         mock: なし
         expected: フォルダが作られ、明暗で別のファイルに tokens.toml のそれぞれの text_muted の色を持つ SVG が書き込まれる
     status: implemented
-    introduced:
-      pr: 159

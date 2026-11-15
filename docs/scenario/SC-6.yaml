@@ -609,7 +609,6 @@ scenarios:
       裏に隠れているとき: 最小化せずにほかの窓の裏にあるときも、同じく最前面に出してフォーカスを移す。
     test: test_normal_when_raise_open_settings
 lead: トレイのメニューから設定画面を開き、変えた設定を設定のモデルで確認してから環境の値の `settings.yaml` に保存する単一ユースケース。
-issue: 21
 primary_actor: 音声入力を使用するユーザー
 trigger: トレイのメニューの「設定…」「用語集の設定…」「ショートカットの設定…」のどれかを選ぶ
 preconditions:

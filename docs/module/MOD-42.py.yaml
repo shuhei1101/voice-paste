@@ -168,8 +168,6 @@ classes:
             mock: gsettings を呼ぶ関数（呼ばれた引数を記録する）
             expected: True の後は custom-keybindings に常駐サービスのパスが無く、False の後は <Primary><Alt>d の登録が 1 つある
         status: planned
-        introduced:
-          pr: 291
     refs:
       - SC-5#
     status: planned

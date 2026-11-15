@@ -336,8 +336,6 @@ data_models:
           type: Any
           description: transcribing_show_hotkeys を入れたコピー
         status: removed
-        introduced:
-          pr: 131
   - name: ApiSettings
     title: API の設定
     container: shared/settings.py
@@ -546,8 +544,6 @@ data_models:
       - CFG-1#settings[api.continuous.min_silence_sec]
       - CFG-1#settings[api.continuous.session_limit_sec]
     status: planned
-    introduced:
-      pr: 78
   - name: GlossarySettings
     title: 用語集の設定
     container: shared/settings.py
@@ -680,8 +676,6 @@ data_models:
       - CFG-1#settings[glossary_presets[].name]
       - CFG-1#settings[glossary_presets[].glossaries]
     status: planned
-    introduced:
-      pr: 173
   - name: GlossaryPresetHotkeySettings
     title: 用語集のプリセットを切り替えるショートカットの設定
     container: shared/settings.py
@@ -700,8 +694,6 @@ data_models:
       - CFG-1#settings[glossary_preset_hotkeys[].hotkey]
       - CFG-1#settings[glossary_preset_hotkeys[].preset]
     status: planned
-    introduced:
-      pr: 291
   - name: OpenAISettings
     title: OpenAI API の設定
     container: shared/settings.py
@@ -724,8 +716,6 @@ data_models:
         default: https://api.openai.com/v1
         description: 送信先のベース URL。`pattern=URL_PATTERN`（http:// か https:// で始まる）。テストでは 127.0.0.1 のテスト用のエンドポイントへ向ける
     status: planned
-    introduced:
-      pr: 204
   - name: HaasSettings
     title: Haas の文字起こしのサーバーの設定
     container: shared/settings.py
@@ -882,8 +872,6 @@ constants:
     summary: 用語集のプリセットの名前の重なりで Settings の確認が出す `PydanticCustomError` の type。設定画面がエラーの文言を取得するのに使用する
     value: '"glossary_preset_name_overlap"'
     status: planned
-    introduced:
-      pr: 173
   - name: GLOSSARY_PRESETS_FIELD_NAME
     title: 用語集のプリセットの一覧のキー
     container: shared/settings.py
@@ -891,8 +879,6 @@ constants:
     summary: 設定のキー `glossary_presets`。設定画面が収集の値と失敗の場所を取得するのに使用する
     value: '"glossary_presets"'
     status: planned
-    introduced:
-      pr: 173
   - name: OS_DEFAULT_OVERRIDES
     title: OS ごとの既定値の上書き
     container: shared/settings.py
@@ -945,8 +931,6 @@ constants:
     summary: api.allowed_web_origins に `scheme://host[:port]` の形式でない行があるときの PydanticCustomError の type。設定画面の to_field_message がエラーの文に変える
     value: '"web_origin_form"'
     status: planned
-    introduced:
-      pr: 226
   - name: HAAS_DEVICE_PATTERN
     title: Haas の装置の形式
     container: shared/settings.py
@@ -1974,8 +1958,6 @@ functions:
     refs:
       - SCR-9#
     status: planned
-    introduced:
-      pr: 173
   - name: os_default
     title: OS ごとの既定値
     kind: 関数

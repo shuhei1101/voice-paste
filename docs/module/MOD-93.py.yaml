@@ -92,8 +92,6 @@ function_types:
     implementations:
       - target: 外部連携の StreamingVad
     status: planned
-    introduced:
-      pr: 78
   - name: CreateSpeechDetectorFn
     title: 話し声の判定を作る
     container: features/recording/types.py
@@ -105,5 +103,3 @@ function_types:
     implementations:
       - target: main.py が load_vad_session のセッションを部分適用した StreamingVad
     status: planned
-    introduced:
-      pr: 78

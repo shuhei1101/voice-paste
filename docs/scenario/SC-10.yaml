@@ -229,7 +229,6 @@ scenarios:
       - 続けて API の開始を呼ぶと、次の録音を始められる
     test: test_error_when_segment_callback_unreachable
 lead: 同じ端末のほかのプロセスが API で連続録音を始め、無音で区切った区間ごとに起こした文字を区切った順にコールバック先で受け取り、完了で終えるまでの複合ユースケース。
-issue: 43
 primary_actor: API を呼ぶほかのプロセス
 stakeholders:
   - name: API を呼ぶほかのプロセス

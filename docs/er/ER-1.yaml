@@ -52,8 +52,6 @@ tables:
         type: string
         description: 受け付けられたときの job_id。送信前・送信失敗は null
     status: planned
-    introduced:
-      pr: 171
   - name: localStorage voice-paste.results
     title: 結果
     datastore: JSON（localStorage）
@@ -97,8 +95,6 @@ tables:
         description: done のときの補正した文字。それ以外は null
         sensitivity: 個人情報
     status: planned
-    introduced:
-      pr: 171
   - name: localStorage voice-paste.glossary_preset
     title: 選んだ用語集のプリセット
     datastore: localStorage
@@ -118,8 +114,6 @@ tables:
     refs:
       - SCR-6#elements[用語集のプリセットの選択欄]
     status: planned
-    introduced:
-      pr: 180
   - name: localStorage voice-paste.keep_screen_on
     title: 録音中に画面を暗くしないか
     datastore: localStorage
@@ -139,7 +133,5 @@ tables:
     refs:
       - SCR-6#elements[画面を暗くしないかのチェック]
     status: planned
-    introduced:
-      pr: 292
 refs:
   - SCR-6#

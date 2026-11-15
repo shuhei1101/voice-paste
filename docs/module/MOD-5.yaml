@@ -2,35 +2,6 @@ id: MOD-5
 visibility: internal
 title: "常駐アプリ / ホットキーと画面"
 lead: 'グローバルのホットキーの受付（runtime/hotkey）と、PySide6 の画面とトレイ（ui）の入口としての境界。画面の構成・見た目・部品は [#21 画面・トレイ・ホットキーを新しい構成で作り直す](https://github.com/shuhei1101/voice-paste/issues/21) のデザインの工程で起こす。'
-directory: |-
-  ```
-  src/voice_paste/runtime/
-  ├── hotkey.py                     # HotkeyListener（pynput の GlobalHotKeys を別のスレッドで動かす）
-  ├── hotkey_gnome.py               # GnomeShortcutListener（Wayland のセッション。設定のホットキーを GNOME のカスタムショートカットへ登録する）・to_gnome_accelerator・validate_gnome_hotkeys
-  └── send_hotkey.py                # GNOME のカスタムショートカットが実行するコマンド。押されたホットキーを常駐サービスへ送信する
-  src/voice_paste/ui/
-  ├── bridge.py                     # UiBridge（ほかのスレッドからメインスレッドへの Signal）・notify・notify_copied・report_progress
-  ├── controller.py                 # UiController（通知を画面・トレイへ振り分ける）・UiDeps
-  ├── tray.py                       # Tray（アイコン・メニュー・通知）・TrayState
-  ├── placement.py                  # place_window（カーソルのあるモニターの設定の位置）
-  ├── style.py                      # build_stylesheet（tokens.toml から QSS を作る）・write_arrow_image（選択欄の開くマーカーの SVG）・is_dark_theme・resolve_dark・apply_theme・theme_color（画面の明暗）
-  ├── indicator_style.py            # IndicatorStyle（チェックボックス・ラジオボタンのマーカーを tokens.toml の色で描く）
-  └── windows/
-      ├── recording_window.py       # RecordingWindow
-      ├── transcribing_indicator.py # TranscribingIndicator
-      ├── window_parts.py           # HeadRow・GripIcon・HotkeyButton（録音の画面と文字起こし中の表示が使用する見出しの行・ドラッグのハンドル・名前の下にホットキーを出すボタン）
-      ├── busy_dialog.py            # show_busy_dialog
-      ├── settings_window.py        # SettingsWindow・confirm_discard・confirm_reset・PRESET_KIND_NAMES
-      ├── settings_fields.py        # make_radio_group・selected_radio など設定画面の欄の部品
-      ├── settings_presets.py       # PresetListPanel（設定画面の種類ごとのタブのプリセットの一覧）
-      ├── settings_glossaries.py    # GlossaryPanel（設定画面の用語集の一覧と行の表）・find_glossary_row_errors
-      ├── settings_hints.py         # HintPresetPanel（設定画面の表記のヒントの長さとプリセットの一覧）
-      └── settings_edge_phrases.py  # EdgePhrasePanel（設定画面のハルシネーションの文言の一覧）
-  resources/
-  └── tray_starting.png・tray_idle.png・tray_recording.png・tray_transcribing.png・tray_failed.png  # トレイのアイコン（状態ごと）
-  content/
-  └── tokens.toml                   # 色・書体・余白のトークン（デザイン方針）
-  ```
 notes:
   画面が触ってよいもの: |-
     ui は UiDeps の関数（配線された SessionManager のメソッド・音量・設定の読み書き・再起動と終了）と、共通の設定のモデルだけを呼ぶ。録音・文字起こし・出力先を直に呼ばない。

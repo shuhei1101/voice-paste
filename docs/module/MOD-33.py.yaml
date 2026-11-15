@@ -134,8 +134,6 @@ classes:
             mock: keyboard.GlobalHotKeys
             expected: 関数が 2 回目だけ 1 回呼ばれ、受付の stop が呼ばれない
         status: planned
-        introduced:
-          pr: 291
       - name: __init__
         title: 受付の用意
         summary: 受付はまだ始めない

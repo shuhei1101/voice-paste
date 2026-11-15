@@ -347,8 +347,6 @@ classes:
             mock: QSystemTrayIcon.showMessage
             expected: 見出し「用語集のプリセットを切り替えました」、本文「次の録音から「会議」で補正します。」、MessageIcon.Information で呼ばれ、押しても recopy_requested が emit されない
         status: planned
-        introduced:
-          pr: 291
         refs:
           - SCR-2#notes
       - name: _on_message_clicked

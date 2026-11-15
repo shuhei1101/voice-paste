@@ -57,8 +57,6 @@ elements:
     refs:
       - SCR-10#elements[見出しの行]
     status: planned
-    introduced:
-      pr: 108
   - name: 出力先の見出し
     id: output_heading
     kind: label
@@ -67,8 +65,6 @@ elements:
     label: 出力先
     visible_when: 常時
     status: planned
-    introduced:
-      pr: 108
   - name: 出力先の切り替えのボタン
     id: switch_button_{output_id}
     kind: button
@@ -87,8 +83,6 @@ elements:
       - CFG-1#settings[ui.transcribing_show_hotkeys]
       - SCR-10#elements[出力先の確定のボタン]
     status: planned
-    introduced:
-      pr: 108
   - name: プリセットの名前
     id: preset_label
     kind: label
@@ -101,8 +95,6 @@ elements:
     refs:
       - CFG-1#settings[presets[].title]
     status: planned
-    introduced:
-      pr: 108
 screen: src/voice_paste/ui/windows/transcribing_indicator.py
 mock: docs/mock/pages/transcribing-indicator/108/c-both/
 lead: 確定から届けるまで、録音の画面と同じ位置に出る小さな表示。文字起こしの経過と残りの時間、今の出力先を出し、固定の出力先への切り替えを受ける。

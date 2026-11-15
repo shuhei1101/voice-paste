@@ -152,7 +152,6 @@ tables:
         enum_values: "'1' = オン / '0' = オフ"
         example: '1'
     status: implemented
-    implementation: src/voice_paste/features/correction/service.py
     refs:
       - CFG-1#settings[glossaries[].path]
   - name: '%LOCALAPPDATA%\voice-paste\ui\{ハッシュ}.svg'
@@ -172,8 +171,6 @@ tables:
         type: string
         description: text_muted の色の線で描いた V 字の SVG
     status: implemented
-    introduced:
-      pr: 159
   - name: '%LOCALAPPDATA%\voice-paste\history\{YYYYMMDD}\{YYYYMMDDHHMMSS}_web_{job_id}.{webm|ogg|mp4|mp3|wav}'
     title: ブラウザの音声の履歴
     datastore: ファイル（録れた形式の音声）
@@ -192,8 +189,6 @@ tables:
         description: 録れた形式のままの音声（WAV へ変えない）
     description: 起こした文字は同じ名前の `.txt`（起こした文字の履歴）に書き込む。日時は履歴へ移した時刻。
     status: planned
-    introduced:
-      pr: 171
   - name: '%LOCALAPPDATA%\voice-paste\tmp\web\{job_id}.{webm|ogg|mp4|mp3|wav}'
     title: ブラウザの音声の一時のファイル
     datastore: ファイル（録れた形式の音声）
@@ -208,8 +203,6 @@ tables:
         type: array
         description: 受けた本文の audio の中身そのまま
     status: planned
-    introduced:
-      pr: 171
   - name: '%LOCALAPPDATA%\voice-paste\instance.lock'
     title: Linux の単一インスタンスのロックファイル
     datastore: ファイル
@@ -228,7 +221,6 @@ tables:
         description: 空のファイル。flock の対象にするだけ
     refs:
       - MOD-88#functions[acquire_single_instance_linux]
-    implementation: src/voice_paste/runtime/single_instance_linux.py
     status: planned
   - name: ~/.local/state/voice-paste/haas_server.log
     title: Haas の文字起こしのサーバーのログ
@@ -244,7 +236,6 @@ tables:
     scale: 1 MB を 3 世代（RotatingFileHandler）
     retention: 世代を超えた分を削除する
     deletion: RotatingFileHandler が古い世代を削除する。常駐アプリの保持期間の削除の対象にしない
-    implementation: haas_server/src/haas_server/main.py
     refs:
       - MOD-101#functions[main]
     status: planned

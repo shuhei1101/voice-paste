@@ -233,8 +233,6 @@ classes:
       - NFR-1#requirements[区間の最大の長さ]
       - LIB-11#
     status: planned
-    introduced:
-      pr: 78
 constants:
   - name: VAD_WINDOW
     title: 判定の窓のサンプル数
@@ -243,8 +241,6 @@ constants:
     summary: 話し声の判定に 1 回で引き渡すサンプル数（16 kHz で 32 ms。Silero VAD が受ける窓の大きさ）
     value: '512'
     status: planned
-    introduced:
-      pr: 78
   - name: SPEECH_THRESHOLD
     title: 話し声の閾値
     container: features/recording/segmenter.py
@@ -252,8 +248,6 @@ constants:
     summary: 話し声と判定する確率（faster-whisper の VadOptions の既定と同じ）
     value: '0.5'
     status: planned
-    introduced:
-      pr: 78
   - name: NEG_THRESHOLD
     title: 無音の閾値
     container: features/recording/segmenter.py
@@ -261,8 +255,6 @@ constants:
     summary: 話し声の終わり（無音の候補）と判定する確率（SPEECH_THRESHOLD − 0.15。faster-whisper の既定の決め方と同じ）
     value: '0.35'
     status: planned
-    introduced:
-      pr: 78
   - name: SHORT_SILENCE_SEC
     title: 短い無音の長さ
     container: features/recording/segmenter.py
@@ -270,8 +262,6 @@ constants:
     summary: 最大の長さで区切るときに区切りの候補にする無音の長さ（秒。faster-whisper の get_speech_timestamps の最大の長さの区切りと同じ）
     value: '0.098'
     status: planned
-    introduced:
-      pr: 78
   - name: SEGMENT_PAD_SEC
     title: 区間の余白
     container: features/recording/segmenter.py
@@ -279,8 +269,6 @@ constants:
     summary: '話し声の前後に残す余白（秒。言葉の頭と尾を切らないため。PoC [#80 PoC: 録音を止めずに Silero VAD で区切り、区間ごとの文字起こしが追いつくかを確かめる](https://github.com/shuhei1101/voice-paste/issues/80) と同じ）'
     value: '0.3'
     status: planned
-    introduced:
-      pr: 78
   - name: MAX_SEGMENT_SEC
     title: 区間の最大の長さ
     container: features/recording/segmenter.py
@@ -290,8 +278,6 @@ constants:
     refs:
       - NFR-1#requirements[区間の最大の長さ]
     status: planned
-    introduced:
-      pr: 78
   - name: INT16_SCALE
     title: int16 を float にする除数
     container: features/recording/segmenter.py
@@ -299,5 +285,3 @@ constants:
     summary: 入力の int16 の音を話し声の判定が受ける -1.0〜1.0 の float32 にする除数
     value: '32768.0'
     status: planned
-    introduced:
-      pr: 78

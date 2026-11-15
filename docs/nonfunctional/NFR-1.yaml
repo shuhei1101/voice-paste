@@ -343,8 +343,6 @@ requirements:
         expected: 終わりの返送が上限時間（3 秒）以上、上限時間 + 確認する間隔（1 秒）+ 区切ってから返送が届くまでの時間の決定値（4 秒）以内に届いて result=truncated・segment_count=1 で、その前に segment_number=1 の返送が届いている。続けて呼んだ開始が 202 になる
         notes: --run-e2e が無い環境では skip する
     status: planned
-    introduced:
-      pr: 78
   - id: NFR-18
     name: 区間の最大の長さ
     english_name: max_segment_length
@@ -366,8 +364,6 @@ requirements:
         expected: 区間が 2 つ以上あり、どの区間の長さも 20.3 秒（決定値 + 前の余白 0.3 秒）以下
         notes: Windows と Linux（Ubuntu 24.04 の Xorg）の両方で実行する
     status: planned
-    introduced:
-      pr: 78
   - id: NFR-19
     name: 区切ってから返送が届くまでの時間
     english_name: segment_callback_latency
@@ -400,8 +396,6 @@ requirements:
         expected: 全ての区間で 4 秒以下
         notes: 最初の区間はワーカーの温まりで遅れるため、測る前に別の連続録音で 1 区間を起こして温める。完了で閉じた最後の区間は、完了を呼んだ時点から測る。--run-e2e が無い環境・GPU が無い環境（Linux を含む）では skip する
     status: planned
-    introduced:
-      pr: 78
   - id: NFR-20
     name: ブラウザの要求の応答時間
     english_name: web_response_time
@@ -438,8 +432,6 @@ requirements:
         measurement: 送信を始めてから 202 を受けるまでの時間（秒）
         expected: 5 回とも 202 で、最大が 66 秒以内
     status: planned
-    introduced:
-      pr: 171
   - id: NFR-21
     name: ブラウザの本文の上限
     english_name: web_body_limit
@@ -465,8 +457,6 @@ requirements:
         measurement: 応答のステータスと、一時のフォルダのファイルの数
         expected: どちらも 413 で、一時のファイルが残っていない
     status: planned
-    introduced:
-      pr: 171
   - id: NFR-22
     name: 画面の録音の上限時間
     english_name: web_recording_limit
@@ -480,8 +470,6 @@ requirements:
     overflow: 画面が録音を止め、そこまでの音声を端末に残して送信する（ブラウザから音声を送信する の上限のシナリオ）
     measurement: E2E（ブラウザから音声を送信する の上限のシナリオ）で、画面の時計を進めて確認する
     status: planned
-    introduced:
-      pr: 171
   - id: NFR-23
     name: 画面の録音のビットレート
     english_name: web_recording_bitrate
@@ -494,8 +482,6 @@ requirements:
     rationale: 'Issue [#92 外の端末のブラウザから音声を送って文字に起こす画面とエンドポイントを足す](https://github.com/shuhei1101/voice-paste/issues/92) の要望の値。実際のビットレートはブラウザが決め、PR [#171 外の端末のブラウザから音声を送って文字に起こす画面とエンドポイントを追加する](https://github.com/shuhei1101/voice-paste/issues/171) の PoC で Edge の AAC は約 100 kbps になった（2026-10-23）。どのブラウザでも、画面の録音の上限時間の録音が本文の上限に収まればよい'
     measurement: 実機の iPhone の Safari・iPad・Edge で 30 分録り、音声の大きさがブラウザの本文の上限未満であることを確認する
     status: planned
-    introduced:
-      pr: 171
   - id: NFR-24
     name: ブラウザの音声の待ちの上限
     english_name: web_queue_limit
@@ -515,8 +501,6 @@ requirements:
         measurement: 各回の応答のステータスと、一時のフォルダのファイルの数
         expected: 1〜10 回目が 202、11 回目が 503 で、一時のファイルが 10 個。エンジンを放して 1 件終わると、次の受け付けが 202 になる
     status: planned
-    introduced:
-      pr: 171
   - id: NFR-25
     name: 終わったジョブを持つ件数
     english_name: web_finished_jobs_kept
@@ -536,8 +520,6 @@ requirements:
         measurement: 1 件目・2 件目・101 件目の結果の取得のステータス
         expected: 1 件目が 404、2 件目と 101 件目が 200 で state が done
     status: planned
-    introduced:
-      pr: 171
   - id: NFR-26
     name: ホットキーの受付の終わりを待つ時間
     english_name: hotkey_stop_timeout
@@ -589,8 +571,6 @@ requirements:
     refs:
       - API-2#
     status: planned
-    introduced:
-      pr: 204
     test_file: tests/nfr/test_openai_transcription_retry.py
   - id: NFR-28
     name: OpenAIへ送信する音声の上限
@@ -612,8 +592,6 @@ requirements:
     refs:
       - API-2#
     status: planned
-    introduced:
-      pr: 204
     breakdown:
       - part: 外部の上限
         value: 26,214,400 バイト
@@ -637,8 +615,6 @@ requirements:
     refs:
       - API-2#
     status: planned
-    introduced:
-      pr: 204
   - id: NFR-30
     name: Haasの動作環境
     english_name: haas_environment

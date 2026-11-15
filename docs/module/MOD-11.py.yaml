@@ -4,12 +4,6 @@ title: 常駐アプリ / 補正 / service.py
 lead: 用語集の CSV を読み書きし、補正に使用する用語集の誤変換を正しい表記へ置き換える。決まった入力に決まった出力を返却し、特性テストの基準になる。
 test_files:
   - tests/unit/voice_paste/features/correction/test_service.py
-directory: |-
-  ```
-  src/voice_paste/features/correction/
-  ├── __init__.py   # load_glossary・read_glossary_rows・save_glossary・apply_glossary・resolve_glossaries・resolve_glossary_presets・pick_glossary_preset・list_preset_glossaries・next_glossary_path・strip_edge_phrases の公開
-  └── service.py    # 用語集の一覧の解決、CSV の読み書き、置き換え、文頭・文末の文言の削除
-  ```
 constants:
   - name: DEFAULT_GLOSSARY_FILE_NAME
     title: 既定の用語集のファイル名
@@ -31,8 +25,6 @@ constants:
     summary: '`glossary_presets` のキーが無い・空の設定で、resolve_glossary_presets が作る 1 つだけのプリセットの名前'
     value: '"既定"'
     status: planned
-    introduced:
-      pr: 173
 functions:
   - name: load_glossary
     title: 用語集の読み込み
@@ -542,8 +534,6 @@ functions:
       - CFG-1#settings[glossary_presets[].name]
       - CFG-1#settings[glossary_presets[].glossaries]
     status: planned
-    introduced:
-      pr: 173
   - name: pick_glossary_preset
     title: 補正に使う用語集のプリセットの選択
     container: features/correction/service.py
@@ -614,8 +604,6 @@ functions:
       - CFG-1#settings[active_glossary_preset]
       - IF-10#request[glossary_preset]
     status: planned
-    introduced:
-      pr: 173
   - name: list_preset_glossaries
     title: 用語集のプリセットの用語集
     container: features/correction/service.py
@@ -652,5 +640,3 @@ functions:
         mock: なし
         expected: '[] が返る'
     status: planned
-    introduced:
-      pr: 173

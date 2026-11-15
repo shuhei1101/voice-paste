@@ -56,5 +56,3 @@ data_models:
         type: str
         description: 設定で選んでいるプリセットの名前
     status: planned
-    introduced:
-      pr: 180

@@ -162,7 +162,6 @@ scenarios:
       - 設定で選んでいるプリセットが 1 つ目のまま変わっていない
     test: test_normal_when_glossary_preset
 lead: 同じ端末のほかのプロセスが API で録音を開始・停止・完了し、指定したエンドポイントで起こした文字を受け取るまでの複合ユースケース。
-issue: 14
 primary_actor: API を呼ぶほかのプロセス
 stakeholders:
   - name: API を呼ぶほかのプロセス

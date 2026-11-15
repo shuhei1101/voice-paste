@@ -434,8 +434,6 @@ classes:
             mock: UiDeps の全関数・Tray
             expected: Tray.show_glossary_preset_switched が呼ばれない
         status: planned
-        introduced:
-          pr: 291
       - name: hide_recording
         title: 録音の画面を隠す
         summary: RecordingWindow.hide_requested のスロット。その回の録音の画面を隠し、トレイの「録音の画面を表示」を押せるようにする

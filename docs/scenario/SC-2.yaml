@@ -172,7 +172,6 @@ scenarios:
       - 新しい常駐アプリが待機中になり、設定画面で変えた値は `settings.yaml` に保存されていない
     test: test_normal_when_restart_with_unsaved_settings
 lead: トレイのアイコンのメニューから、フォルダを開く・再起動する・終了する単一ユースケース。
-issue: 21
 primary_actor: 音声入力を使用するユーザー
 trigger: トレイの voice-paste のアイコンを右クリックしてメニューを開く
 preconditions:

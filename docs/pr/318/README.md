@@ -1,0 +1,1 @@
+# テスト実行方法の層ごとに実行場所を決め、runner の層を GitHub Actions の workflow で回す

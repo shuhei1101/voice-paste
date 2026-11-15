@@ -1,0 +1,4 @@
+$ python 実行.py --dry-run
+前提確認: failed
+dev-docs.yaml がスキーマのコピーを指している（反映作業『各プロジェクトのスキーマの参照への移行』の前）
+exit: 1

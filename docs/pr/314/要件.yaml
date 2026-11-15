@@ -32,5 +32,5 @@ scope_out:
     reason: AI Monitor の配布物の不具合で、配布元の shuhei1101/ai-monitor#3473 で直す
     plan: '#3473'
   - item: シナリオの `test_file`（tests/e2e/ を指す 12 件）の参照先が無い設計書の検査の違反
-    reason: '#276 で E2E を作り直すときのマーカーとして残した参照で、base ブランチにもある。検証の側の修正は AI Monitor の shuhei1101/ai-monitor#3330 で行う'
-    plan: '#3330'
+    reason: '#276 で E2E を作り直すときのマーカーとして残した参照で、base ブランチにもある。検証の側の修正は AI Monitor の shuhei1101/ai-monitor#3329 で行う'
+    plan: '#3329'

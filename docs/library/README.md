@@ -4,7 +4,7 @@
 
 ## 目次
 
-<!-- table: data -->
+<!-- table: {"kind": "data"} -->
 
 | ページ | 概要 |
 | --- | --- |
@@ -45,5 +45,6 @@
 | [astral-sh/setup-uv](./LIB-35.yaml) | GitHub Actions のジョブに uv を入れる |
 | [actions/upload-artifact](./LIB-36.yaml) | GitHub Actions のジョブのテストのログを成果物に上げる |
 | [actionlint](./LIB-37.yaml) | lint で GitHub Actions の workflow のファイルを検査する |
+| [pytest-timeout](./LIB-38.yaml) | ランナーでの全件実行で、テスト 1 件の上限の時間を設ける |
 
 <!-- /table -->

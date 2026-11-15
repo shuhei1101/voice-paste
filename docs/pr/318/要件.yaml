@@ -1,7 +1,7 @@
 docs:
   - page: docs/test-procedure/TP-1.yaml
     new: false
-    change: 層ごとの location と runner の層の run_runner を記載し、lint の層の全件実行に actionlint を加える
+    change: 層ごとの location と runner の層の run_runner を記載し、lint の層の全件実行に actionlint を加え、workflow のテストの E2E テストの層（tests/e2e/workflow/、local）を追加する
     status: todo
   - page: docs/architecture/ARCH-1.yaml
     new: false
@@ -11,7 +11,7 @@ docs:
     updated_at: '2026-11-15T05:57:58.605750+00:00'
   - page: docs/layout/LAY-1.yaml
     new: false
-    change: .github/workflows/ のエントリを追加する
+    change: .github/workflows/ と tests/e2e/workflow/ のエントリを追加する
     status: todo
 scope_out:
   - item: スキーマのコピー（schemas/test-procedure.schema.yaml・schemas/interface.schema.yaml）の更新

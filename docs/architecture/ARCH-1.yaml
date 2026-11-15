@@ -231,6 +231,14 @@ external_systems:
     notes:
       事前確認: 不要。起動できないとき・GNOME のセッションでないときは、警告をログに残して録音を続ける（GNOME のセッションでないことは、子プロセスが先に終わっていたことで録音を終えたときに検出する）。
     status: planned
+  - name: GitHub Actions
+    purpose: テスト実行方法の実行場所が `runner` の層の全件を、ランナーで回す workflow の実行
+    direction: 双方向
+    protocol: HTTPS（`gh workflow run` で `workflow_dispatch` を起動し、`gh run download` で成果物のログを取得する）
+    detail: IF-15#
+    cost: 無料（公開リポジトリの標準のランナー `windows-latest`）
+    notes:
+      事前確認: '`run_runner` を起動する前に `gh auth status` で認証を確認する。ランナーで回せないとき（障害・無料枠の使い切り）は手元の全件実行で回す。'
 constraints: |-
   - Windows で動かす（トレイ・ホットキー・クリップボード・キー入力・システムの音量を Windows の機能で扱う）
   - Linux（Ubuntu 24.04 の Xorg のセッションと Wayland のセッション）でも起動できる。OS で分かれる実装は配線で選び、Linux ではシステムの音量を変えず、ローカルの文字起こしの既定は CPU にする

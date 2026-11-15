@@ -139,6 +139,25 @@ layers:
       ```
     results: '`uv lock --check` は食い違いがあれば差分を出して終了コード 1。`lint-imports` は契約ごとの KEPT / BROKEN と、破った import の行を標準出力に出す（破れていれば終了コード 1）。`npm run typecheck`・`npm run lint` は違反の行を出して終了コード 1。`git diff --exit-code` はコミットした `app.js` が再生成したものと違えば差分を出して終了コード 1'
     location: local
+  - id: TL-6
+    name: E2E テスト
+    run_all: |-
+      ```bash
+      .venv/Scripts/python.exe -m pytest tests/e2e/workflow --run-e2e
+      ```
+    description: pytest から `gh` で本物の GitHub Actions の workflow を起動し、インターフェース定義の workflow のフローを確認する。`tests/e2e/workflow/` は workflow のインターフェース定義ごとのファイルを配置する。
+    prerequisites:
+      - '`gh auth status` で、voice-paste のリポジトリへ push と workflow の起動ができる認証になっている'
+      - 検証用のブランチを本物のリポジトリへ push し、GitHub Actions の実行を起動する（公開リポジトリの標準のランナーのため費用は無い）。ブランチはテストの終わりに削除する
+      - '`workflow_dispatch` は develop にある workflow だけを起動できるため、workflow が develop へ入った後に回す'
+      - '`--run-e2e` を付けたときだけ走る（付けなければ skip する）'
+    run_one:
+      label: ファイル
+      command: |-
+        ```bash
+        .venv/Scripts/python.exe -m pytest {E2E テストファイルパス} --run-e2e
+        ```
+    location: local
 prerequisites:
   - リポジトリの直下で Windows の uv（WSL からは `uv.exe`）の `uv sync --frozen --extra local-whisper` を実行し、`.venv/` に環境を作る（`uv.lock` のバージョンで入る。pytest と import-linter と pywin32 は pyproject.toml の `[dependency-groups]` の dev から入る。`local-whisper` の extra は非機能要件テストがローカルの Whisper で起こすために含める。単体テストと結合テストは extra を含めない `uv sync --frozen` で作った環境でも通る）
   - 実機のテスト（非機能要件テスト）が起こす常駐アプリは、`tests/conftest.py` の `QT_QPA_PLATFORM=offscreen` のまま起動し、実機の画面に出さない（別プロセスで起動するもの・再起動で起動するものも同じ）

@@ -11,6 +11,7 @@ entry:
   kind: trigger
   value: '`.github/workflows/test.yml`（手動の起動 `workflow_dispatch`。起動を絞る条件は無い）'
 lead: 指定された層のテストの全件をランナーで実行し、ログを成果物に上げる。
+test_file: tests/e2e/workflow/test_test_yml.py
 idempotent: true
 read_only: true
 permissions: '`contents: read`'
@@ -27,12 +28,12 @@ constraints:
   - item: ランナー
     constraint: '`windows-latest`'
     notes: 手元の全件実行と同じ Windows で回し、OS で skip するテストを手元と一致させる
-  - item: 無出力の時間
-    constraint: step「層の全件を回す」で、`test.log` の大きさが変わらない時間が上限を超えたら pytest を止めて失敗で終える。上限は `unit` は 190 秒、`integration` は 110 秒
-    notes: 手元で測った出力の間隔の最長（`unit` 19 秒・`integration` 11 秒）の 10 倍
+  - item: テスト 1 件の上限の時間
+    constraint: pytest-timeout の `--timeout` で、テスト 1 件が上限を超えたらそのテストを止めて失敗にする。上限は `unit` は 190 秒、`integration` は 110 秒
+    notes: 手元で測った出力の間隔の最長（`-v` の 1 件ごとの行の間隔。`unit` 19 秒・`integration` 11 秒）の 10 倍
   - item: タイムアウト
     constraint: ジョブの `timeout-minutes` を、`unit` は 82 分、`integration` は 26 分にする
-    notes: 無出力の時間の外側の止め役。手元の全件実行の実測（`unit` 488 秒・`integration` 154 秒）の 10 倍を分に切り上げた値で、GitHub Actions の 1 ジョブの上限（360 分）より短い
+    notes: テスト 1 件の上限の時間の外側の止め役（収集の段のハングも止める）。手元の全件実行の実測（`unit` 488 秒・`integration` 154 秒）の 10 倍を分に切り上げた値で、GitHub Actions の 1 ジョブの上限（360 分）より短い
   - item: 除くテスト
     constraint: 制限なし
     notes: 単体テスト（バック）・結合テスト（バック）に、手元でしか用意できないものを使用するテストは無い
@@ -59,11 +60,12 @@ overall_flow: |-
 flows:
   - name: 正常系
     summary: 単体テストの層の全件が pass して成功で終わる
+    test: test_normal
     setup:
       - name: Mock
         description: なし（本物の GitHub Actions で回す）
       - name: ブランチ
-        description: 単体テストの全件が pass するブランチ
+        description: '`tests/unit/` の中身を pass するテスト 1 件だけに差し替えたブランチ'
         notes: '`layer: unit`'
     flow: |-
       <!-- map -->
@@ -79,14 +81,14 @@ flows:
     expected:
       - 実行の結論が `success`
       - 成果物 `test-log` があり、pytest の集計の行を持つ
-      - pytest の集計の行の skipped の件数が、同じ commit を手元の全件実行で回したときと同じ
   - name: 正常系（結合テストの層）
     summary: 結合テストの層の全件が pass して成功で終わる
+    test: test_normal_when_integration
     setup:
       - name: Mock
         description: なし（本物の GitHub Actions で回す）
       - name: ブランチ
-        description: 結合テストの全件が pass するブランチ
+        description: '`tests/integration/` の中身を pass するテスト 1 件だけに差し替えたブランチ'
         notes: '`layer: integration`'
     flow: |-
       <!-- map -->
@@ -102,14 +104,14 @@ flows:
     expected:
       - 実行の結論が `success`
       - 成果物 `test-log` があり、pytest の集計の行を持つ
-      - pytest の集計の行の skipped の件数が、同じ commit を手元の全件実行で回したときと同じ
   - name: 異常系（テストの fail・failure）
     summary: 層の全件に fail があり、ログを上げて失敗で終わる
+    test: test_error_when_test_fails
     setup:
       - name: Mock
         description: なし（本物の GitHub Actions で回す）
       - name: ブランチ
-        description: 単体テストに fail するテストがあるブランチ
+        description: '`tests/unit/` の中身を必ず fail するテスト 1 件だけに差し替えたブランチ'
         notes: '`layer: unit`'
     flow: |-
       <!-- map -->
@@ -125,13 +127,14 @@ flows:
     expected:
       - 実行の結論が `failure`
       - 成果物 `test-log` があり、fail したテストと pytest の集計の行を持つ
-  - name: 異常系（無出力の時間を超えた・failure）
-    summary: pytest の出力が上限の時間変わらず、pytest を止めてログを上げて失敗で終わる
+  - name: 異常系（テストが上限の時間を超えた・failure）
+    summary: テスト 1 件が上限の時間を超えて止められ、ログを上げて失敗で終わる
+    test: test_error_when_test_times_out
     setup:
       - name: Mock
         description: なし（本物の GitHub Actions で回す）
       - name: ブランチ
-        description: 単体テストに、上限の時間より長く出力せずに止まるテストがあるブランチ
+        description: '`tests/unit/` の中身を、上限の時間より長く `time.sleep` するテスト 1 件だけに差し替えたブランチ'
         notes: '`layer: unit`'
     flow: |-
       <!-- map -->
@@ -146,9 +149,10 @@ flows:
       <!-- /map -->
     expected:
       - 実行の結論が `failure`
-      - 成果物 `test-log` があり、pytest を止めた旨の行を持つ
+      - 成果物 `test-log` があり、pytest-timeout が止めた旨（`Timeout`）の行を持つ
   - name: 異常系（道具の導入に失敗・failure）
     summary: Python の依存の導入に失敗し、層の全件を回さずにログを上げて失敗で終わる
+    test: test_error_when_setup_fails
     setup:
       - name: Mock
         description: なし（本物の GitHub Actions で回す）
@@ -174,6 +178,7 @@ refs:
   - LIB-34#
   - LIB-35#
   - LIB-36#
+  - LIB-38#
 notes:
   step ごとの中身: |-
     | step | 中身 |
@@ -181,16 +186,16 @@ notes:
     | ブランチを取得する | `actions/checkout` で起動したブランチを取得する |
     | uv を入れる | `astral-sh/setup-uv` で uv を入れる |
     | Python の依存を入れる | `uv sync --frozen` で依存を入れる（Python のバージョンは `.python-version` から uv が入れる） |
-    | 層の全件を回す | `shell: bash`（Windows のランナーの Git Bash）で、`PYTHONUNBUFFERED=1 uv run pytest {層のフォルダ} -v -p no:cacheprovider` を裏で起動して出力を `test.log` に記載し、`test.log` の大きさを 10 秒ごとに確認する。無出力の時間の上限を超えたら pytest のプロセスの木を `taskkill /T /F` で止め、止めた旨を `test.log` に記載して失敗で終える。止めなかったときは pytest の終了コードを step の成否にする |
+    | 層の全件を回す | `shell: bash`（Windows のランナーの Git Bash）で `uv run pytest {層のフォルダ} -v -p no:cacheprovider --timeout={テスト 1 件の上限の時間} > test.log 2>&1` を実行し、pytest の終了コードを step の成否にする |
     | ログを成果物に上げる | `if: always()` で `actions/upload-artifact` により `test.log` を成果物 `test-log` に上げる |
   タイムアウトの決め方: |-
-    判定フローチャート『タイムアウトの決め方』では、自分の処理の完了を待つだけで進み具合の出力（pytest の `-v` のテスト 1 件ごとの行）があるため、無出力の時間で止まったことを検知する（制約の「無出力の時間」）。
-    ジョブの `timeout-minutes` は、無出力の時間の外側の止め役として、実測の 10 倍で決める。
+    判定フローチャート『タイムアウトの決め方』では、自分の処理の完了を待つだけで進み具合の出力（pytest の `-v` のテスト 1 件ごとの行）があるため、無出力の時間で止まったことを検知する。
+    `-v` の出力はテスト 1 件ごとの行のため、無出力の時間をテスト 1 件の上限の時間として pytest-timeout で止める（制約の「テスト 1 件の上限の時間」）。
+    ジョブの `timeout-minutes` は、その外側の止め役として、実測の 10 倍で決める。
 
     | 実測 | ログ |
     | --- | --- |
     | `unit` の全件 488 秒・出力の間隔の最長 19 秒（937 passed・57 skipped） | `docs/pr/318/テスト結果/20261115143850_7b48ebf_単体テスト.log` |
     | `integration` の全件 154 秒・出力の間隔の最長 11 秒（807 passed・1 skipped） | `docs/pr/318/テスト結果/20261115144721_7b48ebf_結合テスト.log` |
   フローの確認方法: |-
-    `workflow_dispatch` は既定のブランチ develop にある workflow だけを起動できるため、この workflow を作る作業 PR の中では起動できない。
-    develop へ入った後の最初の作業 PR のランナーでの全件実行で、正常系 2 つを確認し、skipped の件数を手元の全件実行と比べる。
+    `workflow_dispatch` は既定のブランチ develop にある workflow だけを起動できるため、対応テストファイルのテストは、この workflow が develop へ入った後に回す。

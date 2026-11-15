@@ -65,8 +65,10 @@ tasks:
     updated_by: planner
     updated_at: '2026-11-15T04:39:25.454870+00:00'
   - process: ドキュメント修正
-    status: todo
-    note: テスト実行方法の location・run_runner・lint の actionlint、アーキテクチャ図、フォルダ構成
+    status: done
+    note: フォルダ構成（LAY-1）の .github/workflows/。テスト実行方法の run_runner・actionlint は実装で記載する
+    updated_by: planner
+    updated_at: '2026-11-15T06:24:17.748772+00:00'
   - process: 単体テスト作成
     status: skipped
     reason: モジュール構成設計を通さず、単体テストの対象になるコードを追加しない

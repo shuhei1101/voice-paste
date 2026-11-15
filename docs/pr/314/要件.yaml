@@ -20,11 +20,15 @@ docs:
   - page: docs/er/ER-1.yaml
     new: false
     change: '`tables[].source` と `columns[].source` でデータの設計書を指す（反映作業『配布先のデータの設計書の作成』）'
-    status: todo
+    status: done
+    updated_by: planner
+    updated_at: '2026-11-15T01:44:07.642962+00:00'
   - page: docs/er/ER-2.yaml
     new: false
     change: '`tables[].source` と `columns[].source` でデータの設計書を指す（反映作業『配布先のデータの設計書の作成』）'
-    status: todo
+    status: done
+    updated_by: planner
+    updated_at: '2026-11-15T01:44:07.642962+00:00'
 scope_out:
   - item: YAML の設計書と files.yml の行へのタグ・エイリアス・description の付与
     reason: この追従でスキーマを参照へ移した後に行う別の要望

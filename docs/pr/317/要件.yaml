@@ -1,0 +1,11 @@
+use_cases: []
+docs:
+  - page: docs/mock/files.yml
+    new: false
+    change: pages/settings/288/index.md・refs/288/index.md の 2 行に tags を記載する
+    status: todo
+  - page: docs/_root/files.yml
+    new: false
+    change: ../index.md・../design-policy.md の 2 行に description と tags を記載する
+    status: todo
+scope_out: []

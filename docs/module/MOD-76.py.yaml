@@ -11,8 +11,6 @@ constants:
     summary: read_openai_api_key が秘匿のファイルより先に読み込む環境変数の名前（OpenAI の公式 SDK と同じ名前）
     value: '"OPENAI_API_KEY"'
     status: planned
-    introduced:
-      pr: 204
 functions:
   - name: read_openai_api_key
     title: OpenAI の API キーの読み込み
@@ -64,5 +62,3 @@ functions:
         expected: どちらも StartupError が送出され、理由に OPENAI_API_KEY と key_file のパスが入り、キーの中身は入らない
         exception: 環境変数にもファイルにも API キーが無い（空白だけのときを含む）
     status: planned
-    introduced:
-      pr: 204

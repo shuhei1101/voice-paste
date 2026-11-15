@@ -1,0 +1,20 @@
+id: DATA-5
+visibility: internal
+title: 'データ: 録音の履歴'
+lead: 確定した録音。文字起こしより先に書き込み、文字起こしに失敗しても結果が空でも残る。
+datastore: ファイル（WAV）
+fields:
+- key: sample_rate
+  title: サンプリングレート
+  type: int
+  description: 録音のサンプルレート（Hz）
+- key: channels
+  title: チャンネル数
+  type: int
+  description: 1（モノラル）
+- key: samples
+  title: 音
+  type: array
+  description: 16 ビット整数の音（一時停止の間の音は含まない）
+refs:
+- ER-2#tables[%LOCALAPPDATA%\voice-paste\history\{YYYYMMDD}\{YYYYMMDDHHMMSS}_{session_id}.wav]

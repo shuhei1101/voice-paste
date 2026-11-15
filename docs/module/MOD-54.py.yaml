@@ -179,8 +179,6 @@ data_models:
     refs:
       - IF-3#
     status: planned
-    introduced:
-      pr: 78
 function_types:
   - name: OutputFn
     title: 出力先

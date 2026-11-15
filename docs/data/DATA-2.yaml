@@ -1,0 +1,37 @@
+id: DATA-2
+visibility: internal
+title: 'データ: 結果'
+lead: 送信した音声の結果の一覧（配列。新しい件が先頭）。終わっていない件も持ち、画面を再度開いたら結果を取りに行くのを続ける。
+datastore: JSON（localStorage）
+fields:
+- key: job_id
+  title: ジョブの ID
+  type: string
+  description: 音声を受け付ける が返却した job_id
+  required: true
+  unique: 全体
+- key: state
+  title: 状態
+  type: string
+  description: 最後に取りに行ったときの状態
+  required: true
+- key: source
+  title: 元の音声
+  type: string
+  description: 画面で録った音声は `画面録音`、選んだファイルはファイル名
+  required: true
+- key: duration_sec
+  title: 長さ
+  type: int
+  description: 画面で録った音声の長さ（選んだファイルは null）
+- key: sent_at
+  title: 保存日時
+  type: datetime
+  description: 202 を受けた日時（ISO 8601）。一覧に出し、期限をここから数える
+  required: true
+- key: text
+  title: 起こした文字
+  type: string
+  description: done のときの補正した文字。それ以外は null
+refs:
+- ER-1#tables[localStorage voice-paste.results]

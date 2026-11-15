@@ -41,7 +41,6 @@ elements:
     initial_value: 設定の値
     source: Settings.{キー}
     target: Settings.{キー}（保存で settings.yaml へ書き込む）
-    error_message: 欄の下に赤で出す（入力チェック）
     refs:
       - CFG-1#
   - name: 再起動で反映のマーカー
@@ -495,7 +494,6 @@ elements:
     visible_when: 表記のヒントのまとまりを選んだとき
     display_format: 「{今の長さ} / 222 バイト」。上限を超えたら「{今の長さ} / 222 バイト（{超えた分} バイト超過）」。長さは UTF-8 のバイト数で、語の間の読点も数える
     hint: 上限は 222 バイト（日本語でおよそ 74 文字）。単語の間の読点（、）も数える。
-    error_message: この行の下に赤で出す（入力チェック）
     source: Settings.hint_presets[]（enabled が true のものの words）
     status: implemented
     refs:
@@ -678,8 +676,6 @@ elements:
     io: 表示
     visible_when: 行の表を出している用語集を読み込めたとき（CSV を読み込めなかった用語集では出さない）
     status: planned
-    introduced:
-      pr: 152
   - name: ハルシネーションの説明
     id: edge_phrase_intro
     kind: label
@@ -723,7 +719,6 @@ elements:
     visible_when: 行ごと
     constraints: '`*` だけにできない。空の行は保存で捨てる'
     initial_value: 設定の値（追加した行は空）
-    error_message: 欄の下に赤で出す（入力チェック）
     source: Settings.edge_phrases[].text
     target: Settings.edge_phrases[].text（前後の空白を除く）
     refs:
@@ -795,8 +790,6 @@ elements:
     refs:
       - CFG-1#settings[glossary_presets[].name]
     status: planned
-    introduced:
-      pr: 173
   - name: 補正に使うプリセットの選択
     id: glossary_preset_active_{n}
     kind: radio
@@ -810,8 +803,6 @@ elements:
     refs:
       - CFG-1#settings[active_glossary_preset]
     status: planned
-    introduced:
-      pr: 173
   - name: 用語集のプリセットの名前のボタン
     id: glossary_preset_pick_{n}
     kind: button
@@ -820,8 +811,6 @@ elements:
     label: '{プリセットの名前}（空なら「名前未入力のプリセット」）'
     action: 使用する用語集の表をそのプリセットに切り替える
     status: planned
-    introduced:
-      pr: 173
   - name: 用語集のプリセットの用語集の数
     id: glossary_preset_count_{n}
     kind: label
@@ -830,8 +819,6 @@ elements:
     io: 表示
     display_format: 「{数} 件」
     status: planned
-    introduced:
-      pr: 173
   - name: 用語集のプリセットの削除ボタン
     id: glossary_preset_remove_{n}
     kind: button
@@ -840,8 +827,6 @@ elements:
     enabled_when: 補正に使用するプリセットでないとき。無効のときはツールチップ「補正に使うプリセットは削除できません」を出す
     action: プリセットを一覧から削除する（保存するまで settings.yaml へは書き込まない）
     status: planned
-    introduced:
-      pr: 173
   - name: 用語集のプリセットの追加ボタン
     id: add_glossary_preset_button
     kind: button
@@ -850,8 +835,6 @@ elements:
     label: プリセットを追加
     action: プリセットを末尾に追加する
     status: planned
-    introduced:
-      pr: 173
   - name: 用語集のプリセットの見出し
     id: glossary_preset_detail_title
     kind: label
@@ -859,8 +842,6 @@ elements:
     description: 表を出しているプリセットの見出し
     label: プリセット「{名前}」で使う用語集（名前が空なら「名前未入力のプリセット」で使う用語集）
     status: planned
-    introduced:
-      pr: 173
   - name: 用語集のプリセットの名前の欄
     id: glossary_preset_name_{n}
     kind: input
@@ -877,8 +858,6 @@ elements:
     refs:
       - CFG-1#settings[glossary_presets[].name]
     status: planned
-    introduced:
-      pr: 173
   - name: 使う用語集の表
     id: glossary_preset_glossaries
     kind: table
@@ -892,8 +871,6 @@ elements:
     refs:
       - CFG-1#settings[glossary_presets[].glossaries]
     status: planned
-    introduced:
-      pr: 173
   - name: 使う用語集のつまみ
     id: glossary_preset_glossary_grip_{n}
     kind: drag_handle
@@ -901,8 +878,6 @@ elements:
     description: 掴んで上下に動かし、適用する順を変える。読み上げ名は「{用語集}を動かす」
     action: 行を動かし、順の列を振り直す
     status: planned
-    introduced:
-      pr: 173
   - name: 使う用語集を外すボタン
     id: glossary_preset_glossary_remove_{n}
     kind: button
@@ -911,8 +886,6 @@ elements:
     label: ×
     action: 行を表から除外し、追加する用語集の選択肢へ戻す
     status: planned
-    introduced:
-      pr: 173
   - name: 使う用語集が無いときの文
     id: glossary_preset_glossaries_empty
     kind: label
@@ -921,8 +894,6 @@ elements:
     label: 使う用語集がありません。このプリセットでは何も置き換えません。
     visible_when: 使用する用語集が 0 件のとき
     status: planned
-    introduced:
-      pr: 173
   - name: 追加する用語集の選択
     id: glossary_preset_glossary_select
     kind: select
@@ -932,8 +903,6 @@ elements:
     options: 用語集の一覧のうち、このプリセットがまだ使用していない用語集。並びは用語集の一覧の順。既定は 1 件目。単一選択
     visible_when: このプリセットが使用していない用語集があるとき
     status: planned
-    introduced:
-      pr: 173
   - name: 使う用語集の追加ボタン
     id: glossary_preset_glossary_add
     kind: button
@@ -943,8 +912,6 @@ elements:
     visible_when: このプリセットが使用していない用語集があるとき
     action: 選んだ用語集を表の末尾に追加し、選択肢から除く
     status: planned
-    introduced:
-      pr: 173
   - name: 全ての用語集を使っているときの文
     id: glossary_preset_glossaries_all
     kind: label
@@ -953,8 +920,6 @@ elements:
     label: 全ての用語集を使っています。
     visible_when: 用語集の一覧の全てをこのプリセットが使用しているとき
     status: planned
-    introduced:
-      pr: 173
   - name: 使う用語集の決まりの凡例
     id: glossary_preset_rule_note
     kind: label
@@ -962,8 +927,6 @@ elements:
     description: 適用する順と並べ替えの操作の説明
     label: 上の用語集から順に当てる。同じ誤変換は上の用語集の行が当たる。行は左端を掴むか、Alt+↑ / Alt+↓ で動かす。
     status: planned
-    introduced:
-      pr: 173
   - name: 用語集を使うプリセット
     id: glossary_presets_using_{n}
     kind: label
@@ -972,8 +935,6 @@ elements:
     io: 表示
     display_format: 'プリセットの一覧の順に「・」で結ぶ（例: 既定・会議）。無ければ「なし」'
     status: planned
-    introduced:
-      pr: 173
   - name: 用語集の一覧の決まり
     id: glossary_list_note
     kind: label
@@ -981,8 +942,6 @@ elements:
     description: 用語集を削除したときのプリセットへの影響の説明
     label: 削除した用語集は、使っているプリセットからも外れる。
     status: planned
-    introduced:
-      pr: 173
   - name: ヒントの語の読みの欄
     id: hint_reading_{n}_{m}
     kind: input
@@ -1047,8 +1006,6 @@ elements:
     label: 用語集のプリセットを切り替える
     visible_when: ショートカットのまとまりを選んだとき
     status: planned
-    introduced:
-      pr: 291
   - name: ショートカットの一覧
     id: shortcut_list
     kind: table
@@ -1063,8 +1020,6 @@ elements:
     refs:
       - CFG-1#settings[glossary_preset_hotkeys[].hotkey]
     status: planned
-    introduced:
-      pr: 291
   - name: ショートカットのキーの欄
     id: shortcut_hotkey_{n}
     kind: input
@@ -1080,8 +1035,6 @@ elements:
     refs:
       - CFG-1#settings[glossary_preset_hotkeys[].hotkey]
     status: planned
-    introduced:
-      pr: 291
   - name: 切り替える用語集のプリセットの選択
     id: shortcut_preset_{n}
     kind: select
@@ -1097,8 +1050,6 @@ elements:
     refs:
       - CFG-1#settings[glossary_preset_hotkeys[].preset]
     status: planned
-    introduced:
-      pr: 291
   - name: ショートカットの行の削除ボタン
     id: shortcut_remove_{n}
     kind: button
@@ -1107,8 +1058,6 @@ elements:
     visible_when: 行ごと
     action: 行を削除する
     status: planned
-    introduced:
-      pr: 291
   - name: ショートカットの行の追加ボタン
     id: add_shortcut_button
     kind: button
@@ -1118,8 +1067,6 @@ elements:
     visible_when: ショートカットのまとまりを選んだとき
     action: 行を追加する
     status: planned
-    introduced:
-      pr: 291
   - name: ショートカットが無いときの文
     id: shortcut_empty
     kind: label
@@ -1128,8 +1075,6 @@ elements:
     label: ショートカットはありません。
     visible_when: ショートカットのまとまりを選び、行が 1 つも無いとき
     status: planned
-    introduced:
-      pr: 291
 input_checks:
   - element: 設定の欄
     violation: 数値の欄に数値でない文字が入っている

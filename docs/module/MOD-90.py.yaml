@@ -500,5 +500,3 @@ constants:
     summary: 連続録音で、待ち行列の音を Segmenter へ流すスレッドの名前
     value: '"recording-segmenter"'
     status: planned
-    introduced:
-      pr: 78

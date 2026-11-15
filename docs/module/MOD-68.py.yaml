@@ -67,8 +67,6 @@ classes:
     refs:
       - LIB-15#
     status: planned
-    introduced:
-      pr: 78
 constants:
   - name: VAD_CONTEXT
     title: VAD の持ち越しのサンプル数
@@ -77,8 +75,6 @@ constants:
     summary: Silero VAD が前の窓から持ち越す文脈のサンプル数（faster-whisper の context_size_samples と同じ）
     value: '64'
     status: planned
-    introduced:
-      pr: 78
   - name: VAD_STATE_SHAPE
     title: VAD の状態の形状
     container: integrations/vad/adapter.py
@@ -86,8 +82,6 @@ constants:
     summary: Silero VAD の LSTM の状態 h・c の形状
     value: (1, 1, 128)
     status: planned
-    introduced:
-      pr: 78
   - name: VAD_MODEL_RESOURCE
     title: VAD のモデルの置き場所
     container: integrations/vad/adapter.py
@@ -97,8 +91,6 @@ constants:
     refs:
       - LIB-8#
     status: planned
-    introduced:
-      pr: 78
 functions:
   - name: load_vad_session
     title: VAD のセッションの読み込み
@@ -137,5 +129,3 @@ functions:
     refs:
       - LIB-15#
     status: planned
-    introduced:
-      pr: 78

@@ -32,8 +32,6 @@ catalogs:
         refs:
           - LIB-15#
         status: planned
-        introduced:
-          pr: 78
 lead: CTranslate2 で Whisper のモデルを動かし、音声を文字に起こすライブラリ。
 purl: pkg:pypi/faster-whisper
 dependency_scope: 任意

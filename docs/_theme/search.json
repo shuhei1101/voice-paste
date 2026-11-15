@@ -1,0 +1,52 @@
+---
+layout: none
+sitemap: false
+excerpt_separator: ""
+---
+[
+{%- comment -%}
+  全ページの見出し（ページの冒頭 + h2・h3）ごとに 1 項目を並べる。
+  index の項目にするのは h2・h3 だけだが、重なり順（headingSeq）を数えるのは h4 も含む
+  （識別子は本文側の JS が見出しの文言と重なり順から作るため、ここでは作らない）。
+  他ページの content を列挙順より前に読むと Markdown のまま返るため、
+  常に markdownify してから読む。
+  1 項目の本文の長さ 200 は本文側の JS の SEARCH_CONTENT_MAX と揃える。
+{%- endcomment -%}
+{%- assign pages = site.html_pages | where_exp: "p", "p.url != '/search.json'" -%}
+{%- assign first_entry = true -%}
+{%- for page in pages -%}
+  {%- assign title = page.title | default: page.name -%}
+  {%- assign url = page.url | relative_url -%}
+  {%- assign source = page.content -%}
+  {%- assign source = source | markdownify -%}
+  {%- assign marked = source | replace: "<h2", "§H§<h2" | replace: "<h3", "§H§<h3" | replace: "<h4", "§H§<h4" -%}
+  {%- assign chunks = marked | split: "§H§" -%}
+
+  {%- assign intro = chunks[0] | strip_html | replace: "　", " " | strip_newlines | strip | truncate: 200 -%}
+  {%- unless first_entry -%},{%- endunless -%}
+  {"title": {{ title | jsonify }}, "url": {{ url | jsonify }}, "path": {{ page.path | jsonify }}, "heading": {{ title | jsonify }}, "headingSeq": 0, "content": {{ intro | jsonify }}}
+  {%- assign first_entry = false -%}
+
+  {%- assign seen_headings = "" | split: "," -%}
+  {%- for chunk in chunks offset: 1 -%}
+    {%- assign level = chunk | slice: 0, 3 -%}
+    {%- assign tag_open = chunk | split: ">" | first -%}
+    {%- assign after_open = chunk | remove_first: tag_open | remove_first: ">" -%}
+    {%- assign close_tag = "</h2>" -%}
+    {%- if level == "<h3" -%}{%- assign close_tag = "</h3>" -%}{%- endif -%}
+    {%- if level == "<h4" -%}{%- assign close_tag = "</h4>" -%}{%- endif -%}
+    {%- assign head_split = after_open | split: close_tag -%}
+    {%- assign heading_text = head_split[0] | strip_html | strip -%}
+    {%- assign body_html = head_split | slice: 1, 999 | join: close_tag -%}
+
+    {%- assign seen_headings = seen_headings | push: heading_text -%}
+    {%- assign heading_seq = seen_headings | where_exp: "t", "t == heading_text" | size -%}
+
+    {%- if level == "<h2" or level == "<h3" -%}
+      {%- assign body = body_html | strip_html | replace: "　", " " | strip_newlines | strip | truncate: 200 -%}
+,
+      {"title": {{ title | jsonify }}, "url": {{ url | jsonify }}, "path": {{ page.path | jsonify }}, "heading": {{ heading_text | jsonify }}, "headingSeq": {{ heading_seq }}, "content": {{ body | jsonify }}}
+    {%- endif -%}
+  {%- endfor -%}
+{%- endfor -%}
+]

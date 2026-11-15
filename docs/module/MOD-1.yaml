@@ -2,18 +2,6 @@ id: MOD-1
 visibility: internal
 title: "常駐アプリ / APIサーバー"
 lead: FastAPI の app を組み立て、127.0.0.1 での待ち受け・Host・Origin・トークンの守りと、例外の HTTP への変換を持つ。uvicorn を専用のスレッドで動かす。
-directory: |-
-  ```
-  src/voice_paste/server/
-  ├── app.py              # build_fastapi（route の集約・middleware・例外ハンドラ）
-  ├── middleware.py       # RequestGuardMiddleware（Host・Origin・トークン。/web/ の下は Origin の許可リスト）
-  ├── body_limit.py       # BodyLimitMiddleware（/web/transcriptions の本文の上限で 413）
-  ├── web_page.py         # web_page_router（GET /web/・/web の移し）・mount_web_assets（/web/assets/）
-  ├── web/                # 外の端末の画面（index.html・assets/app.ts と tsc が出す assets/app.js・assets/style.css）
-  ├── error_handlers.py   # register_exception_handlers（RFC 9457）
-  ├── token.py            # create_token・write_token_file（起動ごとのトークンを作り、待ち受けを始めてからファイルへ書き込む）
-  └── runner.py           # ApiServerRunner（uvicorn をスレッドで動かし started を確認する）
-  ```
 notes:
   外の端末の画面: |-
     `server/web/` に画面設計『外の端末の文字起こしの画面』『取り消せない操作の確認』の HTML（`index.html`）・スクリプト（`assets/app.ts`）・CSS（`assets/style.css`。デザイン方針の値を CSS の変数で持つ）を配置する。画面の処理（録音・送信・IndexedDB・localStorage・取りに行く間隔）は画面設計の要素の説明に従い、単体テスト・画面の結合テストは持たず、画面が呼ぶ API はインターフェース定義の結合テストで、画面の操作は E2E で確認する。

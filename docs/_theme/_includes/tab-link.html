@@ -1,0 +1,22 @@
+{% comment %}
+  上タブ 1 つ分を出す。タブの種別は generated → {タブ名}/README.md の有無 → permalink が /{タブ名}/ のページ（分類のトップページ）の有無、の順で決まる。
+  include.tab: nav.yml / nav.project.yml の tabs[] の 1 要素
+  include.current: 現在のタブ名（body の data-tab）
+{% endcomment %}
+{% assign tab = include.tab %}
+{% assign kind = "local" %}
+{% if tab.generated %}
+  {% assign kind = "generated" %}
+{% else %}
+  {% assign readme_path = tab.name | append: "/README.md" %}
+  {% assign matches = site.pages | where: "path", readme_path %}
+  {% assign tab_permalink = "/" | append: tab.name | append: "/" %}
+  {% assign tops = site.pages | where: "permalink", tab_permalink %}
+  {% unless matches.size > 0 or tops.size > 0 %}{% assign kind = "external" %}{% endunless %}
+{% endif %}
+{% case kind %}
+  {% when "generated" %}{% assign href = "/" | append: tab.name | append: "/" | relative_url %}
+  {% when "external" %}{% assign href = site.data.nav.external_base | append: "/" | append: tab.name | append: "/" %}
+  {% else %}{% assign href = "/" | append: tab.name | append: "/" | relative_url %}
+{% endcase %}
+<a class="tab{% if kind == "external" %} tab-external{% endif %}" href="{{ href }}"{% if tab.name == include.current %} aria-current="page"{% endif %}{% if kind == "external" %} target="_blank" rel="noopener"{% endif %}>{{ tab.name }}</a>

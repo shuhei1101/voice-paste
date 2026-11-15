@@ -204,8 +204,6 @@ classes:
     refs:
       - SCR-9#elements[ショートカットの一覧]
     status: planned
-    introduced:
-      pr: 291
 constants:
   - name: SHORTCUT_DEFAULT_HOTKEYS
     title: 追加したショートカットの行のキーの初期値
@@ -216,5 +214,3 @@ constants:
     refs:
       - SC-6#
     status: planned
-    introduced:
-      pr: 291

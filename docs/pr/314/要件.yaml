@@ -1,0 +1,44 @@
+docs:
+  - page: docs/layout/LAY-1.yaml
+    new: false
+    change: '`schemas` のエントリをスキーマのコピーの削除に合わせて直し、`schemas` の下の `conversions` のエントリを削除し、`docs/rules.yaml` を直下の `rules.yaml` へ移し、`docs/data/` のエントリを足し、`docs/_theme/` を import-site の取り込み後の構成に合わせる。反映作業『設計書の新しいスキーマへの変換』が、モジュール構成の `directory` のツリーのうち LAY-1 に無いエントリ（`resources` のアイコン・`src/voice_paste/` の下のファイル等）を足す'
+    status: done
+    updated_by: planner
+    updated_at: '2026-11-15T01:05:53.480608+00:00'
+  - page: docs/_config.yml
+    new: false
+    change: 配布元で増えたキーを足し、除外の `rules.yaml` を索引の移動に合わせて外し、`data/` を除外に足す
+    status: done
+    updated_by: planner
+    updated_at: '2026-11-14T23:44:52.853797+00:00'
+  - page: docs/index.yaml
+    new: false
+    change: '`docs/data/` のフォルダの行を足す'
+    status: done
+    updated_by: planner
+    updated_at: '2026-11-15T01:05:53.480608+00:00'
+  - page: docs/er/ER-1.yaml
+    new: false
+    change: '`tables[].source` と `columns[].source` でデータの設計書を指す（反映作業『配布先のデータの設計書の作成』）'
+    status: done
+    updated_by: planner
+    updated_at: '2026-11-15T01:44:07.642962+00:00'
+  - page: docs/er/ER-2.yaml
+    new: false
+    change: '`tables[].source` と `columns[].source` でデータの設計書を指す（反映作業『配布先のデータの設計書の作成』）'
+    status: done
+    updated_by: planner
+    updated_at: '2026-11-15T01:44:07.642962+00:00'
+scope_out:
+  - item: YAML の設計書と files.yml の行へのタグ・エイリアス・description の付与
+    reason: この追従でスキーマを参照へ移した後に行う別の要望
+    plan: '#285'
+  - item: テスト実行方法の層ごとの実行場所の決定と GitHub Actions への移行
+    reason: この追従で schemas/ のコピーを削除した後に行う別の要望
+    plan: '#298'
+  - item: 配布元の反映作業『配布先のデータの設計書の作成』の ID の決め方の修正
+    reason: AI Monitor の配布物の不具合で、配布元の shuhei1101/ai-monitor#3473 で直す
+    plan: '#3473'
+  - item: シナリオの `test_file`（tests/e2e/ を指す 12 件）の参照先が無い設計書の検査の違反
+    reason: '#276 で E2E を作り直すときのマーカーとして残した参照で、base ブランチにもある。検証の側の修正は AI Monitor の shuhei1101/ai-monitor#3329 で行う'
+    plan: '#3329'

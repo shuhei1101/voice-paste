@@ -1,0 +1,141 @@
+配布先の dev-docs への移行:
+  説明: '配布先のリポジトリの直下に `dev-docs.yaml`（設計書の種類を documents に定義したもの）を置き、`/dev-docs:setup {配布先のパス}` で dev-docs の配信元として登録し、`settings.yaml` の `agents[].mcp_tools` から旧い設計書のツールを外して dev-docs のツールを割り当てる（手順書の設計書のツールが dev-docs のツールに変わるため）。`dev-docs.yaml` の作成と登録はファイルごとの判断を伴うため実行者が `/dev-docs:setup` で行い、実行スクリプトは書き換えずに整ったかを確かめる（書き換えないため切り戻しは持たない）（配布元: https://github.com/shuhei1101/ai-monitor/tree/v0.4.0/docs/pr/3119/%E5%8F%8D%E6%98%A0%E4%BD%9C%E6%A5%AD/%E9%85%8D%E5%B8%83%E5%85%88%E3%81%AE%20dev-docs%20%E3%81%B8%E3%81%AE%E7%A7%BB%E8%A1%8C）'
+  タグ:
+  - 配布先
+  - 設定ファイル
+  実行者: planner
+  時期: マージの前
+  回数: 1 回限り
+  可逆: true
+  疎通確認: 配布先の dev-docs への移行/疎通確認.sh
+  実行: 配布先の dev-docs への移行/実行.py
+  確認: 配布先の dev-docs への移行/確認.sh
+  切り戻し: null
+  失敗時: 実行者が原因を確かめて依頼元へ返す
+  確認方法: 配布先のリポジトリで作業中のセッションから dev-docs の `describe()` を呼ぶと、配布先の配信元が権限 `write` で一覧に出る
+  状態: 済
+プロジェクトの索引の移動:
+  説明: '配布先のリポジトリの `docs/rules.yaml` を直下の `rules.yaml` へ移し、エントリの `rule` の相対パスを移した先から辿れる形に直す（配布元: https://github.com/shuhei1101/ai-monitor/tree/v0.4.0/docs/pr/2928/%E5%8F%8D%E6%98%A0%E4%BD%9C%E6%A5%AD/%E3%83%97%E3%83%AD%E3%82%B8%E3%82%A7%E3%82%AF%E3%83%88%E3%81%AE%E7%B4%A2%E5%BC%95%E3%81%AE%E7%A7%BB%E5%8B%95）'
+  タグ:
+  - 索引
+  実行者: planner
+  時期: マージの前
+  回数: 1 回限り
+  可逆: true
+  疎通確認: プロジェクトの索引の移動/疎通確認.py
+  実行: プロジェクトの索引の移動/実行.py
+  確認: プロジェクトの索引の移動/確認.py
+  切り戻し: プロジェクトの索引の移動/切り戻し.py
+  失敗時: 実行者が原因を確かめて依頼元へ返す
+  確認方法: 配布先のリポジトリの直下に `rules.yaml` があり、`docs/rules.yaml` が無い
+  状態: 済
+配布先の移した文書の写しの削除:
+  説明: '配布先のリポジトリで、配布で受け取った移した文書の写し（この PR が消した文書のうち、内容が AI Monitor の過去のどれかの版と同じファイル。同じ名前でもプロジェクトが書き換えたファイルは残す）と、それを指す索引のエントリを消す。消す前に git のディレクトリ（`git rev-parse --absolute-git-dir`。worktree なら .git/worktrees/{名前}）の ai-monitor-pr2941-backup/ へ退避する（プロジェクトの索引の移動は #2928 の反映作業『プロジェクトの索引の移動』が担う）（配布元: https://github.com/shuhei1101/ai-monitor/tree/v0.4.0/docs/pr/2941/%E5%8F%8D%E6%98%A0%E4%BD%9C%E6%A5%AD/%E9%85%8D%E5%B8%83%E5%85%88%E3%81%AE%E7%A7%BB%E3%81%97%E3%81%9F%E6%96%87%E6%9B%B8%E3%81%AE%E5%86%99%E3%81%97%E3%81%AE%E5%89%8A%E9%99%A4）'
+  タグ:
+  - 配布先
+  - ルール注入
+  実行者: planner
+  時期: マージの前
+  回数: 1 回限り
+  可逆: true
+  疎通確認: 配布先の移した文書の写しの削除/疎通確認.py
+  実行: 配布先の移した文書の写しの削除/実行.py
+  確認: 配布先の移した文書の写しの削除/確認.py
+  切り戻し: 配布先の移した文書の写しの削除/切り戻し.py
+  失敗時: 実行者が原因を確かめて依頼元へ返す
+  確認方法: 配布先のリポジトリに、内容が AI Monitor の過去の版と同じ移した文書のファイルが無く、索引（rules.yaml・docs/rules.yaml）に、移した文書のパスを指すのにファイルが無いエントリが無い
+  状態: 済
+配布先の規約のパスの追従:
+  説明: '配布先のルール索引・agent_context.yaml が指す AI Monitor の規約・判定フローチャート・チェックシート・テンプレートの .md のパスを、変換後の YAML のパスに書き換える（配布元: https://github.com/shuhei1101/ai-monitor/tree/v0.4.0/docs/pr/3440/%E5%8F%8D%E6%98%A0%E4%BD%9C%E6%A5%AD/%E9%85%8D%E5%B8%83%E5%85%88%E3%81%AE%E8%A6%8F%E7%B4%84%E3%81%AE%E3%83%91%E3%82%B9%E3%81%AE%E8%BF%BD%E5%BE%93）'
+  タグ:
+  - 配布先の追従
+  実行者: planner
+  時期: マージの前
+  回数: 1 回限り
+  可逆: true
+  疎通確認: 配布先の規約のパスの追従/疎通確認.py
+  実行: 配布先の規約のパスの追従/実行.py
+  確認: 配布先の規約のパスの追従/確認.py
+  切り戻し: 配布先の規約のパスの追従/切り戻し.py
+  失敗時: 実行者が原因を確認して依頼元へ返す
+  確認方法: 配布先のリポジトリの rules.yaml・agent_context.yaml に、AI Monitor の docs/rule/・docs/flowchart/・docs/checksheet/・docs/template/ の .md を指す行が無い
+  状態: 済
+配布先のエージェント統合への追従:
+  説明: '配布先の `agent_context.yaml` の `docs[]` で、implementer・designer に割り当てた資料を planner へ、operator に割り当てた資料を tester へ割り当て直し、`.claude/agent-settings/` から 3 つのエージェントの設定を削除する（配布元: https://github.com/shuhei1101/ai-monitor/tree/v0.4.0/docs/pr/3137/%E5%8F%8D%E6%98%A0%E4%BD%9C%E6%A5%AD/%E9%85%8D%E5%B8%83%E5%85%88%E3%81%AE%E3%82%A8%E3%83%BC%E3%82%B8%E3%82%A7%E3%83%B3%E3%83%88%E7%B5%B1%E5%90%88%E3%81%B8%E3%81%AE%E8%BF%BD%E5%BE%93）'
+  タグ:
+  - 配布先
+  - 設定ファイル
+  実行者: planner
+  時期: マージの前
+  回数: 1 回限り
+  可逆: true
+  疎通確認: 配布先のエージェント統合への追従/疎通確認.py
+  実行: 配布先のエージェント統合への追従/実行.py
+  確認: 配布先のエージェント統合への追従/確認.py
+  切り戻し: 配布先のエージェント統合への追従/切り戻し.py
+  失敗時: 実行者が原因を確かめて依頼元へ返す
+  確認方法: '`agent_context.yaml` と `.claude/agent-settings/` に 3 つのエージェント名が無く、元の割り当ての資料が planner・tester に割り当たっている'
+  状態: 済
+プロジェクトの索引の設定ファイルへの移行:
+  説明: '配布先のリポジトリの .claude/settings.json の env に RULE_INJECT_INDEXES_PROJECT があれば、その値（カンマ区切りの索引のパス）を利用者の rule-inject の設定ファイル（~/.config/rule-inject/settings.yaml）の projects[] へ、match をそのリポジトリのクローンの絶対パス、indexes を値の並びにした要素として追加し、env から RULE_INJECT_INDEXES_PROJECT を削除して commit する。rule-inject の反映作業『利用者の設定ファイルへの移行』で設定ファイルができた後に行い、値がクローンの直下の rules.yaml だけなら rule-inject の既定で読まれるため projects に足さない。設定ファイルは書き換える前にバックアップし、切り戻しはバックアップと .claude/settings.json の変更前の内容を戻す（配布元: https://github.com/shuhei1101/ai-monitor/tree/v0.4.0/docs/pr/3211/%E5%8F%8D%E6%98%A0%E4%BD%9C%E6%A5%AD/%E3%83%97%E3%83%AD%E3%82%B8%E3%82%A7%E3%82%AF%E3%83%88%E3%81%AE%E7%B4%A2%E5%BC%95%E3%81%AE%E8%A8%AD%E5%AE%9A%E3%83%95%E3%82%A1%E3%82%A4%E3%83%AB%E3%81%B8%E3%81%AE%E7%A7%BB%E8%A1%8C）'
+  タグ:
+  - 設定の移行
+  実行者: planner
+  時期: マージの前
+  回数: 1 回限り
+  可逆: true
+  疎通確認: プロジェクトの索引の設定ファイルへの移行/疎通確認.py
+  実行: プロジェクトの索引の設定ファイルへの移行/実行.py
+  確認: プロジェクトの索引の設定ファイルへの移行/確認.py
+  切り戻し: プロジェクトの索引の設定ファイルへの移行/切り戻し.py
+  失敗時: 既定の対処を 1 回、2 回連続で失敗したら依頼元へ返す
+  確認方法: 配布先のリポジトリの .claude/settings.json の env に RULE_INJECT_INDEXES_PROJECT が無く、移行前の値の索引が ~/.config/rule-inject/settings.yaml の projects[] の、match がそのリポジトリのクローンの絶対パスの要素の indexes に入っている
+  状態: 済
+各プロジェクトのスキーマの参照への移行:
+  説明: '配布先のリポジトリで、dev-docs.yaml の documents[].schema を knowledge のスキーマのリビジョンつきの参照（source・path・ref）へ書き換え（設計書の種別の行は schemas/design/{種類}.schema.yaml、管理用の YAML の行は schemas/knowledge-files.schema.yaml を指す）、自分の schemas/（dev/ が残るリポジトリは dev/テンプレート/）にある AI Monitor から配られたスキーマのコピー（設計書の種別の Schema・files.schema.yaml と、フェーズの設計書を持たないので使わない phase.schema.yaml）を全て削除し、設計書を新しいスキーマの検査に合格させる。dev/ が残るリポジトリは、そのプロジェクトの docs/ への移行の Issue の後に行う（配布元: https://github.com/shuhei1101/ai-monitor/tree/v0.4.0/docs/pr/3430/%E5%8F%8D%E6%98%A0%E4%BD%9C%E6%A5%AD/%E5%90%84%E3%83%97%E3%83%AD%E3%82%B8%E3%82%A7%E3%82%AF%E3%83%88%E3%81%AE%E3%82%B9%E3%82%AD%E3%83%BC%E3%83%9E%E3%81%AE%E5%8F%82%E7%85%A7%E3%81%B8%E3%81%AE%E7%A7%BB%E8%A1%8C）'
+  タグ:
+  - 配布先の移行
+  - スキーマ
+  実行者: planner
+  時期: マージの前
+  回数: 配布先ごとに 1 回
+  可逆: true
+  疎通確認: 各プロジェクトのスキーマの参照への移行/疎通確認.py
+  実行: 各プロジェクトのスキーマの参照への移行/実行.py
+  確認: 各プロジェクトのスキーマの参照への移行/確認.py
+  切り戻し: null
+  失敗時: 実行者が原因を確かめて依頼元へ返す
+  確認方法: 配布先の dev-docs.yaml の設計書の種別の行の schema が knowledge の source・path・ref を持ち、配布先の schemas/（dev/ が残るリポジトリは dev/テンプレート/）に AI Monitor から配られたスキーマのコピーが無い
+  状態: 済
+設計書の新しいスキーマへの変換:
+  説明: dev-docs.yaml の knowledge のスキーマの行の ref を design-schemas/v8.3.0 に統一し、AI Monitor の変換（design_docs convert --from v0.4.0 --to design-schemas/v8.3.0）を掛け、knowledge のスキーマが持たないキーを書き換えて、設計書の検査の違反を対応テストファイルの不在と tables[].source の欠落だけにする。introduced は除き、implementation は src/files.yml・haas_server/src/files.yml のコードの行に設計書を指す implements を足して除き、error_message は入力チェックの表に同じ要素があれば除いて無ければ notes の『エラーの表示』へ移し、directory は配布元 v0.4.0 の変換（schemas/conversions/v0.4.0.py の _move_layout）と同じく、ツリーを docs/layout/ のフォルダ構成の設計書のエントリへ移して（既にあるエントリは足さない）ツリーでない記述を notes の『ディレクトリ構成』へ移し、per_env は config/defaults.yaml の os_overrides が上書きするキーを overrides の行にして、上書きを持たない記述を設定の notes の『環境ごとの値』へ移す。計画は一時フォルダのコピーで行い、適用の前に書き換えるファイルを git のディレクトリの ai-monitor-pr314-backup/ へ退避する。『各プロジェクトのスキーマの参照への移行』の後に行い、結果を commit してから『配布先のデータの設計書の作成』へ進む（そちらは書き換える対象の未 commit の変更があると前提確認で止まる）
+  タグ:
+  - スキーマ
+  - 設計書
+  実行者: planner
+  時期: マージの前
+  回数: 1 回限り
+  可逆: true
+  疎通確認: 設計書の新しいスキーマへの変換/疎通確認.py
+  実行: 設計書の新しいスキーマへの変換/実行.py
+  確認: 設計書の新しいスキーマへの変換/確認.py
+  切り戻し: 設計書の新しいスキーマへの変換/切り戻し.py
+  失敗時: 既定の対処を 1 回、2 回連続で失敗したら依頼元へ返す
+  確認方法: dev-docs.yaml の knowledge の行の ref が全て design-schemas/v8.3.0 で、AI Monitor の design_docs validate の違反が、対応テストファイルが無い違反と tables[].source の欠落だけ
+  状態: 済
+配布先のデータの設計書の作成:
+  説明: '配布先のリポジトリで、ER 図の設計書（docs/er/）の `tables[].source` を持たないテーブルごとに、カラムが保存するキーを並べたデータの設計書（docs/data/）を作成し、テーブルの `source` とカラムの `source` で指す。ER 図の設計書を持たないリポジトリと、全てのテーブルが `source` を持つリポジトリでは何もしない。docs/data/ が .gitignore で除外されているリポジトリでは、除外の行を直してから行う。書き換える ER 図・dev-docs.yaml・docs/data/ に未 commit の変更があると前提確認で止まる。追加する data の行のスキーマの版は、配布先の er の行の schema.ref に揃える。切り戻しは、実行の結果を commit する前に、書き換えたファイルを git の HEAD へ戻し、作成したデータの設計書を削除する。#3430 の反映作業『各プロジェクトのスキーマの参照への移行』の後に行う（配布元: https://github.com/shuhei1101/ai-monitor/tree/v0.4.0/docs/pr/3445/%E5%8F%8D%E6%98%A0%E4%BD%9C%E6%A5%AD/%E9%85%8D%E5%B8%83%E5%85%88%E3%81%AE%E3%83%87%E3%83%BC%E3%82%BF%E3%81%AE%E8%A8%AD%E8%A8%88%E6%9B%B8%E3%81%AE%E4%BD%9C%E6%88%90）。配布元のスクリプトとの違い: ER 図の ID が {種類}-{番号}（ER-1・ER-2）の形でも止まらず、データの設計書を DATA-{連番} の ID で作成するよう、common.py の ID_RE・data_mid と実行.py の ID の決め方を変えた（配布元の不具合 shuhei1101/ai-monitor#3473）'
+  タグ:
+  - 配布先の移行
+  - 設計書
+  実行者: planner
+  時期: マージの前
+  回数: 配布先ごとに 1 回
+  可逆: true
+  疎通確認: 配布先のデータの設計書の作成/疎通確認.py
+  実行: 配布先のデータの設計書の作成/実行.py
+  確認: 配布先のデータの設計書の作成/確認.py
+  切り戻し: 配布先のデータの設計書の作成/切り戻し.py
+  失敗時: 実行者が原因を確かめて依頼元へ返す
+  確認方法: 配布先の ER 図（docs/er/）の全てのテーブルが `source` を持ち、テーブルとカラムの `source` が指すデータの設計書（docs/data/）の ID とキーが全てある（確認.py が読み取りだけで数える）。配布先の設計書の検査で、ER 図の参照先の ID の設計書が無い違反と `tables[].source` の欠落の違反が 0 件
+  状態: 済

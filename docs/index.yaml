@@ -13,6 +13,8 @@ items:
     summary: 設定と環境変数のキー定義
   - page: er/
     summary: データストアの定義
+  - page: data/
+    summary: ER 図のテーブルのカラムが保存するキーの定義
   - page: architecture/
     summary: システム全体構成（常駐アプリ・文字起こしの外部サービス・API の呼び出し元・貼り付け先の関係）
   - page: layout/

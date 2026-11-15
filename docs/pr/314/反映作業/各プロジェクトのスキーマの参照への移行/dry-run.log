@@ -1,0 +1,248 @@
+$ python 実行.py /mnt/c/Users/shuhe/repo/voice-paste/.claude/worktrees/chore-ai-monitor-follow-v0.4.0 --dry-run
+前提確認: ok
+--- /mnt/c/Users/shuhe/repo/voice-paste/.claude/worktrees/chore-ai-monitor-follow-v0.4.0/dev-docs.yaml
++++ /mnt/c/Users/shuhe/repo/voice-paste/.claude/worktrees/chore-ai-monitor-follow-v0.4.0/dev-docs.yaml
+@@ -10,7 +10,10 @@
+     title: アーキテクチャ図
+     paths: ["docs/architecture/*.yaml"]
+     exclude: [index.yaml]
+-    schema: schemas/architecture.schema.yaml
++    schema:
++      source: knowledge
++      path: schemas/design/architecture.schema.yaml
++      ref: design-schemas/v8.1.0
+     metadata:
+       name: title
+       description: lead
+@@ -19,7 +22,10 @@
+     title: 非機能要件
+     paths: ["docs/nonfunctional/*.yaml"]
+     exclude: [index.yaml]
+-    schema: schemas/nonfunctional.schema.yaml
++    schema:
++      source: knowledge
++      path: schemas/design/nonfunctional.schema.yaml
++      ref: design-schemas/v8.1.0
+     metadata:
+       name: title
+       visibility: visibility
+@@ -27,7 +33,10 @@
+     title: シナリオ
+     paths: ["docs/scenario/*.yaml"]
+     exclude: [index.yaml]
+-    schema: schemas/scenario.schema.yaml
++    schema:
++      source: knowledge
++      path: schemas/design/scenario.schema.yaml
++      ref: design-schemas/v8.1.0
+     metadata:
+       name: title
+       description: lead
+@@ -36,7 +45,10 @@
+     title: インターフェース定義
+     paths: ["docs/interface/*.yaml"]
+     exclude: [index.yaml]
+-    schema: schemas/interface.schema.yaml
++    schema:
++      source: knowledge
++      path: schemas/design/interface.schema.yaml
++      ref: design-schemas/v8.1.0
+     metadata:
+       name: title
+       description: lead
+@@ -45,7 +57,10 @@
+     title: モジュール構成
+     paths: ["docs/module/*.yaml"]
+     exclude: [index.yaml]
+-    schema: schemas/module.schema.yaml
++    schema:
++      source: knowledge
++      path: schemas/design/module.schema.yaml
++      ref: design-schemas/v8.1.0
+     metadata:
+       name: title
+       visibility: visibility
+@@ -53,7 +68,10 @@
+     title: 画面設計
+     paths: ["docs/screen/*.yaml"]
+     exclude: [index.yaml]
+-    schema: schemas/screen.schema.yaml
++    schema:
++      source: knowledge
++      path: schemas/design/screen.schema.yaml
++      ref: design-schemas/v8.1.0
+     metadata:
+       name: title
+       description: lead
+@@ -62,7 +80,10 @@
+     title: ER 図
+     paths: ["docs/er/*.yaml"]
+     exclude: [index.yaml]
+-    schema: schemas/er.schema.yaml
++    schema:
++      source: knowledge
++      path: schemas/design/er.schema.yaml
++      ref: design-schemas/v8.1.0
+     metadata:
+       name: title
+       description: lead
+@@ -71,7 +92,10 @@
+     title: 設定
+     paths: ["docs/config/*.yaml"]
+     exclude: [index.yaml]
+-    schema: schemas/config.schema.yaml
++    schema:
++      source: knowledge
++      path: schemas/design/config.schema.yaml
++      ref: design-schemas/v8.1.0
+     metadata:
+       name: title
+       description: lead
+@@ -80,7 +104,10 @@
+     title: 外部API
+     paths: ["docs/external-api/*.yaml"]
+     exclude: [index.yaml]
+-    schema: schemas/external-api.schema.yaml
++    schema:
++      source: knowledge
++      path: schemas/design/external_api.schema.yaml
++      ref: design-schemas/v8.1.0
+     metadata:
+       name: title
+       description: lead
+@@ -89,7 +116,10 @@
+     title: 外部ライブラリ
+     paths: ["docs/library/*.yaml"]
+     exclude: [index.yaml]
+-    schema: schemas/library.schema.yaml
++    schema:
++      source: knowledge
++      path: schemas/design/library.schema.yaml
++      ref: design-schemas/v8.1.0
+     metadata:
+       name: title
+       description: lead
+@@ -98,7 +128,10 @@
+     title: テスト実行方法
+     paths: ["docs/test-procedure/*.yaml"]
+     exclude: [index.yaml]
+-    schema: schemas/test-procedure.schema.yaml
++    schema:
++      source: knowledge
++      path: schemas/design/test_procedure.schema.yaml
++      ref: design-schemas/v8.1.0
+     metadata:
+       name: title
+       visibility: visibility
+@@ -106,7 +139,10 @@
+     title: 開発コマンド
+     paths: ["docs/dev-command/*.yaml"]
+     exclude: [index.yaml]
+-    schema: schemas/dev-command.schema.yaml
++    schema:
++      source: knowledge
++      path: schemas/design/dev_command.schema.yaml
++      ref: design-schemas/v8.1.0
+     metadata:
+       name: title
+       visibility: visibility
+@@ -132,14 +168,20 @@
+   - id: index
+     title: 目次
+     paths: ["docs/index.yaml", "docs/*/index.yaml"]
+-    schema: schemas/index.schema.yaml
++    schema:
++      source: knowledge
++      path: schemas/design/index.schema.yaml
++      ref: design-schemas/v8.1.0
+     metadata:
+       description: summary
+   - id: files_root
+     title: docs の直下の Markdown
+     paths: ["docs/_root/files.yml"]
+     exclude: ["*.yaml", "*.yml", README.md]
+-    schema: schemas/files.schema.yaml
++    schema:
++      source: knowledge
++      path: schemas/knowledge-files.schema.yaml
++      ref: design-schemas/v8.1.0
+     records: files
+     body_file: path
+     metadata:
+@@ -148,7 +190,10 @@
+     title: 公開ドキュメントの Markdown
+     paths: ["docs/guide/files.yml"]
+     exclude: ["*.yaml", "*.yml", README.md, はじめに.md, 使い方.md, リファレンス.md]
+-    schema: schemas/files.schema.yaml
++    schema:
++      source: knowledge
++      path: schemas/knowledge-files.schema.yaml
++      ref: design-schemas/v8.1.0
+     records: files
+     body_file: path
+     metadata:
+@@ -158,24 +203,36 @@
+     title: モックの Markdown
+     paths: ["docs/mock/files.yml"]
+     exclude: ["*.html", "*.js", "*.css"]
+-    schema: schemas/files.schema.yaml
++    schema:
++      source: knowledge
++      path: schemas/knowledge-files.schema.yaml
++      ref: design-schemas/v8.1.0
+     records: files
+     body_file: path
+   - id: files_src
+     title: 常駐アプリのコード
+     paths: ["src/files.yml"]
+-    schema: schemas/files.schema.yaml
++    schema:
++      source: knowledge
++      path: schemas/knowledge-files.schema.yaml
++      ref: design-schemas/v8.1.0
+     records: files
+     body_file: path
+   - id: files_haas_server
+     title: Haas の文字起こしのサーバーのコード
+     paths: ["haas_server/src/files.yml"]
+-    schema: schemas/files.schema.yaml
++    schema:
++      source: knowledge
++      path: schemas/knowledge-files.schema.yaml
++      ref: design-schemas/v8.1.0
+     records: files
+     body_file: path
+   - id: files_tests
+     title: テスト
+     paths: ["tests/files.yml"]
+-    schema: schemas/files.schema.yaml
+-    records: files
+-    body_file: path
++    schema:
++      source: knowledge
++      path: schemas/knowledge-files.schema.yaml
++      ref: design-schemas/v8.1.0
++    records: files
++    body_file: path
+削除: schemas/architecture.schema.yaml
+削除: schemas/common.schema.yaml
+削除: schemas/component.schema.yaml
+削除: schemas/config.schema.yaml
+削除: schemas/dataflow.schema.yaml
+削除: schemas/dev-command.schema.yaml
+削除: schemas/er.schema.yaml
+削除: schemas/external-api.schema.yaml
+削除: schemas/index.schema.yaml
+削除: schemas/interface.schema.yaml
+削除: schemas/library.schema.yaml
+削除: schemas/module.schema.yaml
+削除: schemas/nonfunctional.schema.yaml
+削除: schemas/scenario.schema.yaml
+削除: schemas/screen.schema.yaml
+削除: schemas/state-transition.schema.yaml
+削除: schemas/test-procedure.schema.yaml
+削除: schemas/files.schema.yaml
+削除: schemas/phase.schema.yaml
+dev-docs.yaml の書き換え: changed
+コピーの削除: changed
+exit: 0

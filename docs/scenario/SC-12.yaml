@@ -189,7 +189,6 @@ scenarios:
       - API の録音が録音中のまま続いている
     test: test_error_when_api_session_busy
 lead: 常駐サービスがホットキーで録音を始め、話した内容を文字に起こしてアクティブなアプリへ届けるまでの複合ユースケース。
-issue: 14
 primary_actor: 音声入力を使用するユーザー
 stakeholders:
   - name: ユーザー

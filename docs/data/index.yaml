@@ -1,0 +1,34 @@
+summary: ER 図のテーブルが保存するデータの構造を、オブジェクトのキーの表で記載する設計書。
+items:
+- page: DATA-1.yaml
+  summary: 端末内の音声
+- page: DATA-2.yaml
+  summary: 結果
+- page: DATA-3.yaml
+  summary: 選んだ用語集のプリセット
+- page: DATA-4.yaml
+  summary: 録音中に画面を暗くしないか
+- page: DATA-5.yaml
+  summary: 録音の履歴
+- page: DATA-6.yaml
+  summary: 起こした文字の履歴
+- page: DATA-7.yaml
+  summary: 一時の音声
+- page: DATA-8.yaml
+  summary: API のトークンのファイル
+- page: DATA-9.yaml
+  summary: アプリのログ
+- page: DATA-10.yaml
+  summary: クラッシュと起動の記録
+- page: DATA-11.yaml
+  summary: 用語集の CSV
+- page: DATA-12.yaml
+  summary: 開くマーカーの画像
+- page: DATA-13.yaml
+  summary: ブラウザの音声の履歴
+- page: DATA-14.yaml
+  summary: ブラウザの音声の一時のファイル
+- page: DATA-15.yaml
+  summary: Linux の単一インスタンスのロックファイル
+- page: DATA-16.yaml
+  summary: Haas の文字起こしのサーバーのログ

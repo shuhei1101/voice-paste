@@ -410,7 +410,6 @@ scenarios:
       - 確定した録音に、API の開始より前に貯めた音が入っていない
     test: test_normal_when_started_within_cancel_grace
 lead: 同じ端末のほかのプロセスが API の開始・停止・完了を呼び、画面を出さない録音を始めて確定するまでの単一ユースケース。
-issue: 14
 primary_actor: API を呼ぶほかのプロセス
 trigger: ほかのプロセスが、コールバック先のエンドポイントを指定して API の開始を呼ぶ
 preconditions:

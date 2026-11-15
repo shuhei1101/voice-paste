@@ -1,0 +1,12 @@
+id: DATA-15
+visibility: internal
+title: 'データ: Linux の単一インスタンスのロックファイル'
+lead: Linux で常駐サービスが fcntl.flock で排他を取るための空のファイル。
+datastore: ファイル
+fields:
+- key: '-'
+  title: 中身
+  type: string
+  description: 空のファイル。flock の対象にするだけ
+refs:
+- ER-2#tables[%LOCALAPPDATA%\voice-paste\instance.lock]

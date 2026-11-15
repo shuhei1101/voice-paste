@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>{% if page.title %}{{ page.title }} - {{ site.title }}{% else %}{{ site.title }}{% endif %}</title>
+  <link rel="stylesheet" href="{{ '/assets/' | relative_url }}style.css">
+  <!-- 本文の見た目は mdmark の配布物のスタイルが持つ（本文を描く mdmark のスクリプトは app.js が読む） -->
+  <link rel="stylesheet" href="{{ '/assets/' | relative_url }}vendor/mdmark/index.css">
+  <!-- Mermaid は設計書の図の検査と同じ版に固定したものを読み、ダーク/ライトの切り替えに追従させるため app.js から初期化する（自動 start はしない） -->
+  <script src="{{ '/assets/' | relative_url }}vendor/mermaid.min.js"></script>
+  <script src="{{ '/assets/' | relative_url }}app.js" defer></script>
+</head>
+{% comment %} 上タブの並び（nav.project.yml の固有タブを from: project の位置へ差し込む。nav.yml と同じ名前のタブは重ねない） {% endcomment %}
+{% assign nav_names = site.data.nav.tabs | map: "name" %}
+{% assign all_tabs = "" | split: "," %}
+{% for tab in site.data.nav.tabs %}
+  {% if tab.from == "project" %}
+    {% for ptab in site.data.navproject.tabs %}
+      {% unless nav_names contains ptab.name %}
+        {% assign all_tabs = all_tabs | push: ptab %}
+      {% endunless %}
+    {% endfor %}
+  {% else %}
+    {% assign all_tabs = all_tabs | push: tab %}
+  {% endif %}
+{% endfor %}
+{% comment %} nav.project.yml の pages にページのパスがあればその分類、tabs の page がページのパスならそのタブ、無ければページのパスの先頭の段が上タブの名前のどれかであるときのその名前を現在のタブにする（直下のページと pr/・mock/ などは空） {% endcomment %}
+{% assign tab_names = all_tabs | map: "name" %}
+{% assign data_tab = "" %}
+{% assign page_category = site.data.navproject.pages[page.path] %}
+{% for ptab in site.data.navproject.tabs %}
+  {% if ptab.page == page.path %}{% assign page_category = ptab.name %}{% endif %}
+{% endfor %}
+{% assign page_root = page.path | split: "/" | first %}
+{% if page_category and tab_names contains page_category %}
+  {% assign data_tab = page_category %}
+{% elsif tab_names contains page_root %}
+  {% assign data_tab = page_root %}
+{% endif %}
+{% assign data_page = page.name | remove: ".md" | remove: ".html" %}
+<body
+  data-site-root="{{ '/' | relative_url }}"
+  data-page-path="{{ page.path }}"
+  data-search-index="{{ '/search.json' | relative_url }}"
+  data-tab="{{ data_tab }}"
+  data-page="{{ data_page }}"
+  data-issue-repo="{{ site.github.repository_nwo }}"
+  data-issue-labels="{{ site.issue_form.labels | join: ',' }}"
+>
+  <!-- トップバー -->
+  <header class="topbar">
+    <button type="button" class="drawer-toggle icon-button ghost" data-drawer-toggle aria-label="サイドバーを開く"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 6h16M4 12h16M4 18h16"/></svg></button>
+    <div class="brand"><a href="{{ '/' | relative_url }}">{{ site.title }}</a></div>
+    <div class="topbar-search">
+      <input type="search" data-search-input placeholder="見出しを検索..." aria-label="全ページ検索">
+      <span class="search-kbd"><kbd>Ctrl</kbd> <kbd>K</kbd></span>
+    </div>
+    <div class="topbar-actions">
+      <button type="button" class="search-toggle icon-button ghost" data-search-toggle aria-label="検索"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M11 4a7 7 0 1 0 0 14a7 7 0 0 0 0-14zM20 20l-4-4"/></svg></button>
+      <button type="button" class="ghost comment-toggle" data-comment-open aria-label="コメント（0 件）"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 5h16v11H10l-5 4v-4H4z"/></svg><span class="comment-toggle-label">コメント</span><span class="badge comment-count" data-comment-count aria-hidden="true">0</span></button>
+      <button type="button" class="theme-toggle icon-button" data-theme-toggle title="テーマを切り替える" aria-label="テーマを切り替える"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3a9 9 0 1 0 0 18a9 9 0 0 0 0-18zM12 3v18"/></svg></button>
+    </div>
+  </header>
+  {% assign left_tabs = all_tabs | slice: 0, 6 %}
+  {% assign right_tabs = all_tabs | slice: 6, 999 %}
+  <nav class="tabbar">
+    <div class="tabbar-group">
+      {% for tab in left_tabs %}{% include tab-link.html tab=tab current=data_tab %}{% endfor %}
+    </div>
+    <div class="tabbar-group">
+      {% for tab in right_tabs %}{% include tab-link.html tab=tab current=data_tab %}{% endfor %}
+    </div>
+  </nav>
+
+  <!-- 本文 -->
+  <div class="docs-layout">
+    <main class="docs-main">
+      <nav class="breadcrumb" data-breadcrumb></nav>
+      <article class="markdown-body"><textarea hidden data-mdmark-source>
+{{ page.content | xml_escape }}</textarea>
+      </article>
+    </main>
+    <aside class="docs-toc" data-toc hidden></aside>
+    <button class="back-to-top" data-back-to-top aria-label="トップへ戻る"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 19V5M5 12l7-7 7 7"/></svg></button>
+  </div>
+  {% include sidebar-source.html %}
+</body>
+</html>

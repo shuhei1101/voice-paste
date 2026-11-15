@@ -378,7 +378,6 @@ scenarios:
       - 選択欄から削除したプリセットが消え、既定が選択されている
     test: test_error_when_glossary_preset_not_found
 lead: 外の端末のブラウザの画面で録るか音声ファイルを選び、端末に残してから常駐アプリへ送信して、受け付けた `job_id` を受け取る。
-issue: 92
 primary_actor: ユーザー（外の端末のブラウザ）
 trigger: ユーザーが画面で録音を停止するか、音声ファイルを選んで送信する
 preconditions:

@@ -267,5 +267,3 @@ functions:
     refs:
       - LIB-8#
     status: planned
-    introduced:
-      pr: 204

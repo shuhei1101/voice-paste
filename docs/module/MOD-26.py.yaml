@@ -101,8 +101,6 @@ data_models:
         type: str
         description: 設定で選んでいるプリセットの名前（presets のどれか）
     status: planned
-    introduced:
-      pr: 180
 enums:
   - name: JobState
     title: ジョブの状態
@@ -201,8 +199,6 @@ function_types:
     implementations:
       - target: main.py の build_handlers の glossary_preset_exists（SessionApiDeps と同じ）
     status: planned
-    introduced:
-      pr: 180
   - name: ListGlossaryPresetsFn
     title: 用語集のプリセットの一覧の取得
     container: features/web_transcription/types.py
@@ -214,5 +210,3 @@ function_types:
     implementations:
       - target: main.py の build_handlers の list_glossary_preset_choices
     status: planned
-    introduced:
-      pr: 180

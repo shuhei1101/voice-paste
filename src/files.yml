@@ -4,6 +4,8 @@ files:
     related:
       - to: MOD-11
         type: implements
+      - to: ER-2
+        type: implements
   - path: voice_paste/features/history/service.py
     related:
       - to: MOD-9
@@ -35,6 +37,8 @@ files:
   - path: voice_paste/features/outputs/paste_and_send/settings.py
     related:
       - to: MOD-55
+        type: implements
+      - to: CFG-1
         type: implements
   - path: voice_paste/features/outputs/paste_only/service.py
     related:
@@ -192,9 +196,13 @@ files:
     related:
       - to: MOD-95
         type: implements
+      - to: ARCH-1
+        type: implements
   - path: voice_paste/main.py
     related:
       - to: MOD-84
+        type: implements
+      - to: ARCH-1
         type: implements
   - path: voice_paste/runtime/hotkey.py
     related:
@@ -223,6 +231,8 @@ files:
   - path: voice_paste/runtime/single_instance_linux.py
     related:
       - to: MOD-88
+        type: implements
+      - to: ER-2
         type: implements
   - path: voice_paste/runtime/timer.py
     related:
@@ -275,6 +285,8 @@ files:
   - path: voice_paste/shared/settings.py
     related:
       - to: MOD-50
+        type: implements
+      - to: CFG-1
         type: implements
   - path: voice_paste/shared/types.py
     related:

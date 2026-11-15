@@ -5,6 +5,7 @@ lead: 外の端末の文字起こしの画面が、その端末のブラウザ�
 tables:
   - name: IndexedDB voice-paste / kept_audio（キー latest）
     title: 端末内の音声
+    source: DATA-1#
     datastore: IndexedDB
     summary: 画面で録った直近 1 件の音声。送信に失敗しても再送でき、ダウンロードできる
     primary_key: 固定のキー `latest`
@@ -16,46 +17,52 @@ tables:
     columns:
       - name: blob
         title: 音声
+        source: DATA-1#fields[blob]
         type: object
         not_null: true
         description: MediaRecorder が録った Blob
         sensitivity: 個人情報
       - name: mime_type
         title: 形式
+        source: DATA-1#fields[mime_type]
         type: string
         not_null: true
         description: MediaRecorder の mimeType
         example: audio/webm;codecs=opus
       - name: recorded_at
         title: 保存日時
+        source: DATA-1#fields[recorded_at]
         type: string
         not_null: true
         description: 録音を止めて残した日時（ISO 8601）。期限をここから数える
       - name: duration_sec
         title: 長さ
+        source: DATA-1#fields[duration_sec]
         type: number
         not_null: true
         description: 録音の長さ（秒。画面が数えた経過時間）
       - name: size_bytes
         title: 大きさ
+        source: DATA-1#fields[size_bytes]
         type: number
         not_null: true
         description: Blob の大きさ
       - name: state
         title: 状態
+        source: DATA-1#fields[state]
         type: string
         not_null: true
         description: 送信と文字起こしの状態
         enum_values: "'sending' 送信中 / 'sent' 送信済み / 'send_failed' 送信失敗 / 'preset_not_found' 未送信（一覧に無いプリセットで 400） / 'not_transcribed' 文字起こし前（ジョブが failed か 404）"
       - name: job_id
         title: ジョブの ID
+        source: DATA-1#fields[job_id]
         type: string
         description: 受け付けられたときの job_id。送信前・送信失敗は null
     status: planned
-    introduced:
-      pr: 171
   - name: localStorage voice-paste.results
     title: 結果
+    source: DATA-2#
     datastore: JSON（localStorage）
     summary: 送信した音声の結果の一覧（配列。新しい件が先頭）。終わっていない件も持ち、画面を再度開いたら結果を取りに行くのを続ける
     primary_key: job_id
@@ -67,40 +74,45 @@ tables:
     columns:
       - name: job_id
         title: ジョブの ID
+        source: DATA-2#fields[job_id]
         type: string
         not_null: true
         primary_key: true
         description: 音声を受け付ける が返却した job_id
       - name: state
         title: 状態
+        source: DATA-2#fields[state]
         type: string
         not_null: true
         description: 最後に取りに行ったときの状態
         enum_values: "'queued' / 'running' / 'done'"
       - name: source
         title: 元の音声
+        source: DATA-2#fields[source]
         type: string
         not_null: true
         description: 画面で録った音声は `画面録音`、選んだファイルはファイル名
       - name: duration_sec
         title: 長さ
+        source: DATA-2#fields[duration_sec]
         type: number
         description: 画面で録った音声の長さ（選んだファイルは null）
       - name: sent_at
         title: 保存日時
+        source: DATA-2#fields[sent_at]
         type: string
         not_null: true
         description: 202 を受けた日時（ISO 8601）。一覧に出し、期限をここから数える
       - name: text
         title: 起こした文字
+        source: DATA-2#fields[text]
         type: string
         description: done のときの補正した文字。それ以外は null
         sensitivity: 個人情報
     status: planned
-    introduced:
-      pr: 171
   - name: localStorage voice-paste.glossary_preset
     title: 選んだ用語集のプリセット
+    source: DATA-3#
     datastore: localStorage
     summary: 用語集のプリセットの選択欄で最後に選んだ名前。画面を再度開いたときに選択を戻す
     scale: 1 件
@@ -111,6 +123,7 @@ tables:
     columns:
       - name: value
         title: プリセットの名前
+        source: DATA-3#fields[value]
         type: string
         not_null: true
         description: 選んだ用語集のプリセットの名前（用語集のプリセットの一覧を返却する の presets の名前）。「設定に従う」は空文字。JSON ではなく文字列のまま配置する
@@ -118,10 +131,9 @@ tables:
     refs:
       - SCR-6#elements[用語集のプリセットの選択欄]
     status: planned
-    introduced:
-      pr: 180
   - name: localStorage voice-paste.keep_screen_on
     title: 録音中に画面を暗くしないか
+    source: DATA-4#
     datastore: localStorage
     summary: 「録音中は画面を暗くしない」のチェックの値。画面を再度開いたときにチェックを戻す
     scale: 1 件
@@ -132,6 +144,7 @@ tables:
     columns:
       - name: value
         title: 画面を暗くしないか
+        source: DATA-4#fields[value]
         type: string
         not_null: true
         description: オンは `1`、オフは `0`。JSON ではなく文字列のまま配置する。キーが無いときはオンとして扱う
@@ -139,7 +152,5 @@ tables:
     refs:
       - SCR-6#elements[画面を暗くしないかのチェック]
     status: planned
-    introduced:
-      pr: 292
 refs:
   - SCR-6#

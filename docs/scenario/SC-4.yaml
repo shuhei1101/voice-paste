@@ -203,7 +203,6 @@ scenarios:
       - 端末（IndexedDB）に録った音声が残っていれば、再送信できる
     test: test_error_when_job_not_found
 lead: 外の端末のブラウザの画面が、受け付けた `job_id` で進み具合と結果を取りに行き、結果を端末に残してコピー・削除できるようにする。
-issue: 92
 primary_actor: ユーザー（外の端末のブラウザ）
 trigger: 画面が音声の送信の `202`（`job_id`）を受け取るか、ユーザーが画面を開き直す
 preconditions:

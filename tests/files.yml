@@ -1,5 +1,14 @@
 # yaml-language-server: $schema=../schemas/files.schema.yaml
 files:
+  - path: e2e/workflow/test_test_yml.py
+    description: "workflow test.yml のフローを本物の GitHub Actions で起動して確かめる E2E テストを受け持ち、テストを回す workflow を変えるときに参照する。"
+    tags:
+      - topic:testing
+      - topic:ci
+      - tool:github-actions
+    related:
+      - to: .github/workflows/test.yml
+        type: tests
   - path: external/voice_paste/integrations/keyboard/test_sender.py
     description: "クリップボードへの書き込みと、貼り付けのキー・Enter の送信を検証する外部の疎通テストを受け持ち、キーの送信やクリップボードの扱いを変えるときに参照する。"
     tags:

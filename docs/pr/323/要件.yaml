@@ -7,11 +7,11 @@ use_cases:
 docs:
   - page: docs/module/MOD-21.py.yaml
     new: false
-    change: mount_web_assets の説明と test_mount_web_assets の expected を、決めた直し方（.js の型の固定か、期待値の拡大）に合わせて修正する
+    change: JS_MEDIA_TYPE と .js の Content-Type を固定する WebAssetFiles を追加し、mount_web_assets の説明と test_mount_web_assets の expected を合わせる
     status: done
     updated_by: planner
     updated_at: '2026-11-15T11:13:52.769319+00:00'
 scope_out:
   - item: /web/assets/ の下の .js 以外の素材（style.css）の Content-Type の固定
-    reason: ランナーと手元で型が変わったのは .js だけで、要望に含まれない。型を固定する直し方を選んだときに同じ仕組みで扱えるかは、モジュール構成設計のレビューで確定する
+    reason: ランナーと手元で型が変わったのは .js だけで、要望に含まれない
     plan: none

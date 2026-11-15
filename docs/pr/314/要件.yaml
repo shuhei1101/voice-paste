@@ -2,7 +2,9 @@ docs:
   - page: docs/layout/LAY-1.yaml
     new: false
     change: '`schemas` のエントリをスキーマのコピーの削除に合わせて直し、`schemas` の下の `conversions` のエントリを削除し、`docs/rules.yaml` を直下の `rules.yaml` へ移し、`docs/data/` のエントリを足し、`docs/_theme/` を import-site の取り込み後の構成に合わせる。反映作業『設計書の新しいスキーマへの変換』が、モジュール構成の `directory` のツリーのうち LAY-1 に無いエントリ（`resources` のアイコン・`src/voice_paste/` の下のファイル等）を足す'
-    status: todo
+    status: done
+    updated_by: planner
+    updated_at: '2026-11-15T01:05:53.480608+00:00'
   - page: docs/_config.yml
     new: false
     change: 配布元で増えたキーを足し、除外の `rules.yaml` を索引の移動に合わせて外し、`data/` を除外に足す
@@ -12,7 +14,9 @@ docs:
   - page: docs/index.yaml
     new: false
     change: '`docs/data/` のフォルダの行を足す'
-    status: todo
+    status: done
+    updated_by: planner
+    updated_at: '2026-11-15T01:05:53.480608+00:00'
   - page: docs/er/ER-1.yaml
     new: false
     change: '`tables[].source` と `columns[].source` でデータの設計書を指す（反映作業『配布先のデータの設計書の作成』）'

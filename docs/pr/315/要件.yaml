@@ -1,0 +1,77 @@
+use_cases: []
+docs:
+  - page: docs/scenario
+    new: false
+    change: シナリオ 13 件にタグ（main を含む）・エイリアスを記載し、lead を「何を定め、どんなときに参照するか」の 1 文に揃える
+    status: todo
+  - page: docs/interface
+    new: false
+    change: インターフェース定義 14 件にタグ・エイリアスを記載し、lead を 1 文に揃える
+    status: todo
+  - page: docs/module
+    new: false
+    change: モジュール構成 104 件にタグ・エイリアスを記載し、lead を持たない 89 件に lead を記載する
+    status: todo
+  - page: docs/screen
+    new: false
+    change: 画面設計 10 件にタグ・エイリアスを記載し、lead を 1 文に揃える
+    status: todo
+  - page: docs/data
+    new: false
+    change: データの設計書 16 件にタグ・エイリアスを記載し、lead を 1 文に揃える
+    status: todo
+  - page: docs/er
+    new: false
+    change: ER 図 2 件にタグ・エイリアスを記載し、lead を 1 文に揃える
+    status: todo
+  - page: docs/library
+    new: false
+    change: 外部ライブラリ 33 件にタグ・エイリアスを記載し、lead を 1 文に揃える
+    status: todo
+  - page: docs/external-api
+    new: false
+    change: 外部 API 2 件にタグ・エイリアスを記載し、lead を 1 文に揃える
+    status: todo
+  - page: docs/architecture/ARCH-1.yaml
+    new: false
+    change: タグ・エイリアスを記載し、lead を 1 文に揃える
+    status: todo
+  - page: docs/config
+    new: false
+    change: 設定 1 件にタグ・エイリアスを記載し、lead を 1 文に揃える
+    status: todo
+  - page: docs/nonfunctional
+    new: false
+    change: 非機能要件にタグ・エイリアスと lead を記載する
+    status: todo
+  - page: docs/test-procedure
+    new: false
+    change: テスト実行方法にタグ・エイリアスと lead を記載する
+    status: todo
+  - page: docs/dev-command
+    new: false
+    change: 開発コマンドにタグ・エイリアスを記載し、lead を 1 文に統一する
+    status: todo
+  - page: docs/layout
+    new: false
+    change: フォルダ構成の設計書にタグ・エイリアスを記載し、lead を 1 文に揃える
+    status: todo
+  - page: src/files.yml
+    new: false
+    change: コード 86 行に、設計書と同じ語彙のタグと description を記載する
+    status: todo
+  - page: tests/files.yml
+    new: false
+    change: テスト 73 行に、設計書と同じ語彙のタグと description を記載する
+    status: todo
+  - page: haas_server/src/files.yml
+    new: false
+    change: Haas の文字起こしのサーバーのコード 3 行に、設計書と同じ語彙のタグと description を記載する
+    status: todo
+scope_out:
+  - item: docs/mock/files.yml・docs/guide/files.yml・docs/_root/files.yml の行へのタグ・description の記載
+    reason: 'Issue の要望はコード・テストの files.yml の行に限る。モック・ガイド・直下のファイルの行を含めるかはレビューで確定する（その時点の判断: 含めない）'
+    plan: to_file
+  - item: 用語集（docs/glossary）と目次（index.yaml）へのタグ・エイリアスの記載
+    reason: 用語集は用語ごとに name・aliases を持ち、目次はフォルダの一覧で、Issue の対象の設計書ではない
+    plan: none

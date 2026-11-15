@@ -1,0 +1,43 @@
+id: DATA-1
+visibility: internal
+title: 'データ: 端末内の音声'
+lead: 画面で録った直近 1 件の音声。送信に失敗しても再送でき、ダウンロードできる。
+datastore: IndexedDB
+fields:
+- key: blob
+  title: 音声
+  type: object
+  description: MediaRecorder が録った Blob
+  required: true
+- key: mime_type
+  title: 形式
+  type: string
+  description: MediaRecorder の mimeType
+  required: true
+  example: audio/webm;codecs=opus
+- key: recorded_at
+  title: 保存日時
+  type: datetime
+  description: 録音を止めて残した日時（ISO 8601）。期限をここから数える
+  required: true
+- key: duration_sec
+  title: 長さ
+  type: int
+  description: 録音の長さ（秒。画面が数えた経過時間）
+  required: true
+- key: size_bytes
+  title: 大きさ
+  type: int
+  description: Blob の大きさ
+  required: true
+- key: state
+  title: 状態
+  type: string
+  description: 送信と文字起こしの状態
+  required: true
+- key: job_id
+  title: ジョブの ID
+  type: string
+  description: 受け付けられたときの job_id。送信前・送信失敗は null
+refs:
+- ER-1#tables[IndexedDB voice-paste / kept_audio（キー latest）]

@@ -1,0 +1,12 @@
+id: DATA-14
+visibility: internal
+title: 'データ: ブラウザの音声の一時のファイル'
+lead: 受け付けた音声を起こすまで配置する。履歴を残す設定なら起こす前に履歴へ移し、残さない設定なら起こし終えた後に削除する。
+datastore: ファイル（録れた形式の音声）
+fields:
+- key: audio
+  title: 音声
+  type: array
+  description: 受けた本文の audio の中身そのまま
+refs:
+- ER-2#tables[%LOCALAPPDATA%\voice-paste\tmp\web\{job_id}.{webm|ogg|mp4|mp3|wav}]

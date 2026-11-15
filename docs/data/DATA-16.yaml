@@ -1,0 +1,12 @@
+id: DATA-16
+visibility: internal
+title: 'データ: Haas の文字起こしのサーバーのログ'
+lead: WSL の中のサーバーが書き込むログ。
+datastore: ファイル
+fields:
+- key: '-'
+  title: 中身
+  type: string
+  description: logging の 1 行。[ERROR] はスタックトレースつき
+refs:
+- ER-2#tables[~/.local/state/voice-paste/haas_server.log]

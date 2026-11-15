@@ -1,0 +1,28 @@
+id: DATA-9
+visibility: internal
+title: 'データ: アプリのログ'
+lead: 日付ごとに追記するアプリのログ（文字起こしワーカーの標準エラーも転送する）。
+datastore: ファイル（テキスト、UTF-8）
+fields:
+- key: ts
+  title: 日時
+  type: string
+  description: ローカルの時刻（UTC オフセット付きの ISO 8601）
+- key: level
+  title: レベル
+  type: string
+  description: ログのレベル
+- key: name
+  title: ロガー名
+  type: string
+  description: 書き込んだロガーの名前
+- key: msg
+  title: 本文
+  type: string
+  description: ログの本文
+- key: exc
+  title: 例外
+  type: string
+  description: 例外のスタックトレース（例外があるときだけ）
+refs:
+- ER-2#tables[%LOCALAPPDATA%\voice-paste\log\{YYYY-MM-DD}.log]

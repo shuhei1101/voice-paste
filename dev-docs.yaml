@@ -6,6 +6,19 @@ description: 録音・区切り・文字起こし・用語の補正をほかの�
 github:
   repository: shuhei1101/voice-input
 documents:
+  - id: data
+    title: データ
+    paths: ["docs/data/**/*.yaml"]
+    exclude: [index.yaml]
+    schema:
+      source: knowledge
+      path: schemas/design/data.schema.yaml
+      ref: design-schemas/v8.3.0
+    writable: true
+    metadata:
+      name: title
+      description: lead
+      visibility: visibility
   - id: architecture
     title: アーキテクチャ図
     paths: ["docs/architecture/*.yaml"]

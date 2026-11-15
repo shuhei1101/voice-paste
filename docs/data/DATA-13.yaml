@@ -1,0 +1,16 @@
+id: DATA-13
+visibility: internal
+title: 'データ: ブラウザの音声の履歴'
+lead: 外の端末のブラウザから受けた音声。文字起こしより先に一時の音声から移し、文字起こしに失敗しても残る。
+datastore: ファイル（録れた形式の音声）
+fields:
+- key: container
+  title: 容れ物
+  type: string
+  description: 受け付けで PyAV が読み込んだ容れ物の形式。拡張子になる
+- key: audio
+  title: 音声
+  type: array
+  description: 録れた形式のままの音声（WAV へ変えない）
+refs:
+- ER-2#tables[%LOCALAPPDATA%\voice-paste\history\{YYYYMMDD}\{YYYYMMDDHHMMSS}_web_{job_id}.{webm|ogg|mp4|mp3|wav}]

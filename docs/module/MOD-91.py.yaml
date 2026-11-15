@@ -292,6 +292,7 @@ tags:
   - name: topic:区間
     main: true
   - name: topic:連続録音
-  - name: topic:話し声の判定
+  - name: topic:話し声
   - name: topic:無音
   - name: action:分割
+  - name: action:判定

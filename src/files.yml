@@ -140,7 +140,7 @@ files:
     tags:
       - topic:区間
       - topic:連続録音
-      - topic:話し声の判定
+      - topic:話し声
       - topic:無音
     related:
       - to: MOD-91
@@ -151,7 +151,8 @@ files:
       - topic:録音
       - topic:マイク
       - topic:音量
-      - topic:画面の消灯
+      - topic:画面
+      - topic:消灯
       - topic:連続録音
     related:
       - to: MOD-90
@@ -162,7 +163,7 @@ files:
       - topic:型
       - topic:録音
       - topic:音量
-      - topic:話し声の判定
+      - topic:話し声
     related:
       - to: MOD-93
         type: implements
@@ -386,7 +387,7 @@ files:
   - path: voice_paste/integrations/vad/adapter.py
     description: "同梱した Silero VAD で窓ごとの話し声の確率を求める処理を受け持ち、連続録音の区切りの判定を変えるときに参照する。"
     tags:
-      - topic:話し声の判定
+      - topic:話し声
       - tool:silero-vad
       - tool:onnxruntime
     related:

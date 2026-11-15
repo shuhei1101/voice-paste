@@ -133,7 +133,8 @@ aliases:
   - StreamingVad
 lead: 同梱した Silero VAD で窓ごとの話し声の確率を求める処理を受け持ち、連続録音の区切りの判定を変えるときに参照する。
 tags:
-  - name: topic:話し声の判定
+  - name: topic:話し声
     main: true
   - name: tool:silero-vad
   - name: tool:onnxruntime
+  - name: action:判定

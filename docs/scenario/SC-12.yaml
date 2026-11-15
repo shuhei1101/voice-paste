@@ -215,5 +215,3 @@ tags:
   - name: topic:文字起こし
   - name: topic:出力先
   - name: action:貼り付け
-aliases:
-  - 音声入力

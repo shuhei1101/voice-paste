@@ -1162,8 +1162,6 @@ notes:
     `docs/{種類}/`（設計書と公開ドキュメントの種類のフォルダ）の `index.yaml` と、そこから生成する `README.md` は、エントリに記載しない。
     `README.md` は `CMD-1#categories[ビルド・生成]` の publish で生成する。
     フォルダの `content_types` は、`index.yaml`・`README.md`・`files.yml` を除いた中身で決める。
-aliases:
-  - フォルダ構成
 tags:
   - name: topic:フォルダ
     main: true

@@ -227,5 +227,3 @@ tags:
   - name: topic:文字起こし
   - name: action:送信
   - name: action:コピー
-aliases:
-  - 外の端末から文字に起こす

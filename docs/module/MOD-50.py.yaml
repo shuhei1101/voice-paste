@@ -2031,8 +2031,6 @@ functions:
         mock: なし
         expected: '[("突合", "とつごう")]'
     status: planned
-aliases:
-  - Settings
 lead: 既定値・環境の値・checkout の上書きを重ねた設定のモデルと、設定の読み込み・保存・移行を受け持ち、設定のキーや読み書きを変えるときに参照する。
 tags:
   - name: topic:設定

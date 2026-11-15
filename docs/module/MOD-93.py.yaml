@@ -109,4 +109,5 @@ tags:
     main: true
   - name: topic:録音
   - name: topic:音量
-  - name: topic:話し声の判定
+  - name: topic:話し声
+  - name: action:判定

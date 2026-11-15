@@ -508,5 +508,6 @@ tags:
     main: true
   - name: topic:マイク
   - name: topic:音量
-  - name: topic:画面の消灯
+  - name: topic:画面
+  - name: topic:消灯
   - name: topic:連続録音

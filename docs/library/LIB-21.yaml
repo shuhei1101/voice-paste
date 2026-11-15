@@ -59,7 +59,6 @@ install: |-
   ```
 aliases:
   - PySide6
-  - Qt
 tags:
   - name: tool:pyside6
     main: true

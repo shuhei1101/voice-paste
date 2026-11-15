@@ -124,8 +124,9 @@ notes:
     Xorg と Wayland のどちらのセッションでも同じ実装を使用し、実物の確認は検証環境の VM での通しの確認で行う。
 lead: gnome-session-inhibit の子プロセスで録音の間のアイドルを抑止・解除する処理を受け持ち、Linux での画面の消灯の抑止を変えるときに参照する。
 tags:
-  - name: topic:画面の消灯
+  - name: topic:消灯
     main: true
+  - name: topic:画面
   - name: topic:linux
   - name: tool:gnome-session-inhibit
   - name: action:抑制

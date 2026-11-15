@@ -42,6 +42,7 @@ tags:
   - name: tool:gnome-session-inhibit
     main: true
   - name: tool:gnome
-  - name: topic:画面の消灯
+  - name: topic:画面
+  - name: topic:消灯
   - name: topic:linux
   - name: action:抑制

@@ -36,4 +36,5 @@ tags:
     main: true
   - name: tool:silero-vad
   - name: topic:モデル
-  - name: topic:話し声の判定
+  - name: topic:話し声
+  - name: action:判定

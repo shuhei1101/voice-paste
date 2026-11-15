@@ -73,7 +73,9 @@ tasks:
     updated_by: planner
     updated_at: '2026-11-15T11:41:31.444658+00:00'
   - process: 実装
-    status: todo
+    status: done
+    updated_by: planner
+    updated_at: '2026-11-15T11:53:40.988942+00:00'
   - process: 結合テスト作成
     status: skipped
     reason: 素材の Content-Type は単体テストで確かめるため対象外

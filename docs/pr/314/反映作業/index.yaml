@@ -106,7 +106,7 @@
   切り戻し: null
   失敗時: 実行者が原因を確かめて依頼元へ返す
   確認方法: 配布先の dev-docs.yaml の設計書の種別の行の schema が knowledge の source・path・ref を持ち、配布先の schemas/（dev/ が残るリポジトリは dev/テンプレート/）に AI Monitor から配られたスキーマのコピーが無い
-  状態: 未
+  状態: 済
 設計書の新しいスキーマへの変換:
   説明: dev-docs.yaml の knowledge のスキーマの行の ref を design-schemas/v8.3.0 に統一し、AI Monitor の変換（design_docs convert --from v0.4.0 --to design-schemas/v8.3.0）を掛け、knowledge のスキーマが持たないキーを書き換えて、設計書の検査の違反を対応テストファイルの不在と tables[].source の欠落だけにする。introduced は除き、implementation は src/files.yml・haas_server/src/files.yml のコードの行に設計書を指す implements を足して除き、error_message は入力チェックの表に同じ要素があれば除いて無ければ notes の『エラーの表示』へ移し、directory は配布元 v0.4.0 の変換（schemas/conversions/v0.4.0.py の _move_layout）と同じく、ツリーを docs/layout/ のフォルダ構成の設計書のエントリへ移して（既にあるエントリは足さない）ツリーでない記述を notes の『ディレクトリ構成』へ移し、per_env は config/defaults.yaml の os_overrides が上書きするキーを overrides の行にして、上書きを持たない記述を設定の notes の『環境ごとの値』へ移す。計画は一時フォルダのコピーで行い、適用の前に書き換えるファイルを git のディレクトリの ai-monitor-pr314-backup/ へ退避する。『各プロジェクトのスキーマの参照への移行』の後に行い、結果を commit してから『配布先のデータの設計書の作成』へ進む（そちらは書き換える対象の未 commit の変更があると前提確認で止まる）
   タグ:

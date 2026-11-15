@@ -1,0 +1,21 @@
+docs:
+  - page: docs/module/README.md
+    new: false
+    change: publish で作り直し、index.yaml にある MOD-102・MOD-103・MOD-104 の行を加える
+    status: todo
+  - page: docs/README.md
+    new: false
+    change: 'publish で作り直し、表のマーカーを `<!-- table: {"kind": "data"} -->` にする'
+    status: todo
+  - page: docs/_config.yml
+    new: false
+    change: publish で作り直し、exclude の `data/` の並びを publish の出力の順にする
+    status: todo
+  - page: docs/data/README.md
+    new: true
+    change: publish で docs/data/index.yaml から目次を作成する
+    status: todo
+scope_out:
+  - item: publish を開発コマンドの設計書へ追加する
+    reason: 目次の作り直しとは別の題材で、#304 が扱う
+    plan: '#304'

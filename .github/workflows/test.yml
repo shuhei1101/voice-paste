@@ -30,7 +30,7 @@ jobs:
         uses: actions/checkout@v7
 
       - name: uv を入れる
-        uses: astral-sh/setup-uv@v10
+        uses: astral-sh/setup-uv@v10.3.3
 
       - name: Python の依存を入れる
         run: uv sync --frozen

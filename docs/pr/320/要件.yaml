@@ -12,8 +12,8 @@ docs:
     change: verification を、develop の workflow test.yml をランナーで回した結果で `済` にし、日付と確認した内容を書く。catalogs の params（name・path・if-no-files-found）の verification_state を、成果物 test-log が上がったことで確認できたものは verified にする
     status: todo
 scope_out:
-  - item: E2E テスト・ランナーでの全件実行が fail した場合の workflow・テスト・コードの修正
-    reason: 起点 Issue のやりたいことは回して件数を確認することだけで、修正を含まない（task-reviewer の pt の指摘）。fail した場合は原因と直し方を書いて別の Issue にする
+  - item: E2E テスト・ランナーでの全件実行が fail した場合の、astral-sh/setup-uv のタグの修正以外の workflow・テスト・コードの修正
+    reason: 起点 Issue のやりたいことは回して件数を確認することだけで、修正を含まない（task-reviewer の pt の指摘）。タグの修正だけは確認ログの決着でこの PR に含めた。それ以外の fail は原因と修正方法を記載して別の Issue にする
     plan: to_file
   - item: LIB-38（pytest-timeout）の verification
     reason: 手元の Windows で確認して既に `済` のため、書き換える必要が無い

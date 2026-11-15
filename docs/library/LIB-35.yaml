@@ -23,11 +23,11 @@ version:
   latest: v10.3.3
   checked_on: '2026-11-15'
   source: .github/workflows/test.yml
-  pinning: メジャーバージョンのタグで指定する
+  pinning: 完全なバージョンのタグで指定する（メジャーバージョンのタグを公開していない）
 catalogs:
   - name: action
     version: v10.3.3
     entries:
-      - name: astral-sh/setup-uv@v10
+      - name: astral-sh/setup-uv@v10.3.3
         kind: action
         purpose: uv を入れる

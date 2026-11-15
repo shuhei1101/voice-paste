@@ -75,8 +75,10 @@ tasks:
     updated_by: planner
     updated_at: '2026-11-15T04:39:25.454870+00:00'
   - process: 実装
-    status: todo
+    status: done
     note: .github/workflows/ の workflow と、手元でしか動かないテストのマーカー
+    updated_by: planner
+    updated_at: '2026-11-15T06:54:08.026226+00:00'
   - process: 結合テスト作成
     status: todo
     note: workflow のインターフェース定義の対応テスト（配置先はインターフェース定義設計で決める）

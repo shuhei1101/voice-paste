@@ -2,7 +2,9 @@ docs:
   - page: docs/test-procedure/TP-1.yaml
     new: false
     change: 層ごとの location と runner の層の run_runner を記載し、lint の層の全件実行に actionlint を加え、workflow のテストの E2E テストの層（tests/e2e/workflow/、local）を追加する
-    status: todo
+    status: done
+    updated_by: planner
+    updated_at: '2026-11-15T06:54:02.503503+00:00'
   - page: docs/architecture/ARCH-1.yaml
     new: false
     change: workflow を持つサブシステムと、GitHub Actions との境界を追加する

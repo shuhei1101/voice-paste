@@ -1,5 +1,18 @@
 files:
 - path: ../index.md
   visibility: public
+  description: 'voice-paste の公開ドキュメント全体の目次として、はじめに・使い方・リファレンスのページへの入口を記載し、公開ドキュメントのページを探すときに参照する。'
+  tags:
+  - topic:目次
+  - topic:ドキュメント
 - path: ../design-policy.md
   visibility: internal
+  description: '画面全体に通すデザインスタイルと、色・書体・文言の役割を記載し、画面やモックの見た目と文言を決めるときに参照する。'
+  tags:
+  - topic:デザインスタイル
+  - topic:デザイン
+  - topic:スタイル
+  - topic:画面
+  - topic:色
+  - topic:書体
+  - topic:文言

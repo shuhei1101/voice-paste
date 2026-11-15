@@ -111,7 +111,7 @@ classes:
           - name: test_file_response_when_registry_differs
             case: 正常
             summary: 端末の mimetypes が別の型を返却しても、.js は JS_MEDIA_TYPE で返却する
-            condition: starlette.responses.guess_type を .js に application/javascript を返却する関数に差し替え、TestClient で GET /web/assets/app.js と GET /web/assets/style.css
+            condition: starlette.responses.guess_type を、.js には application/javascript を返却し、ほかの拡張子は元の guess_type へ委ねる関数に差し替え、TestClient で GET /web/assets/app.js と GET /web/assets/style.css
             mock: starlette.responses.guess_type（ランナーの Windows のレジストリの値を再現する）
-            expected: app.js は 200・text/javascript; charset=utf-8。style.css は差し替えた guess_type の返却する型
+            expected: app.js は 200・text/javascript; charset=utf-8。style.css は 200・text/css で始まる型
     status: planned

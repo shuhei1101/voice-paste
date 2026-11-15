@@ -2,7 +2,7 @@
 
 ## 概要
 
-develop で `python -m ai_monitor.design_docs publish` を流しても差分が出ないよう、publish で作り直した目次の README.md と `docs/_config.yml` を commit する。
+develop で `python -m ai_monitor.design_docs publish` を実行しても差分が出ないよう、publish で作り直した目次の README.md と `docs/_config.yml` を commit する。
 
 ## 背景
 

@@ -162,6 +162,23 @@ entries:
     content_types:
       - tool_config
   - type: folder
+    name: .github
+    contents: GitHub の設定
+    content_types:
+      - tool_config
+    children:
+      - type: folder
+        name: workflows
+        contents: GitHub Actions の workflow
+        content_types:
+          - tool_config
+        children:
+          - type: file
+            name: test.yml
+            contents: テスト実行方法の実行場所が runner の層の全件を、ランナーで回す workflow
+            content_types:
+              - tool_config
+  - type: folder
     name: config
     contents: 常駐アプリの設定の既定値と、利用者が手元に作る設定ファイルの見本
     content_types:

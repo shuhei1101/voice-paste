@@ -11,8 +11,10 @@ docs:
     updated_at: '2026-11-15T05:57:58.605750+00:00'
   - page: docs/layout/LAY-1.yaml
     new: false
-    change: .github/workflows/ と tests/e2e/workflow/ のエントリを追加する
-    status: todo
+    change: .github/workflows/ のエントリを追加する（tests/ は convention を持つフォルダのため配下を書かない）
+    status: done
+    updated_by: planner
+    updated_at: '2026-11-15T06:23:25.979252+00:00'
 scope_out:
   - item: スキーマのコピー（schemas/test-procedure.schema.yaml・schemas/interface.schema.yaml）の更新
     reason: '#314 で schemas/ のコピーを削除し、knowledge のスキーマを参照する形へ移ったため、更新する対象が無い'

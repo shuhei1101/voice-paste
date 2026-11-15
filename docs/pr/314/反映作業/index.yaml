@@ -90,7 +90,7 @@
   切り戻し: プロジェクトの索引の設定ファイルへの移行/切り戻し.py
   失敗時: 既定の対処を 1 回、2 回連続で失敗したら依頼元へ返す
   確認方法: 配布先のリポジトリの .claude/settings.json の env に RULE_INJECT_INDEXES_PROJECT が無く、移行前の値の索引が ~/.config/rule-inject/settings.yaml の projects[] の、match がそのリポジトリのクローンの絶対パスの要素の indexes に入っている
-  状態: 未
+  状態: 済
 各プロジェクトのスキーマの参照への移行:
   説明: '配布先のリポジトリで、dev-docs.yaml の documents[].schema を knowledge のスキーマのリビジョンつきの参照（source・path・ref）へ書き換え（設計書の種別の行は schemas/design/{種類}.schema.yaml、管理用の YAML の行は schemas/knowledge-files.schema.yaml を指す）、自分の schemas/（dev/ が残るリポジトリは dev/テンプレート/）にある AI Monitor から配られたスキーマのコピー（設計書の種別の Schema・files.schema.yaml と、フェーズの設計書を持たないので使わない phase.schema.yaml）を全て削除し、設計書を新しいスキーマの検査に合格させる。dev/ が残るリポジトリは、そのプロジェクトの docs/ への移行の Issue の後に行う（配布元: https://github.com/shuhei1101/ai-monitor/tree/v0.4.0/docs/pr/3430/%E5%8F%8D%E6%98%A0%E4%BD%9C%E6%A5%AD/%E5%90%84%E3%83%97%E3%83%AD%E3%82%B8%E3%82%A7%E3%82%AF%E3%83%88%E3%81%AE%E3%82%B9%E3%82%AD%E3%83%BC%E3%83%9E%E3%81%AE%E5%8F%82%E7%85%A7%E3%81%B8%E3%81%AE%E7%A7%BB%E8%A1%8C）'
   タグ:

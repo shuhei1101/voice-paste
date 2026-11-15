@@ -1,0 +1,83 @@
+tasks:
+  - process: 初期構築
+    status: skipped
+    reason: 既存リポジトリのため対象外
+    updated_by: planner
+    updated_at: '2026-11-15T10:58:03.945765+00:00'
+  - process: リバースエンジニアリング
+    status: skipped
+    reason: 設計書がある既存の機能の修正のため対象外
+    updated_by: planner
+    updated_at: '2026-11-15T10:58:03.945765+00:00'
+  - process: 方針決め
+    status: skipped
+    reason: 方針決めを依頼する Issue でないため対象外
+    updated_by: planner
+    updated_at: '2026-11-15T10:58:03.945765+00:00'
+  - process: PoC 検証
+    status: skipped
+    reason: 未検証の技術機構に依存しないため対象外
+    updated_by: planner
+    updated_at: '2026-11-15T10:58:03.945765+00:00'
+  - process: 複合ユースケース設計
+    status: skipped
+    reason: ユースケースの流れを変えないため対象外
+    updated_by: planner
+    updated_at: '2026-11-15T10:58:03.945765+00:00'
+  - process: デザインスタイル選定
+    status: skipped
+    reason: 画面の見た目を変えないため対象外
+    updated_by: planner
+    updated_at: '2026-11-15T10:58:03.945765+00:00'
+  - process: 画面一覧・画面遷移
+    status: skipped
+    reason: 画面と遷移を変えないため対象外
+    updated_by: planner
+    updated_at: '2026-11-15T10:58:03.945765+00:00'
+  - process: 単一ユースケース設計
+    status: skipped
+    reason: ユースケースの手順を変えないため対象外
+    updated_by: planner
+    updated_at: '2026-11-15T10:58:03.945765+00:00'
+  - process: モック作成
+    status: skipped
+    reason: 画面を変えないため対象外
+    updated_by: planner
+    updated_at: '2026-11-15T10:58:03.945765+00:00'
+  - process: インターフェース定義設計
+    status: skipped
+    reason: IF-6 は /web/assets/ の下を拡張子に合う Content-Type で返却すると定めており、変えないため対象外
+    updated_by: planner
+    updated_at: '2026-11-15T10:58:03.945765+00:00'
+  - process: 部品設計
+    status: skipped
+    reason: 画面の部品を変えないため対象外
+    updated_by: planner
+    updated_at: '2026-11-15T10:58:03.945765+00:00'
+  - process: 画面設計
+    status: skipped
+    reason: 画面を変えないため対象外
+    updated_by: planner
+    updated_at: '2026-11-15T10:58:03.945765+00:00'
+  - process: モジュール構成設計
+    status: done
+    updated_by: planner
+    updated_at: '2026-11-15T11:13:56.152707+00:00'
+  - process: ドキュメント修正
+    status: skipped
+    reason: 設計書のほかに更新するドキュメントが無いため対象外
+    updated_by: planner
+    updated_at: '2026-11-15T10:58:03.945765+00:00'
+  - process: 単体テスト作成
+    status: done
+    updated_by: planner
+    updated_at: '2026-11-15T11:41:31.444658+00:00'
+  - process: 実装
+    status: done
+    updated_by: planner
+    updated_at: '2026-11-15T11:53:40.988942+00:00'
+  - process: 結合テスト作成
+    status: skipped
+    reason: 素材の Content-Type は単体テストで確かめるため対象外
+    updated_by: planner
+    updated_at: '2026-11-15T10:58:03.945765+00:00'

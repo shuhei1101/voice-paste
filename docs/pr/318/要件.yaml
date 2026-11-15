@@ -6,7 +6,9 @@ docs:
   - page: docs/architecture/ARCH-1.yaml
     new: false
     change: workflow を持つサブシステムと、GitHub Actions との境界を追加する
-    status: todo
+    status: done
+    updated_by: planner
+    updated_at: '2026-11-15T05:57:58.605750+00:00'
   - page: docs/layout/LAY-1.yaml
     new: false
     change: .github/workflows/ のエントリを追加する

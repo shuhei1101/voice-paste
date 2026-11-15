@@ -45,8 +45,10 @@ tasks:
     updated_by: planner
     updated_at: '2026-11-15T04:39:25.454870+00:00'
   - process: インターフェース定義設計
-    status: todo
+    status: done
     note: テストを回す workflow のインターフェース定義の作成と、層ごとの実行場所の判定・手元でしか動かないテストの洗い出し
+    updated_by: planner
+    updated_at: '2026-11-15T05:57:54.174560+00:00'
   - process: 部品設計
     status: skipped
     reason: 画面に関わる変更ではない

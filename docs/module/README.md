@@ -56,6 +56,8 @@
 | [常駐アプリ / 外部連携 / adapter.py](./MOD-68.py.yaml) | 常駐アプリ / 外部連携 / adapter.py |
 | [常駐アプリ / 外部連携 / adapter.py](./MOD-71.py.yaml) | 常駐アプリ / 外部連携 / adapter.py |
 | [常駐アプリ / 外部連携 / noop.py](./MOD-75.py.yaml) | 常駐アプリ / 外部連携 / noop.py |
+| [常駐アプリ / 外部連携 / display/adapter.py](./MOD-102.py.yaml) | 常駐アプリ / 外部連携 / display/adapter.py |
+| [常駐アプリ / 外部連携 / display/adapter_linux.py](./MOD-103.py.yaml) | 常駐アプリ / 外部連携 / display/adapter_linux.py |
 | [常駐アプリ / 外部連携 / client.py](./MOD-67.py.yaml) | 常駐アプリ / 外部連携 / client.py |
 | [文字起こしワーカー / ワーカー / protocol.py](./MOD-94.py.yaml) | 文字起こしワーカー / ワーカー / protocol.py |
 | [文字起こしワーカー / ワーカー / worker.py](./MOD-95.py.yaml) | 文字起こしワーカー / ワーカー / worker.py |
@@ -92,6 +94,7 @@
 | [常駐アプリ / ホットキーと画面 / recording_window.py](./MOD-34.py.yaml) | 常駐アプリ / ホットキーと画面 / recording_window.py |
 | [常駐アプリ / ホットキーと画面 / settings_edge_phrases.py](./MOD-41.py.yaml) | 常駐アプリ / ホットキーと画面 / settings_edge_phrases.py |
 | [常駐アプリ / ホットキーと画面 / settings_fields.py](./MOD-46.py.yaml) | 常駐アプリ / ホットキーと画面 / settings_fields.py |
+| [常駐アプリ / ホットキーと画面 / settings_shortcuts.py](./MOD-104.py.yaml) | 常駐アプリ / ホットキーと画面 / settings_shortcuts.py |
 | [常駐アプリ / ホットキーと画面 / settings_glossaries.py](./MOD-38.py.yaml) | 常駐アプリ / ホットキーと画面 / settings_glossaries.py |
 | [常駐アプリ / ホットキーと画面 / settings_hints.py](./MOD-39.py.yaml) | 常駐アプリ / ホットキーと画面 / settings_hints.py |
 | [常駐アプリ / ホットキーと画面 / settings_presets.py](./MOD-37.py.yaml) | 常駐アプリ / ホットキーと画面 / settings_presets.py |

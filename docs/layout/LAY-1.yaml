@@ -33,7 +33,7 @@ content_types:
     summary: アプリの設定と、その既定値・見本
   - name: tool_config
     group: role
-    summary: 開発の道具（Git・Python・Node.js・エディタ・dev-docs・rule-inject・Pages）の設定
+    summary: 開発の道具（Git・Python・Node.js・エディタ・dev-docs・rule-inject・Pages・GitHub Actions）の設定
   - name: manifest
     group: role
     summary: 依存と起動の入口を持つマニフェストと、そのロックファイル
@@ -164,8 +164,6 @@ entries:
   - type: folder
     name: .github
     contents: GitHub の設定
-    content_types:
-      - tool_config
     children:
       - type: folder
         name: workflows

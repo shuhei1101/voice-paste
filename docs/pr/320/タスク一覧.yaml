@@ -65,17 +65,19 @@ tasks:
     updated_by: planner
     updated_at: '2026-11-15T07:54:31.400982+00:00'
   - process: ドキュメント修正
-    status: todo
+    status: done
     note: E2E テスト tests/e2e/workflow/test_test_yml.py と単体テスト（バック）・結合テスト（バック）の run_runner を回し、結果で LIB-34〜36 の verification を書き換える
+    updated_by: planner
+    updated_at: '2026-11-15T10:34:22.191130+00:00'
   - process: 単体テスト作成
     status: skipped
     reason: コードを変えない
     updated_by: planner
     updated_at: '2026-11-15T07:54:31.400982+00:00'
   - process: 実装
-    status: todo
+    status: done
     updated_by: planner
-    updated_at: '2026-11-15T10:09:57.366245+00:00'
+    updated_at: '2026-11-15T10:34:22.191130+00:00'
     note: 確認ログの決着のとおり、.github/workflows/test.yml の astral-sh/setup-uv を v10.3.3 に変える
   - process: 結合テスト作成
     status: skipped

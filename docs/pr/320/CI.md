@@ -17,19 +17,38 @@
 | 対象 | 方針 | 補足 |
 | --- | --- | --- |
 | E2E テスト | `TL-6` の全件実行のコマンドで回し、ログを `テスト結果/` に配置する | 検証用のブランチはテストが終わりに削除する |
-| ランナーでの全件実行 | 作業ブランチで `TL-1`・`TL-2` の `run_runner` を回し、ログを `テスト結果/` に配置する | 件数の比べ方は `### 件数の比較
+| ランナーでの全件実行 | 作業ブランチで `TL-1`・`TL-2` の `run_runner` を回し、ログを `テスト結果/` に配置する | 件数の比べ方は `### 件数の比較` に記載する |
+| 外部ライブラリの確認状態 | LIB-34〜36 の `verification` を `済` にし、日付と、どの実行で何を確認したかを `detail` に記載する。LIB-36 の `catalogs` の引数は、成果物 `test-log` が上がったことで確認できたものを `verified` にする | fail して確認できなかった action は `未確認` のまま残し、理由を `detail` に記載する |
+| fail・件数の違い | 原因を調べて `### ランナーで分かったこと` に記載し、修正する作業を別の Issue にする | workflow・テスト・コードは変えない（`astral-sh/setup-uv` のタグだけは確認ログの決着でこの PR で修正した） |
+
+### 実行するテスト
+
+この作業 PR の変更ファイルは、PR ドキュメントと LIB-34〜36 と、確認ログの決着で修正した workflow の `astral-sh/setup-uv` のタグだけ。
+起点 Issue が求める確認として、次だけを回す。非機能要件テスト・外部疎通テストは回さない。
+
+| テスト | 範囲 | 実行場所 | 範囲の理由 |
+| --- | --- | --- | --- |
+| `tests/e2e/workflow/test_test_yml.py` | 全 5 件（IF-15 のフロー） | 手元から `gh` で GitHub Actions を起動する | 成功・失敗・タイムアウト・導入の失敗の経路で、LIB-34〜36 の action を 1 回ずつ実行する |
+| 単体テスト（バック） | 層の全件（`run_runner`） | ランナー（`windows-latest`） | skip の件数を手元の全件実行と比べるのが起点 Issue の要望で、層の全件でないと比べられない。手元の資源は使用しない |
+| 結合テスト（バック） | 層の全件（`run_runner`） | ランナー（`windows-latest`） | 単体テスト（バック）と同じ |
+
+### 件数の比較
+
+`astral-sh/setup-uv` を `v10.3.3` に修正した後（ac90e8b）のランナーの結果。
 
 | 層 | 手元（Windows） | ランナー（`windows-latest`） | 違いの原因 |
 | --- | --- | --- | --- |
-| 単体テスト（バック） | 937 passed・57 skipped | 比べられない（ジョブの準備で失敗し、テストを実行していない） | `### 初回の起動で分かったこと` |
-| 結合テスト（バック） | 807 passed・1 skipped | 比べられない（同上） | 同上 |
+| 単体テスト（バック） | 937 passed・57 skipped | 936 passed・1 failed・57 skipped | skipped は一致。fail の 1 件は `test_mount_web_assets`（`### ランナーで分かったこと`） |
+| 結合テスト（バック） | 807 passed・1 skipped | 807 passed・1 skipped | 一致 |
 
-### 初回の起動で分かったこと
+単体テストの skipped の 57 件は、Linux でだけ回すテスト（`test_single_instance_linux.py`・`test_sender_wayland.py`・`test_hotkey_gnome.py` など）で、手元の Windows と同じ。
 
-workflow の全ての実行が、ジョブの準備（Set up job）の `Unable to resolve action astral-sh/setup-uv@v10, unable to find version v10` で失敗した。
-`astral-sh/setup-uv` はメジャーバージョンのタグ（`v10`）を公開しておらず、タグは `v10.3.3` のような完全なバージョンだけ（`gh api repos/astral-sh/setup-uv/git/ref/tags/v10` は 404）。
-`actions/checkout@v7`・`actions/upload-artifact@v7` のタグは存在する。
-LIB-35 の `version.pinning` の「メジャーバージョンのタグで指定する」が、この action では成り立たない。
+### ランナーで分かったこと
+
+| 事象 | 原因 | 対応 |
+| --- | --- | --- |
+| 修正前（98a9cb9）は、全ての実行がジョブの準備で `Unable to resolve action astral-sh/setup-uv@v10, unable to find version v10` で失敗した | `astral-sh/setup-uv` はメジャーバージョンのタグ（`v10`）を公開しておらず、`v10.3.3` のような完全なバージョンのタグだけを持つ（`gh api repos/astral-sh/setup-uv/git/ref/tags/v10` は 404） | 確認ログの決着で、この PR で `v10.3.3` に修正した |
+| 単体テスト `tests/unit/voice_paste/server/test_web_page.py::test_mount_web_assets` が、`app.js` の Content-Type が `application/javascript` で fail した（手元は `text/javascript` で pass） | `StaticFiles` が Python の `mimetypes` で Content-Type を決め、Windows ではレジストリの `.js` の値を読むため、端末で変わる | [#322](https://github.com/shuhei1101/voice-paste/issues/322) に切り出した |
 
 ## テスト結果
 
@@ -37,16 +56,24 @@ LIB-35 の `version.pinning` の「メジャーバージョンのタグで指定
 
 | ファイル | メソッド | 変更種別 | 結果 | 補足 |
 | --- | --- | --- | --- | --- |
-| `tests/unit/` | 全実行 | 実行のみ | ❌ | ランナーのジョブの準備で失敗し、テストは実行していない（[実行](https://github.com/shuhei1101/voice-paste/actions/runs/43692966298)）<br>`テスト結果/20261115170640_98a9cb9_単体テスト.log` |
+| `tests/unit/` | 全実行 | 実行のみ | ❌ | 修正前: ジョブの準備で失敗<br>`テスト結果/20261115170640_98a9cb9_単体テスト.log` |
+| `tests/unit/` | 全実行 | 実行のみ | ❌ | 修正後: 936 passed・1 failed・57 skipped。fail は `test_mount_web_assets` で #322 に切り出した（[実行](https://github.com/shuhei1101/voice-paste/actions/runs/43703560120)）<br>`テスト結果/20261115192002_ac90e8b_単体テスト.log` |
 
 ### 結合
 
 | ファイル | メソッド | 変更種別 | 結果 | 補足 |
 | --- | --- | --- | --- | --- |
-| `tests/integration/` | 全実行 | 実行のみ | ❌ | 単体と同じ原因で失敗<br>`テスト結果/20261115170645_98a9cb9_結合テスト.log` |
+| `tests/integration/` | 全実行 | 実行のみ | ❌ | 修正前: ジョブの準備で失敗<br>`テスト結果/20261115170645_98a9cb9_結合テスト.log` |
+| `tests/integration/` | 全実行 | 実行のみ | ✅ | 修正後: 807 passed・1 skipped（[実行](https://github.com/shuhei1101/voice-paste/actions/runs/43703560854)）<br>`テスト結果/20261115192002_ac90e8b_結合テスト.log` |
 
 ### E2E
 
 | ファイル | メソッド | 変更種別 | 結果 | 補足 |
 | --- | --- | --- | --- | --- |
-| [tests/e2e/workflow/test_test_yml.py](https://github.com/shuhei1101/voice-paste/blob/98a9cb9/tests/e2e/workflow/test_test_yml.py) | 全実行 | 実行のみ | ❌ | 5 件とも、単体と同じ原因で実行の結論が `failure`・step の結論が空になり fail。Windows の gh が未ログインのため、WSL の Python で実行した<br>`テスト結果/20261115170635_98a9cb9_E2Eテスト.log` |
+| [tests/e2e/workflow/test_test_yml.py](https://github.com/shuhei1101/voice-paste/blob/ac90e8b/tests/e2e/workflow/test_test_yml.py) | 全実行 | 実行のみ | ❌ | 修正前: 5 件とも fail<br>`テスト結果/20261115170635_98a9cb9_E2Eテスト.log` |
+| [tests/e2e/workflow/test_test_yml.py](https://github.com/shuhei1101/voice-paste/blob/ac90e8b/tests/e2e/workflow/test_test_yml.py) | 全実行 | 実行のみ | ✅ | 修正後: 5 passed。Windows の gh が未ログインのため WSL の Python で実行した<br>`テスト結果/20261115192005_ac90e8b_E2Eテスト.log` |
+
+### lint
+
+全て exit 0（`uv lock --check`・`lint-imports`・`npm run typecheck`・`npm run lint`・`app.js` の再生成の差分・`actionlint`）。WSL の Linux で実行した。
+`テスト結果/20261115191851_ac90e8b_lint.log`

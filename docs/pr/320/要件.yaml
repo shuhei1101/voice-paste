@@ -2,19 +2,25 @@ docs:
   - page: docs/library/LIB-34.yaml
     new: false
     change: verification を、develop の workflow test.yml をランナーで回した結果で `済` にし、日付と確認した内容を書く
-    status: todo
+    status: done
+    updated_by: planner
+    updated_at: '2026-11-15T10:34:14.953663+00:00'
   - page: docs/library/LIB-35.yaml
     new: false
-    change: verification を、develop の workflow test.yml をランナーで回した結果で `済` にし、日付と確認した内容を書く
-    status: todo
+    change: verification を、develop の workflow test.yml をランナーで回した結果で `済` にし、日付と確認した内容を書く。version.pinning と catalogs を完全なバージョンのタグ（v10.3.3）の指定にする
+    status: done
+    updated_by: planner
+    updated_at: '2026-11-15T10:34:14.953663+00:00'
   - page: docs/library/LIB-36.yaml
     new: false
     change: verification を、develop の workflow test.yml をランナーで回した結果で `済` にし、日付と確認した内容を書く。catalogs の params（name・path・if-no-files-found）の verification_state を、成果物 test-log が上がったことで確認できたものは verified にする
-    status: todo
+    status: done
+    updated_by: planner
+    updated_at: '2026-11-15T10:34:14.953663+00:00'
 scope_out:
-  - item: E2E テスト・ランナーでの全件実行が fail した場合の、astral-sh/setup-uv のタグの修正以外の workflow・テスト・コードの修正
-    reason: 起点 Issue のやりたいことは回して件数を確認することだけで、修正を含まない（task-reviewer の pt の指摘）。タグの修正だけは確認ログの決着でこの PR に含めた。それ以外の fail は原因と修正方法を記載して別の Issue にする
-    plan: to_file
   - item: LIB-38（pytest-timeout）の verification
     reason: 手元の Windows で確認して既に `済` のため、書き換える必要が無い
     plan: none
+  - item: ランナーで fail した単体テスト test_mount_web_assets（app.js の Content-Type が端末のレジストリで変わる）の修正
+    reason: この PR は回して件数を確認する作業で、タグ以外の修正を含めない。この PR がマージされなくても同じ内容で成り立つ
+    plan: '#322'

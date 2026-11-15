@@ -1,0 +1,17 @@
+# 実行環境: WSL の Linux の Python（uv sync --frozen で /tmp/vp320-venv に作成）。Windows の gh が未ログインのため、TL-6 の .venv/Scripts/python.exe の代わりに使用した
+$ /tmp/vp320-venv/bin/python -m pytest tests/e2e/workflow --run-e2e -v -p no:cacheprovider
+============================= test session starts ==============================
+platform linux -- Python 3.14.3, pytest-9.1.1, pluggy-1.7.0 -- /tmp/vp320-venv/bin/python
+rootdir: /mnt/c/Users/shuhe/repo/voice-paste/.claude/worktrees/chore-test-first-run-test-workflow
+configfile: pyproject.toml
+plugins: anyio-4.15.1, platformdirs-4.13.3, timeout-2.4.0
+collecting ... collected 5 items
+
+tests/e2e/workflow/test_test_yml.py::test_normal PASSED                  [ 20%]
+tests/e2e/workflow/test_test_yml.py::test_normal_when_integration PASSED [ 40%]
+tests/e2e/workflow/test_test_yml.py::test_error_when_test_fails PASSED   [ 60%]
+tests/e2e/workflow/test_test_yml.py::test_error_when_test_times_out PASSED [ 80%]
+tests/e2e/workflow/test_test_yml.py::test_error_when_setup_fails PASSED  [100%]
+
+======================== 5 passed in 532.34s (0:08:52) =========================
+exit=0

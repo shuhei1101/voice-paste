@@ -110,8 +110,8 @@ docs:
     updated_at: '2026-11-15T02:29:33.838921+00:00'
 scope_out:
   - item: docs/mock/files.yml・docs/guide/files.yml・docs/_root/files.yml の行へのタグ・description の記載
-    reason: 'Issue の要望はコード・テストの files.yml の行に限る。モック・ガイド・直下のファイルの行を含めるかはレビューで確定する（その時点の判断: 含めない）'
-    plan: to_file
+    reason: 'Issue の要望はコード・テストの files.yml の行に限る。docs/guide/files.yml は #282 で揃っていて、残りはモックの 2 行と直下の 2 行'
+    plan: '#316'
   - item: 用語集（docs/glossary）と目次（index.yaml）へのタグ・エイリアスの記載
     reason: 用語集は用語ごとに name・aliases を持ち、目次はフォルダの一覧で、Issue の対象の設計書ではない
     plan: none

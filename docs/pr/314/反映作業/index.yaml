@@ -59,7 +59,7 @@
   切り戻し: 配布先の規約のパスの追従/切り戻し.py
   失敗時: 実行者が原因を確認して依頼元へ返す
   確認方法: 配布先のリポジトリの rules.yaml・agent_context.yaml に、AI Monitor の docs/rule/・docs/flowchart/・docs/checksheet/・docs/template/ の .md を指す行が無い
-  状態: 未
+  状態: 済
 配布先のエージェント統合への追従:
   説明: '配布先の `agent_context.yaml` の `docs[]` で、implementer・designer に割り当てた資料を planner へ、operator に割り当てた資料を tester へ割り当て直し、`.claude/agent-settings/` から 3 つのエージェントの設定を削除する（配布元: https://github.com/shuhei1101/ai-monitor/tree/v0.4.0/docs/pr/3137/%E5%8F%8D%E6%98%A0%E4%BD%9C%E6%A5%AD/%E9%85%8D%E5%B8%83%E5%85%88%E3%81%AE%E3%82%A8%E3%83%BC%E3%82%B8%E3%82%A7%E3%83%B3%E3%83%88%E7%B5%B1%E5%90%88%E3%81%B8%E3%81%AE%E8%BF%BD%E5%BE%93）'
   タグ:

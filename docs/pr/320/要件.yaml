@@ -1,0 +1,26 @@
+docs:
+  - page: docs/library/LIB-34.yaml
+    new: false
+    change: verification を、develop の workflow test.yml をランナーで回した結果で `済` にし、日付と確認した内容を書く
+    status: done
+    updated_by: planner
+    updated_at: '2026-11-15T10:34:14.953663+00:00'
+  - page: docs/library/LIB-35.yaml
+    new: false
+    change: verification を、develop の workflow test.yml をランナーで回した結果で `済` にし、日付と確認した内容を書く。version.pinning と catalogs を完全なバージョンのタグ（v10.3.3）の指定にする
+    status: done
+    updated_by: planner
+    updated_at: '2026-11-15T10:34:14.953663+00:00'
+  - page: docs/library/LIB-36.yaml
+    new: false
+    change: verification を、develop の workflow test.yml をランナーで回した結果で `済` にし、日付と確認した内容を書く。catalogs の params（name・path・if-no-files-found）の verification_state を、成果物 test-log が上がったことで確認できたものは verified にする
+    status: done
+    updated_by: planner
+    updated_at: '2026-11-15T10:34:14.953663+00:00'
+scope_out:
+  - item: LIB-38（pytest-timeout）の verification
+    reason: 手元の Windows で確認して既に `済` のため、書き換える必要が無い
+    plan: none
+  - item: ランナーで fail した単体テスト test_mount_web_assets（app.js の Content-Type が端末のレジストリで変わる）の修正
+    reason: この PR は回して件数を確認する作業で、タグ以外の修正を含めない。この PR がマージされなくても同じ内容で成り立つ
+    plan: '#322'

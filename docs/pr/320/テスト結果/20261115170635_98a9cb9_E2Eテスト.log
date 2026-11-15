@@ -1,0 +1,115 @@
+# 実行環境: WSL の Linux の Python（uv sync --frozen で /tmp/vp320-venv に作成）。Windows の gh が未ログインのため、TL-6 の .venv/Scripts/python.exe の代わりに使用した
+$ /tmp/vp320-venv/bin/python -m pytest tests/e2e/workflow --run-e2e -v -p no:cacheprovider
+============================= test session starts ==============================
+platform linux -- Python 3.14.3, pytest-9.1.1, pluggy-1.7.0 -- /tmp/vp320-venv/bin/python
+rootdir: /mnt/c/Users/shuhe/repo/voice-paste/.claude/worktrees/chore-test-first-run-test-workflow
+configfile: pyproject.toml
+plugins: anyio-4.15.1, platformdirs-4.13.3, timeout-2.4.0
+collecting ... collected 5 items
+
+tests/e2e/workflow/test_test_yml.py::test_normal FAILED                  [ 20%]
+tests/e2e/workflow/test_test_yml.py::test_normal_when_integration FAILED [ 40%]
+tests/e2e/workflow/test_test_yml.py::test_error_when_test_fails FAILED   [ 60%]
+tests/e2e/workflow/test_test_yml.py::test_error_when_test_times_out FAILED [ 80%]
+tests/e2e/workflow/test_test_yml.py::test_error_when_setup_fails FAILED  [100%]
+
+=================================== FAILURES ===================================
+_________________________________ test_normal __________________________________
+
+branch_factory = <function branch_factory.<locals>._create at 0x79beece2f950>
+
+    def test_normal(branch_factory: Callable[[PrepareTree], str]) -> None:
+        """正常系: 単体テストの層の全件が pass して成功で終わる。"""
+        result = dispatch(branch_factory(replace_layer("unit", PASS_BODY)), "unit")
+>       assert result.conclusion == "success"
+E       AssertionError: assert 'failure' == 'success'
+E         
+E         - success
+E         + failure
+
+tests/e2e/workflow/test_test_yml.py:95: AssertionError
+_________________________ test_normal_when_integration _________________________
+
+branch_factory = <function branch_factory.<locals>._create at 0x79beece88510>
+
+    def test_normal_when_integration(branch_factory: Callable[[PrepareTree], str]) -> None:
+        """正常系（結合テストの層）: 結合テストの層の全件が pass して成功で終わる。"""
+        result = dispatch(branch_factory(replace_layer("integration", PASS_BODY)), "integration")
+>       assert result.conclusion == "success"
+E       AssertionError: assert 'failure' == 'success'
+E         
+E         - success
+E         + failure
+
+tests/e2e/workflow/test_test_yml.py:103: AssertionError
+__________________________ test_error_when_test_fails __________________________
+
+branch_factory = <function branch_factory.<locals>._create at 0x79beece889e0>
+
+    def test_error_when_test_fails(branch_factory: Callable[[PrepareTree], str]) -> None:
+        """異常系（テストの fail・failure）: 層の全件に fail があり、ログを上げて失敗で終わる。"""
+        result = dispatch(branch_factory(replace_layer("unit", FAIL_BODY)), "unit")
+        assert result.conclusion == "failure"
+>       assert result.steps == TEST_STEP_FAILED
+E       AssertionError: assert {} == {'ブランチを取得する':...failure', ...}
+E         
+E         Right contains 5 more items:
+E         {'Python の依存を入れる': 'success',
+E          'uv を入れる': 'success',
+E          'ブランチを取得する': 'success',
+E          'ログを成果物に上げる': 'success',
+E          '層の全件を回す': 'failure'}...
+E         
+E         ...Full output truncated (10 lines hidden), use '-vv' to show
+
+tests/e2e/workflow/test_test_yml.py:112: AssertionError
+________________________ test_error_when_test_times_out ________________________
+
+branch_factory = <function branch_factory.<locals>._create at 0x79beece88eb0>
+
+    def test_error_when_test_times_out(branch_factory: Callable[[PrepareTree], str]) -> None:
+        """異常系（テストが上限の時間を超えた・failure）: テスト 1 件が上限の時間を超えて止められ、ログを上げて失敗で終わる。"""
+        result = dispatch(branch_factory(replace_layer("unit", SLEEP_BODY)), "unit")
+        assert result.conclusion == "failure"
+>       assert result.steps == TEST_STEP_FAILED
+E       AssertionError: assert {} == {'ブランチを取得する':...failure', ...}
+E         
+E         Right contains 5 more items:
+E         {'Python の依存を入れる': 'success',
+E          'uv を入れる': 'success',
+E          'ブランチを取得する': 'success',
+E          'ログを成果物に上げる': 'success',
+E          '層の全件を回す': 'failure'}...
+E         
+E         ...Full output truncated (10 lines hidden), use '-vv' to show
+
+tests/e2e/workflow/test_test_yml.py:120: AssertionError
+_________________________ test_error_when_setup_fails __________________________
+
+branch_factory = <function branch_factory.<locals>._create at 0x79beece89380>
+
+    def test_error_when_setup_fails(branch_factory: Callable[[PrepareTree], str]) -> None:
+        """異常系（道具の導入に失敗・failure）: Python の依存の導入に失敗し、層の全件を回さずにログを上げて失敗で終わる。"""
+        result = dispatch(branch_factory(break_lock), "unit")
+        assert result.conclusion == "failure"
+>       assert result.steps == SETUP_FAILED
+E       AssertionError: assert {} == {'ブランチを取得する':...skipped', ...}
+E         
+E         Right contains 5 more items:
+E         {'Python の依存を入れる': 'failure',
+E          'uv を入れる': 'success',
+E          'ブランチを取得する': 'success',
+E          'ログを成果物に上げる': 'success',
+E          '層の全件を回す': 'skipped'}...
+E         
+E         ...Full output truncated (10 lines hidden), use '-vv' to show
+
+tests/e2e/workflow/test_test_yml.py:128: AssertionError
+=========================== short test summary info ============================
+FAILED tests/e2e/workflow/test_test_yml.py::test_normal - AssertionError: ass...
+FAILED tests/e2e/workflow/test_test_yml.py::test_normal_when_integration - As...
+FAILED tests/e2e/workflow/test_test_yml.py::test_error_when_test_fails - Asse...
+FAILED tests/e2e/workflow/test_test_yml.py::test_error_when_test_times_out - ...
+FAILED tests/e2e/workflow/test_test_yml.py::test_error_when_setup_fails - Ass...
+======================== 5 failed in 162.46s (0:02:42) =========================
+exit=1

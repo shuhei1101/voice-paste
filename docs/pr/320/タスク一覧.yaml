@@ -1,0 +1,86 @@
+tasks:
+  - process: 初期構築
+    status: skipped
+    reason: 既存リポジトリのため対象外
+    updated_by: planner
+    updated_at: '2026-11-15T07:54:31.400982+00:00'
+  - process: リバースエンジニアリング
+    status: skipped
+    reason: 設計書が揃っているため対象外
+    updated_by: planner
+    updated_at: '2026-11-15T07:54:31.400982+00:00'
+  - process: 方針決め
+    status: skipped
+    reason: 方針決めの依頼ではないため対象外
+    updated_by: planner
+    updated_at: '2026-11-15T07:54:31.400982+00:00'
+  - process: PoC 検証
+    status: skipped
+    reason: workflow を初めて回すこと自体が確認で、未検証の技術機構に依存する新しい要件は無い
+    updated_by: planner
+    updated_at: '2026-11-15T07:54:31.400982+00:00'
+  - process: 複合ユースケース設計
+    status: skipped
+    reason: 利用者の流れは変わらない
+    updated_by: planner
+    updated_at: '2026-11-15T07:54:31.400982+00:00'
+  - process: デザインスタイル選定
+    status: skipped
+    reason: 画面に関わる変更が無い
+    updated_by: planner
+    updated_at: '2026-11-15T07:54:31.400982+00:00'
+  - process: 画面一覧・画面遷移
+    status: skipped
+    reason: 画面に関わる変更が無い
+    updated_by: planner
+    updated_at: '2026-11-15T07:54:31.400982+00:00'
+  - process: 単一ユースケース設計
+    status: skipped
+    reason: シナリオは変わらない
+    updated_by: planner
+    updated_at: '2026-11-15T07:54:31.400982+00:00'
+  - process: モック作成
+    status: skipped
+    reason: 画面に関わる変更が無い
+    updated_by: planner
+    updated_at: '2026-11-15T07:54:31.400982+00:00'
+  - process: インターフェース定義設計
+    status: skipped
+    reason: 'IF-15 のフローは #318 で確定済みで変えない。回した結果がフローと食い違った場合は別の Issue に切り出す'
+    updated_by: planner
+    updated_at: '2026-11-15T07:54:31.400982+00:00'
+  - process: 部品設計
+    status: skipped
+    reason: 画面に関わる変更が無い
+    updated_by: planner
+    updated_at: '2026-11-15T07:54:31.400982+00:00'
+  - process: 画面設計
+    status: skipped
+    reason: 画面に関わる変更が無い
+    updated_by: planner
+    updated_at: '2026-11-15T07:54:31.400982+00:00'
+  - process: モジュール構成設計
+    status: skipped
+    reason: コードを変えない
+    updated_by: planner
+    updated_at: '2026-11-15T07:54:31.400982+00:00'
+  - process: ドキュメント修正
+    status: done
+    note: E2E テスト tests/e2e/workflow/test_test_yml.py と単体テスト（バック）・結合テスト（バック）の run_runner を回し、結果で LIB-34〜36 の verification を書き換える
+    updated_by: planner
+    updated_at: '2026-11-15T10:34:22.191130+00:00'
+  - process: 単体テスト作成
+    status: skipped
+    reason: コードを変えない
+    updated_by: planner
+    updated_at: '2026-11-15T07:54:31.400982+00:00'
+  - process: 実装
+    status: done
+    updated_by: planner
+    updated_at: '2026-11-15T10:34:22.191130+00:00'
+    note: 確認ログの決着のとおり、.github/workflows/test.yml の astral-sh/setup-uv を v10.3.3 に変える
+  - process: 結合テスト作成
+    status: skipped
+    reason: 'テストを足さない。E2E テストは #318 で作成済みのものを回す'
+    updated_by: planner
+    updated_at: '2026-11-15T07:54:31.400982+00:00'

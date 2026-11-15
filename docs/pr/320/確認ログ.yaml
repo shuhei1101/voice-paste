@@ -1,0 +1,7 @@
+confirmations:
+  - topic: workflow の初回の起動が全て失敗した。修正をこの PR に含めるか
+    decision: この PR で astral-sh/setup-uv を v10.3.3 に変え、LIB-35 の version.pinning を修正してから同じ範囲を実行し直す（推奨案 A）
+    decided_by: thumbs_up
+    approver: shuhei1101
+    commit: bec8871
+    thread: https://github.com/shuhei1101/voice-paste/pull/320#discussion_r4577604938

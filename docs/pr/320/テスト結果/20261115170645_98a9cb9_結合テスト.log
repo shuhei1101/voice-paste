@@ -1,0 +1,35 @@
+$ run_url=$(gh workflow run test.yml --ref "$(git branch --show-current)" -f layer=integration | grep -o 'https://[^ ]*/actions/runs/[0-9]*') && run_id=${run_url##*/} && (rc=0; gh run watch "$run_id" --exit-status > /dev/null || rc=1; if gh run download "$run_id" -n test-log -D "/tmp/test-log-$run_id"; then cat "/tmp/test-log-$run_id/test.log"; else gh run view "$run_id" --log-failed; fi; exit $rc)
+run: https://github.com/shuhei1101/voice-paste/actions/runs/43692970839
+no valid artifacts found to download
+test	Set up job	﻿2026-11-15T08:06:48.9250077Z Current runner version: '2.338.2'
+test	Set up job	2026-11-15T08:06:48.9304352Z ##[group]Runner Image Provisioner
+test	Set up job	2026-11-15T08:06:48.9306046Z Hosted Compute Agent
+test	Set up job	2026-11-15T08:06:48.9307011Z Version: 20261103.629
+test	Set up job	2026-11-15T08:06:48.9308059Z Commit: 15dbd9ccb5dbf34fae002b6ed1a2670f52df37bc
+test	Set up job	2026-11-15T08:06:48.9309334Z Build Date: 2026-11-03T17:26:59Z
+test	Set up job	2026-11-15T08:06:48.9310908Z Worker ID: {3c58f00b-a66d-4d84-8f33-77e311f3d422}
+test	Set up job	2026-11-15T08:06:48.9312220Z Region: northcentralus
+test	Set up job	2026-11-15T08:06:48.9313154Z Cloud: Azure
+test	Set up job	2026-11-15T08:06:48.9313978Z ##[endgroup]
+test	Set up job	2026-11-15T08:06:48.9316283Z ##[group]Operating System
+test	Set up job	2026-11-15T08:06:48.9317016Z Microsoft Windows Server 2025
+test	Set up job	2026-11-15T08:06:48.9317595Z 10.0.26100
+test	Set up job	2026-11-15T08:06:48.9318173Z Datacenter
+test	Set up job	2026-11-15T08:06:48.9318719Z ##[endgroup]
+test	Set up job	2026-11-15T08:06:48.9319236Z ##[group]Runner Image
+test	Set up job	2026-11-15T08:06:48.9319810Z Image: windows-2025-vs2026
+test	Set up job	2026-11-15T08:06:48.9320390Z Version: 20261103.298.1
+test	Set up job	2026-11-15T08:06:48.9321533Z Included Software: https://github.com/actions/runner-images/blob/win25-vs2026/20261103.298/images/windows/Windows2025-VS2026-Readme.md
+test	Set up job	2026-11-15T08:06:48.9323486Z Image Release: https://github.com/actions/runner-images/releases/tag/win25-vs2026%2F20261103.298
+test	Set up job	2026-11-15T08:06:48.9324451Z ##[endgroup]
+test	Set up job	2026-11-15T08:06:48.9325490Z ##[group]GITHUB_TOKEN Permissions
+test	Set up job	2026-11-15T08:06:48.9327631Z Contents: read
+test	Set up job	2026-11-15T08:06:48.9328181Z Metadata: read
+test	Set up job	2026-11-15T08:06:48.9328709Z ##[endgroup]
+test	Set up job	2026-11-15T08:06:48.9331262Z Secret source: Actions
+test	Set up job	2026-11-15T08:06:48.9332168Z Cache mode: write
+test	Set up job	2026-11-15T08:06:48.9332825Z Prepare workflow directory
+test	Set up job	2026-11-15T08:06:48.9866658Z Prepare all required actions
+test	Set up job	2026-11-15T08:06:48.9917072Z Getting action download info
+test	Set up job	2026-11-15T08:06:49.1959598Z ##[error]Unable to resolve action `astral-sh/setup-uv@v10`, unable to find version `v10`
+exit=1

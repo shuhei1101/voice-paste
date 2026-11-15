@@ -16,18 +16,19 @@ license: MIT
 official_url: https://github.com/astral-sh/setup-uv
 docs_url: https://github.com/astral-sh/setup-uv#readme
 verification:
-  state: 未確認
-  detail: workflow_dispatch は既定のブランチ develop にある workflow だけを起動できるため、作業 PR の中では動かせない。develop へ入った後の作業 PR のランナーでの全件実行で確かめる
+  state: 済
+  detail: astral-sh/setup-uv@v10.3.3 で、E2E テスト tests/e2e/workflow/test_test_yml.py の 5 件と、単体・結合テストの層の全件実行の全てで、step「uv を入れる」が success になり、続く `uv sync --frozen` と `uv run` が動くことを確認した。メジャーバージョンのタグ `v10` は公開されておらず、ジョブの準備で `unable to find version v10` になることも確認した
+  date: '2026-11-15'
 version:
   current: v10.3.3
   latest: v10.3.3
   checked_on: '2026-11-15'
   source: .github/workflows/test.yml
-  pinning: メジャーバージョンのタグで指定する
+  pinning: 完全なバージョンのタグで指定する（メジャーバージョンのタグを公開していない）
 catalogs:
   - name: action
     version: v10.3.3
     entries:
-      - name: astral-sh/setup-uv@v10
+      - name: astral-sh/setup-uv@v10.3.3
         kind: action
         purpose: uv を入れる

@@ -16,8 +16,9 @@ license: MIT
 official_url: https://github.com/actions/upload-artifact
 docs_url: https://github.com/actions/upload-artifact#readme
 verification:
-  state: 未確認
-  detail: workflow_dispatch は既定のブランチ develop にある workflow だけを起動できるため、作業 PR の中では動かせない。develop へ入った後の作業 PR のランナーでの全件実行で確かめる
+  state: 済
+  detail: 'E2E テスト tests/e2e/workflow/test_test_yml.py の 5 件と、単体・結合テストの層の全件実行で、成果物 test-log が上がり `gh run download` で test.log を取得できることを確認した。依存の導入に失敗したケース（test.log が無い）でも、if-no-files-found: ignore で step が success になることを確認した'
+  date: '2026-11-15'
 version:
   current: v7.0.2
   latest: v7.0.2
@@ -37,15 +38,15 @@ catalogs:
             default: '`artifact`'
             description: 成果物の名前
             required: false
-            verification_state: docs_only
+            verification_state: verified
           - name: path
             type: '`string`'
             description: 上げるファイルのパス
             required: true
-            verification_state: docs_only
+            verification_state: verified
           - name: if-no-files-found
             type: '`warn` / `error` / `ignore`'
             default: '`warn`'
             description: 上げるファイルが無いときの扱い
             required: false
-            verification_state: docs_only
+            verification_state: verified

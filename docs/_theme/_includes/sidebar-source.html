@@ -1,0 +1,167 @@
+{% comment %}
+  サイドバーの元になる目次表を隠し要素として埋める。
+  現在のページがタブの中にある場合（共通レイアウトが data_tab を決めた場合）だけ出す（タブの外は領域ごと出さない）。
+  タブ直下の README（無ければ nav.project.yml の tabs の page のページ = 分類のトップページ）の `## 目次` 表の行は、ページ列のリンクの行き先で 2 つに分かれる。
+    - フォルダを指す行（末尾が /）は 1 行 = 1 セクションとし、そのフォルダの README の
+      `## 目次` 表をそのセクションのページ一覧として埋める
+    - ページを指す行（末尾が .md）はどのセクションにも属さないページとして、セクションより前に埋める
+  目次表は `## 目次` 見出しの直後の表を指す（README にはそれ以外の表も並ぶ）。
+  埋めるのはサイドバーの生成が使う列（ページ / 分類）だけで、
+  解決した列名は位置ではなくヘッダー行の名前で引き、data-col 属性でセルへ持たせる。
+  ページ列のリンクは、読み込む README.md が変換済みの HTML なので
+  配信ルートからの絶対パスで入っている（サイドバーはそのフォルダの外のページにも
+  描かれるため、相対パスでは辿れない）。
+  include を使わずインラインで書いているのは、全ページぶん呼ばれるため呼び出しコストを避けるため
+  （実測: include 版で 1 ビルド 1015 秒。インライン化で戻す）。
+  他ページの content は、Jekyll がそのページ自身をまだ変換していないタイミングで読むと
+  Markdown のまま返る（変換順はページの列挙順に依存し、経路によって変わる）。
+  `id="目次"` が無ければ Markdown のまま届いたとみなし、markdownify で変換してから読む。
+{% endcomment %}
+{% if data_tab != "" %}
+  {% assign tab = data_tab %}
+  {% assign tab_readme_path = tab | append: "/README.md" %}
+  {% assign tab_readme = site.pages | where: "path", tab_readme_path | first %}
+  {% comment %} タブ直下の README が無ければ、nav.project.yml の tabs の page（分類のトップページ）の目次表を引く {% endcomment %}
+  {% unless tab_readme %}
+    {% for ptab in site.data.navproject.tabs %}
+      {% if ptab.name == tab and ptab.page %}{% assign tab_readme_path = ptab.page %}{% endif %}
+    {% endfor %}
+    {% assign tab_readme = site.pages | where: "path", tab_readme_path | first %}
+  {% endunless %}
+  {% if tab_readme %}
+    {% assign tab_page_idx = -1 %}
+    {% assign tab_rows = "" | split: "," %}
+    {% assign tab_source = tab_readme.content %}
+    {% unless tab_source contains 'id="目次"' %}
+      {% assign tab_source = tab_source | markdownify %}
+    {% endunless %}
+    {% assign tab_after_heading = tab_source | split: 'id="目次"' %}
+    {% if tab_after_heading.size > 1 %}
+      {% assign tab_table_parts = tab_after_heading[1] | split: "<table>" %}
+      {% if tab_table_parts.size > 1 %}
+        {% assign tab_table = tab_table_parts[1] | split: "</table>" | first %}
+        {% assign tab_head = tab_table | split: "<thead>" | last | split: "</thead>" | first %}
+        {% assign tab_headers = tab_head | split: "<th>" %}
+        {% for h in tab_headers offset: 1 %}
+          {% assign hname = h | split: "</th>" | first | strip_html | strip %}
+          {% if hname == "ページ" %}{% assign tab_page_idx = forloop.index0 %}{% endif %}
+        {% endfor %}
+        {% assign tab_body = tab_table | split: "<tbody>" | last | split: "</tbody>" | first %}
+        {% assign tab_rows = tab_body | split: "<tr>" %}
+      {% endif %}
+    {% endif %}
+
+    {% assign loose_count = 0 %}
+    {% assign section_count = 0 %}
+    {% capture loose_html %}
+      {% if tab_page_idx > -1 %}
+        {% assign tab_page_col = tab_page_idx | plus: 1 %}
+        {% for row in tab_rows offset: 1 %}
+          {% assign cells = row | split: "<td>" %}
+          {% if cells.size > tab_page_col %}
+            {% assign page_cell = cells[tab_page_col] | split: "</td>" | first %}
+            {% assign page_href = "" %}
+            {% if page_cell contains 'href="' %}{% assign page_href = page_cell | split: 'href="' | last | split: '"' | first %}{% endif %}
+            {% unless page_href == "" %}
+              {% assign last_char = page_href | slice: -1, 1 %}
+              {% if last_char != "/" %}
+                {% assign page_text = page_cell | strip_html | strip %}
+<tr><td data-col="ページ"><a href="{{ page_href }}">{{ page_text }}</a></td></tr>
+                {% assign loose_count = loose_count | plus: 1 %}
+              {% endif %}
+            {% endunless %}
+          {% endif %}
+        {% endfor %}
+      {% endif %}
+    {% endcapture %}
+
+    {% capture sections_html %}
+      {% if tab_page_idx > -1 %}
+        {% assign tab_page_col = tab_page_idx | plus: 1 %}
+        {% for row in tab_rows offset: 1 %}
+          {% assign cells = row | split: "<td>" %}
+          {% if cells.size > tab_page_col %}
+            {% assign page_cell = cells[tab_page_col] | split: "</td>" | first %}
+            {% assign page_href = "" %}
+            {% if page_cell contains 'href="' %}{% assign page_href = page_cell | split: 'href="' | last | split: '"' | first %}{% endif %}
+            {% unless page_href == "" %}
+              {% assign last_char = page_href | slice: -1, 1 %}
+              {% if last_char == "/" %}
+                {% assign section_name = page_cell | strip_html | strip %}
+                {% assign section_dir = page_href | remove_first: "./" | split: "/" | first %}
+                {% assign section_readme_path = tab | append: "/" | append: section_dir | append: "/README.md" %}
+                {% assign section_readme = site.pages | where: "path", section_readme_path | first %}
+                {% if section_readme %}
+                  {% assign sec_page_idx = -1 %}
+                  {% assign sec_cat_idx = -1 %}
+                  {% assign sec_rows = "" | split: "," %}
+                  {% assign sec_source = section_readme.content %}
+                  {% unless sec_source contains 'id="目次"' %}
+                    {% assign sec_source = sec_source | markdownify %}
+                  {% endunless %}
+                  {% assign sec_after_heading = sec_source | split: 'id="目次"' %}
+                  {% if sec_after_heading.size > 1 %}
+                    {% assign sec_table_parts = sec_after_heading[1] | split: "<table>" %}
+                    {% if sec_table_parts.size > 1 %}
+                      {% assign sec_table = sec_table_parts[1] | split: "</table>" | first %}
+                      {% assign sec_head = sec_table | split: "<thead>" | last | split: "</thead>" | first %}
+                      {% assign sec_headers = sec_head | split: "<th>" %}
+                      {% for h in sec_headers offset: 1 %}
+                        {% assign hname = h | split: "</th>" | first | strip_html | strip %}
+                        {% if hname == "ページ" %}{% assign sec_page_idx = forloop.index0 %}{% endif %}
+                        {% if hname == "分類" %}{% assign sec_cat_idx = forloop.index0 %}{% endif %}
+                      {% endfor %}
+                      {% assign sec_body = sec_table | split: "<tbody>" | last | split: "</tbody>" | first %}
+                      {% assign sec_rows = sec_body | split: "<tr>" %}
+                    {% endif %}
+                  {% endif %}
+
+                  {% assign sec_row_count = 0 %}
+                  {% capture sec_rows_html %}
+                    {% if sec_page_idx > -1 %}
+                      {% assign sec_page_col = sec_page_idx | plus: 1 %}
+                      {% for srow in sec_rows offset: 1 %}
+                        {% assign scells = srow | split: "<td>" %}
+                        {% if scells.size > sec_page_col %}
+                          {% assign spage_cell = scells[sec_page_col] | split: "</td>" | first %}
+                          {% assign spage_href = "" %}
+                          {% if spage_cell contains 'href="' %}{% assign spage_href = spage_cell | split: 'href="' | last | split: '"' | first %}{% endif %}
+                          {% unless spage_href == "" %}
+                            {% assign spage_text = spage_cell | strip_html | strip %}
+                            {% assign scat_text = "" %}
+                            {% if sec_cat_idx > -1 %}
+                              {% assign scat_col = sec_cat_idx | plus: 1 %}
+                              {% if scells.size > scat_col %}{% assign scat_text = scells[scat_col] | split: "</td>" | first | strip_html | strip %}{% endif %}
+                            {% endif %}
+<tr><td data-col="ページ"><a href="{{ spage_href }}">{{ spage_text }}</a></td>{% if scat_text != "" %}<td data-col="分類">{{ scat_text }}</td>{% endif %}</tr>
+                            {% assign sec_row_count = sec_row_count | plus: 1 %}
+                          {% endunless %}
+                        {% endif %}
+                      {% endfor %}
+                    {% endif %}
+                  {% endcapture %}
+                  {% if sec_row_count > 0 %}
+<div data-section="{{ section_name }}">
+  <table><tbody>{{ sec_rows_html }}</tbody></table>
+</div>
+                    {% assign section_count = section_count | plus: 1 %}
+                  {% endif %}
+                {% endif %}
+              {% endif %}
+            {% endunless %}
+          {% endif %}
+        {% endfor %}
+      {% endif %}
+    {% endcapture %}
+
+    {% assign toc_total = loose_count | plus: section_count %}
+    {% if toc_total > 0 %}
+<div hidden data-sidebar-source>
+{% if loose_count > 0 %}
+  <table><tbody>{{ loose_html }}</tbody></table>
+{% endif %}
+{{ sections_html }}
+</div>
+    {% endif %}
+  {% endif %}
+{% endif %}

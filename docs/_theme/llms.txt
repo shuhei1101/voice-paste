@@ -1,0 +1,94 @@
+---
+layout: none
+sitemap: false
+excerpt_separator: ""
+---
+{%- comment -%}
+  全 README の `## 目次` 見出しの直後の表から「パス / 概要」を 1 行 1 ページで並べる。
+  同じページが複数の README（親の目次と、そのページ自身のフォルダの目次）から
+  参照されることがあるため、出力したパスは重複させない。
+  他ページの content を列挙順より前に読むと Markdown のまま返るため、
+  `id="目次"` が無ければ markdownify で変換してから読む。
+{%- endcomment -%}
+{%- comment -%} 上タブの名前（nav.project.yml の固有タブを from: project の位置へ差し込む） {%- endcomment -%}
+{%- assign tab_names = "" | split: "," -%}
+{%- for tab in site.data.nav.tabs -%}
+  {%- if tab.from == "project" -%}
+    {%- for ptab in site.data.navproject.tabs -%}{%- assign tab_names = tab_names | push: ptab.name -%}{%- endfor -%}
+  {%- else -%}
+    {%- assign tab_names = tab_names | push: tab.name -%}
+  {%- endif -%}
+{%- endfor -%}
+{%- assign seen_paths = "" | split: "," -%}
+{%- assign all_readmes = site.pages | where: "name", "README.md" -%}
+{%- for readme in all_readmes -%}
+  {%- comment -%} パスの先頭の段が上タブの名前のどれかである README だけを対象にする（docs/ の直下と pr/・mock/ などは載せない） {%- endcomment -%}
+  {%- assign readme_root = readme.path | split: "/" | first -%}
+  {%- unless tab_names contains readme_root -%}{%- continue -%}{%- endunless -%}
+  {%- assign page_idx = -1 -%}
+  {%- assign desc_idx = -1 -%}
+  {%- assign rows = "" | split: "," -%}
+  {%- assign source = readme.content -%}
+  {%- unless source contains 'id="目次"' -%}
+    {%- assign source = source | markdownify -%}
+  {%- endunless -%}
+  {%- assign after_heading = source | split: 'id="目次"' -%}
+  {%- if after_heading.size > 1 -%}
+    {%- assign table_parts = after_heading[1] | split: "<table>" -%}
+    {%- if table_parts.size > 1 -%}
+      {%- assign table = table_parts[1] | split: "</table>" | first -%}
+      {%- assign head = table | split: "<thead>" | last | split: "</thead>" | first -%}
+      {%- assign headers = head | split: "<th>" -%}
+      {%- for h in headers offset: 1 -%}
+        {%- assign hname = h | split: "</th>" | first | strip_html | strip -%}
+        {%- if hname == "ページ" -%}{%- assign page_idx = forloop.index0 -%}{%- endif -%}
+        {%- if hname == "概要" -%}{%- assign desc_idx = forloop.index0 -%}{%- endif -%}
+      {%- endfor -%}
+      {%- assign body = table | split: "<tbody>" | last | split: "</tbody>" | first -%}
+      {%- assign rows = body | split: "<tr>" -%}
+    {%- endif -%}
+  {%- endif -%}
+  {%- if page_idx > -1 -%}
+    {%- assign page_col = page_idx | plus: 1 -%}
+    {%- for row in rows offset: 1 -%}
+      {%- assign cells = row | split: "<td>" -%}
+      {%- if cells.size > page_col -%}
+        {%- assign page_cell = cells[page_col] | split: "</td>" | first -%}
+        {%- if page_cell contains 'href="' -%}
+          {%- assign href = page_cell | split: 'href="' | last | split: '"' | first -%}
+          {%- assign href_last_char = href | slice: -1, 1 -%}
+          {%- assign in_site = true -%}
+          {%- if href_last_char == "/" -%}
+            {%- comment -%} フォルダへのリンク: そのフォルダの README.md の URL を使う（README が配信物に無ければ載せない） {%- endcomment -%}
+            {%- assign folder_name = href | remove_first: "./" | split: "/" | first -%}
+            {%- assign folder_readme_dir = readme.path | remove: "README.md" -%}
+            {%- assign folder_readme_path = folder_readme_dir | append: folder_name | append: "/README.md" -%}
+            {%- assign folder_readme = site.pages | where: "path", folder_readme_path | first -%}
+            {%- if folder_readme -%}{%- assign href = folder_readme.url -%}{%- else -%}{%- assign in_site = false -%}{%- endif -%}
+          {%- else -%}
+            {%- comment -%} ページへのリンク: jekyll-relative-links が .html へ書き換えずに .md のまま残したものは配信物に無い {%- endcomment -%}
+            {%- assign href_end = href | slice: -3, 3 -%}
+            {%- if href_end == ".md" -%}{%- assign in_site = false -%}{%- endif -%}
+          {%- endif -%}
+          {%- if in_site -%}
+          {%- assign path = href | remove: site.baseurl | remove_first: "/" | url_decode -%}
+          {%- assign path_end = path | slice: -5, 5 -%}
+          {%- if path_end == ".html" -%}
+            {%- assign path_len = path.size | minus: 5 -%}
+            {%- assign path = path | slice: 0, path_len -%}
+          {%- endif -%}
+          {%- assign desc = "" -%}
+          {%- if desc_idx > -1 -%}
+            {%- assign desc_col = desc_idx | plus: 1 -%}
+            {%- if cells.size > desc_col -%}{%- assign desc = cells[desc_col] | split: "</td>" | first | strip_html | strip -%}{%- endif -%}
+          {%- endif -%}
+          {%- unless seen_paths contains path -%}
+            {%- assign seen_paths = seen_paths | push: path -%}
+{{ path }}	{{ desc }}
+{% endunless -%}
+          {%- endif -%}
+{%- endif -%}
+      {%- endif -%}
+    {%- endfor -%}
+  {%- endif -%}
+{%- endfor -%}

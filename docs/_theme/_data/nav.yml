@@ -1,0 +1,8 @@
+# 上タブの並びと、実体を持たないタブの行き先。
+# 種別は generated（このキーで明示）→ {タブ名}/README.md の有無、の順で決まる。
+external_base: https://shuhei1101.github.io/ai-monitor
+tabs:
+  - name: はじめに
+  - name: 使い方
+  - name: リファレンス
+  - from: project

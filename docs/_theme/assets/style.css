@@ -1,0 +1,1370 @@
+/* ==========================================================================
+   ai-monitor docs 共通スタイル
+   docs/ 配下のすべてのページ（Mock / 公開ドキュメント共通）で読み込む単一 CSS。
+   個別ページ用のスタイルは、当該ページのディレクトリ配下に別 CSS を置き、
+   本ファイルを上書き / 補強する形で使う。
+   ========================================================================== */
+
+
+/* ==========================================================================
+   1. デザイントークン
+   カラー・余白・角丸などの基本値を CSS 変数で定義する。
+   Retro など別スタイルは当該ページ側で --accent などを上書きするだけで済む。
+   ========================================================================== */
+:root {
+  /* 背景・前景 */
+  --bg: #f7f8fa;
+  --bg-elevated: #ffffff;
+  --bg-hover: #eef1f5;
+  --bg-code: #f3f4f6;
+
+  /* 罫線・文字 */
+  --border: #e1e4e8;
+  --text: #1f2328;
+  --text-muted: #6e7681;
+
+  /* アクセント（リンク・ボタン primary） */
+  --accent: #2563eb;
+  --accent-hover: #1d4ed8;
+
+  /* ステート色 */
+  --ok: #16a34a;
+  --warn: #ca8a04;
+  --danger: #dc2626;
+
+  /* 角丸 */
+  --radius-sm: 4px;
+  --radius-md: 8px;
+
+  /* 余白 */
+  --space-xs: 4px;
+  --space-sm: 8px;
+  --space-md: 16px;
+  --space-lg: 24px;
+  --space-xl: 40px;
+
+  /* レイアウト固定値 */
+  --topbar-h: 56px;
+  --sidebar-w: 220px;
+
+  /* フォント */
+  --font-base: -apple-system, BlinkMacSystemFont, "Segoe UI", "Hiragino Sans", "Yu Gothic UI", Roboto, sans-serif;
+  --font-mono: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, "Liberation Mono", monospace;
+
+  /* タブ・サイドバー構成が持つ固定値 */
+  --tabbar-h: 44px;
+  /* トップバーとタブバーはどちらも追従するため、本文の上端はこの分だけ下がる */
+  --header-h: calc(var(--topbar-h) + var(--tabbar-h));
+  --toc-w: 220px;
+  --tap-min: 44px;
+  /* 操作部品（ボタン・セレクト・入力欄・セグメント）の高さ。同じ種類の部品の高さをこの 1 つの値に揃える */
+  --control-h: 32px;
+  --content-max: 60rem;
+  --cell-max: 32ch;
+  /* GitHub の Alert の「重要」に当たる色。共通トークンに無いのでここで持つ */
+  --important: #8250df;
+  --z-drawer: 50;
+  --z-overlay: 60;
+}
+
+/* ダークモード用オーバーライド。html[data-theme="dark"] を app.js が付ける */
+html[data-theme="dark"] {
+  --bg: #0d1117;
+  --bg-elevated: #161b22;
+  --bg-hover: #21262d;
+  --bg-code: #1c2128;
+  --border: #30363d;
+  --text: #e6edf3;
+  --text-muted: #8b949e;
+  --accent: #58a6ff;
+  --accent-hover: #79b8ff;
+  --ok: #3fb950;
+  --warn: #d29922;
+  --danger: #f85149;
+  --important: #a371f7;
+}
+
+/* mdmark の本文の配色を html[data-theme] に従わせる。
+   mdmark は OS の配色の設定（prefers-color-scheme）だけを読むので、トップバーのテーマの切り替えと本文がずれないよう、
+   vendor/mdmark/index.css の ライト・ダークの値を、テーマの指定ごとにここへ写している。mdmark の配布物を上げたら index.css の値に合わせる */
+html[data-theme="light"] {
+  --mdmark-color-bg: #ffffff;
+  --mdmark-color-text: #18181b;
+  --mdmark-color-heading: #18181b;
+  --mdmark-color-muted: #52525b;
+  --mdmark-color-link: #0f766e;
+  --mdmark-color-border: #e4e4e7;
+  --mdmark-color-surface: #f4f4f5;
+  --mdmark-color-scroll-shadow: rgb(24 24 27 / .14);
+  --mdmark-color-notice-bg: #f9eee8;
+  --mdmark-color-notice-border: #b45309;
+  --mdmark-color-notice-text: #18181b;
+  --mdmark-color-table-head: #f4f4f5;
+  --mdmark-color-callout-note: #1d4ed8;
+  --mdmark-color-callout-tip: #15803d;
+  --mdmark-color-callout-important: #6d28d9;
+  --mdmark-color-callout-warning: #b45309;
+  --mdmark-color-callout-caution: #b91c1c;
+  --mdmark-color-current-bg: #e6f3f1;
+  --mdmark-color-diagram-llm: #6d28d9;
+  --mdmark-color-diagram-dm: #1d4ed8;
+  --mdmark-color-diagram-script: #52525b;
+  --mdmark-color-diagram-mcp: #b45309;
+  --mdmark-color-diagram-data: #0f766e;
+  --mdmark-color-diagram-external: #15803d;
+  --mdmark-color-diagram-line: #71717a;
+  --mdmark-color-series-1: #0f766e;
+  --mdmark-color-series-2: #b45309;
+  --mdmark-color-series-3: #6d28d9;
+  --mdmark-color-series-4: #1d4ed8;
+  --mdmark-color-code-highlight-bg: #fef3c7;
+  --mdmark-color-code-highlight-line: #b45309;
+  --mdmark-color-diff-del-bg: #fbe6e3;
+  --mdmark-color-diff-del-word: #eeb4ad;
+  --mdmark-color-diff-del-sign: #b91c1c;
+  --mdmark-color-diff-add-bg: #e1ede2;
+  --mdmark-color-diff-add-word: #a9ccaf;
+  --mdmark-color-diff-add-sign: #15803d;
+  --mdmark-color-comment-bg: #f2effe;
+  --mdmark-color-comment-line: #6d28d9;
+  --mdmark-color-error: #b91c1c;
+  color-scheme: light;
+}
+
+html[data-theme="dark"] {
+  --mdmark-color-bg: #131316;
+  --mdmark-color-text: #ededef;
+  --mdmark-color-heading: #ededef;
+  --mdmark-color-muted: #b4b4bc;
+  --mdmark-color-link: #2dd4bf;
+  --mdmark-color-border: #26262b;
+  --mdmark-color-surface: #1b1b1f;
+  --mdmark-color-scroll-shadow: rgb(0 0 0 / .6);
+  --mdmark-color-notice-bg: #2a251d;
+  --mdmark-color-notice-border: #fbbf24;
+  --mdmark-color-notice-text: #ededef;
+  --mdmark-color-table-head: #1b1b1f;
+  --mdmark-color-callout-note: #7aa2ff;
+  --mdmark-color-callout-tip: #4ade80;
+  --mdmark-color-callout-important: #c4a7ff;
+  --mdmark-color-callout-warning: #fbbf24;
+  --mdmark-color-callout-caution: #f87171;
+  --mdmark-color-current-bg: #10302c;
+  --mdmark-color-diagram-llm: #c4a7ff;
+  --mdmark-color-diagram-dm: #7aa2ff;
+  --mdmark-color-diagram-script: #b4b4bc;
+  --mdmark-color-diagram-mcp: #fbbf24;
+  --mdmark-color-diagram-data: #2dd4bf;
+  --mdmark-color-diagram-external: #4ade80;
+  --mdmark-color-diagram-line: #8f8f99;
+  --mdmark-color-series-1: #2dd4bf;
+  --mdmark-color-series-2: #fbbf24;
+  --mdmark-color-series-3: #c4a7ff;
+  --mdmark-color-series-4: #7aa2ff;
+  --mdmark-color-code-highlight-bg: #5c4a12;
+  --mdmark-color-code-highlight-line: #fbbf24;
+  --mdmark-color-diff-del-bg: #2a1e20;
+  --mdmark-color-diff-del-word: #5d3435;
+  --mdmark-color-diff-del-sign: #f87171;
+  --mdmark-color-diff-add-bg: #1e2b24;
+  --mdmark-color-diff-add-word: #2f5c3e;
+  --mdmark-color-diff-add-sign: #4ade80;
+  --mdmark-color-comment-bg: #25222d;
+  --mdmark-color-comment-line: #c4a7ff;
+  --mdmark-color-error: #f87171;
+  color-scheme: dark;
+}
+
+
+/* ==========================================================================
+   2. リセット・ベース
+   ========================================================================== */
+* { box-sizing: border-box; }
+
+/* 見出しへ飛んだときの着地を、上タブまで含めたヘッダーの高さ + 余白 1 つ分にする
+   （貼り付いたヘッダーの下に見出しを出す） */
+html {
+  scroll-padding-top: calc(var(--header-h) + var(--space-md));
+  scroll-behavior: smooth;
+}
+
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--font-base);
+  font-size: 14px;
+  line-height: 1.6;
+}
+
+a { color: var(--accent); text-decoration: none; }
+a:hover { color: var(--accent-hover); }
+
+
+/* ==========================================================================
+   3. トップバー
+   全ページ共通のヘッダバー。左にサイト名、右にツールボタン（MD DL 等）を置く。
+   ========================================================================== */
+.topbar {
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  height: var(--topbar-h);
+  padding: 0 var(--space-lg);
+  background: var(--bg-elevated);
+  border-bottom: 1px solid var(--border);
+}
+.brand { font-weight: 700; font-size: 16px; }
+.brand a { color: var(--text); }
+
+/* トップバー中央の見出し検索の入口（押すとモーダルを開くだけの見た目） */
+.topbar-search {
+  position: relative;
+  display: flex;
+  align-items: center;
+  flex: 1;
+  max-width: 480px;
+  margin: 0 var(--space-md);
+}
+.topbar-search input[type="search"] {
+  width: 100%;
+  height: 32px;
+  font-size: 16px; /* 端末の自動拡大を防ぐ */
+  min-height: var(--tap-min);
+  cursor: pointer;
+}
+.search-kbd {
+  position: absolute;
+  right: var(--space-sm);
+  top: 50%;
+  transform: translateY(-50%);
+  pointer-events: none;
+}
+kbd {
+  display: inline-block;
+  min-width: 1.6em;
+  padding: 0 4px;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  line-height: 1.6;
+  text-align: center;
+  color: var(--text-muted);
+  background: var(--bg-elevated);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+}
+.search-toggle { display: none; min-width: var(--tap-min); min-height: var(--tap-min); }
+
+/* トップバー右側のツールボタン群 */
+.topbar-actions {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+}
+/* 群の中のボタン: 高さを揃え、線のアイコンと文字を上下中央に並べる */
+.topbar-actions > * {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-xs);
+  height: var(--control-h);
+  line-height: 1;
+}
+/* 見出し検索のアイコンボタンは PC 幅では出さない（狭幅対応で出す） */
+.topbar-actions > .search-toggle { display: none; }
+/* アイコンだけのボタン: 幅も高さと同じにして正方形にする */
+.icon-button {
+  width: var(--control-h);
+  padding: 0;
+}
+
+/* 線のアイコン: 文字と同じ色・太さの線で描き、文字の上下中央に置く */
+.icon {
+  display: inline-block;
+  flex: none;
+  width: 16px;
+  height: 16px;
+  vertical-align: middle;
+  stroke: currentColor;
+  stroke-width: 1.75;
+  fill: none;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+/* テーマ切替ボタン */
+.theme-toggle {
+  padding: 0;
+  font-size: 16px;
+  background: transparent;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  color: var(--text);
+}
+.theme-toggle:hover { background: var(--bg-hover); }
+
+/* サイドバーのドロワーを開くボタン（720px 以下だけ表示） */
+.drawer-toggle { display: none; }
+/* サイドバーを出さないページでは、狭い幅でもドロワーの開閉ボタンを隠す */
+.drawer-toggle[hidden] { display: none; }
+
+/* Issue を書くボタン。開いている間は背景で示す */
+body.issue-open [data-issue-open] { background: var(--bg-hover); }
+
+/* Pages のヘッダーのコメントのボタン: 数のバッジを重ねる基準にする（並びと高さは .topbar-actions > * が揃える） */
+.comment-toggle { position: relative; }
+/* 溜めた数のバッジ: 文言の後ろに小さく置く（後ろにある .badge より優先させる） */
+.comment-toggle .comment-count {
+  padding: 0 6px;
+  font-size: 11px;
+  line-height: 18px;
+  color: var(--text);
+  background: var(--bg-hover);
+}
+/* コメントのパネルを開いている間は背景で示す */
+.topbar [data-comment-open][aria-expanded="true"] { background: var(--bg-hover); }
+
+
+/* ==========================================================================
+   3b. 上タブ
+   左群（このプロジェクトの話）と右群（共通ルール）を両端に寄せる。
+   ========================================================================== */
+.tabbar {
+  position: sticky;
+  top: var(--topbar-h);
+  z-index: 9;
+  display: flex;
+  justify-content: space-between;
+  gap: var(--space-md);
+  min-height: var(--tabbar-h);
+  padding: 0 var(--space-md);
+  background: var(--bg-elevated);
+  border-bottom: 1px solid var(--border);
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+.tabbar::-webkit-scrollbar { display: none; }
+.tabbar-group { display: flex; align-items: stretch; gap: var(--space-xs); }
+.tab {
+  display: flex;
+  align-items: center;
+  min-height: var(--tap-min);
+  padding: 0 var(--space-md);
+  color: var(--text-muted);
+  text-decoration: none;
+  white-space: nowrap;
+  border-bottom: 2px solid transparent;
+}
+.tab:hover { background: var(--bg-hover); color: var(--text); }
+.tab[aria-current="page"] { color: var(--accent); border-bottom-color: var(--accent); }
+/* 実体を持たないタブ。配布元サイトへ出る */
+.tab-external::after { content: "↗"; margin-left: var(--space-xs); font-size: 0.85em; }
+
+.nav { display: flex; gap: var(--space-md); }
+.nav a {
+  color: var(--text-muted);
+  padding: var(--space-xs) var(--space-sm);
+  border-radius: var(--radius-sm);
+}
+.nav a.active { color: var(--text); background: var(--bg-hover); }
+
+.user { display: flex; align-items: center; gap: var(--space-sm); color: var(--text-muted); }
+.avatar {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background: var(--accent);
+  color: #fff;
+  font-weight: 600;
+}
+
+
+/* ==========================================================================
+   4. レイアウト
+   layout: サイドバー + メインの 2 カラム構成（Mock demo 用）
+   main : シングルカラム（MD 描画ページ / 索引ページ用）
+   ========================================================================== */
+.layout {
+  display: grid;
+  grid-template-columns: var(--sidebar-w) 1fr;
+  min-height: calc(100vh - var(--topbar-h));
+}
+.sidebar {
+  background: var(--bg-elevated);
+  border-right: 1px solid var(--border);
+  padding: var(--space-md) 0;
+}
+.sidebar ul { list-style: none; margin: 0; padding: 0; }
+.sidebar li { padding: var(--space-sm) var(--space-lg); color: var(--text-muted); cursor: pointer; }
+.sidebar li:hover { background: var(--bg-hover); color: var(--text); }
+.sidebar li.active {
+  background: var(--bg-hover);
+  color: var(--text);
+  border-left: 3px solid var(--accent);
+  padding-left: calc(var(--space-lg) - 3px);
+}
+
+.main { padding: var(--space-lg); max-width: 1280px; margin: 0 auto; }
+
+/* ==========================================================================
+   4b. ドキュメントサイトの 3 領域レイアウト
+   上タブ・左サイドバー・本文・右目次を持つ全ページの共通レイアウト。
+   サイドバーを持たない画面（目次表の無いフォルダ）は .no-sidebar が付き、
+   本文が全幅になる。
+   ========================================================================== */
+.docs-layout {
+  display: grid;
+  grid-template-columns: var(--sidebar-w) minmax(0, 1fr) var(--toc-w);
+  gap: var(--space-lg);
+  align-items: start;
+  max-width: 1280px;
+  margin: 0 auto;
+  padding: var(--space-lg) var(--space-md);
+}
+.docs-layout.no-sidebar {
+  grid-template-columns: minmax(0, 1fr) var(--toc-w);
+}
+.docs-main { min-width: 0; max-width: var(--content-max); }
+
+
+/* ==========================================================================
+   5. ページ見出し
+   ========================================================================== */
+.page-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: var(--space-md);
+  flex-wrap: wrap;
+  gap: var(--space-md);
+}
+.page-header h1 { margin: 0; font-size: 22px; }
+.actions { display: flex; gap: var(--space-sm); }
+
+.hint { color: var(--text-muted); margin-top: 0; margin-bottom: var(--space-md); }
+
+
+/* ==========================================================================
+   6. パンくずリスト
+   URL 階層から app.js が自動生成する。data-breadcrumb 要素に描画される。
+   ========================================================================== */
+.breadcrumb {
+  color: var(--text-muted);
+  margin: 0 0 var(--space-md) 0;
+  font-size: 13px;
+  line-height: 1.4;
+}
+.breadcrumb a { color: var(--text-muted); }
+.breadcrumb a:hover { color: var(--accent); }
+.breadcrumb .sep { margin: 0 var(--space-xs); opacity: 0.6; }
+.breadcrumb .current { color: var(--text); font-weight: 500; }
+
+
+/* ==========================================================================
+   7. フォーム・ボタン
+   ========================================================================== */
+input[type="search"],
+input[type="text"],
+textarea {
+  background: var(--bg-elevated);
+  border: 1px solid var(--border);
+  color: var(--text);
+  padding: var(--space-sm) var(--space-md);
+  border-radius: var(--radius-sm);
+  font-size: 14px;
+  font-family: var(--font-base);
+}
+input[type="search"]:focus,
+input[type="text"]:focus,
+textarea:focus { outline: none; border-color: var(--accent); }
+
+button {
+  cursor: pointer;
+  font-family: var(--font-base);
+  font-size: 14px;
+  border-radius: var(--radius-sm);
+  padding: var(--space-sm) var(--space-md);
+  border: 1px solid transparent;
+  transition: background 0.15s ease;
+}
+button.primary { background: var(--accent); color: #fff; }
+button.primary:hover { background: var(--accent-hover); }
+button.ghost { background: transparent; color: var(--text); border-color: var(--border); }
+button.ghost:hover { background: var(--bg-hover); }
+button.danger { background: transparent; color: var(--danger); border-color: var(--danger); }
+button.danger:hover { background: var(--danger); color: #fff; }
+button:disabled { opacity: 0.4; cursor: not-allowed; }
+
+
+/* ==========================================================================
+   8. テーブル
+   .data-table: Mock demo 用の詳細付きテーブル
+   .markdown-body:not(.mdmark) table: mdmark を使わないページの本文のテーブル
+   ========================================================================== */
+.data-table {
+  width: 100%;
+  border-collapse: collapse;
+  background: var(--bg-elevated);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  overflow: hidden;
+  margin-bottom: var(--space-md);
+}
+/* 本文の表（mdmark を使わないページ。mdmark で描いた本文の表は mdmark のスタイルが持つ） */
+.markdown-body:not(.mdmark) table {
+  width: max-content;
+  min-width: 100%;
+  border-collapse: separate;
+  border-spacing: 0;
+  background: var(--bg-elevated);
+  margin: 0;
+}
+.data-table th,
+.data-table td,
+.markdown-body:not(.mdmark) th,
+.markdown-body:not(.mdmark) td {
+  padding: var(--space-sm) var(--space-md);
+  text-align: left;
+  border-bottom: 1px solid var(--border);
+}
+.data-table th,
+.markdown-body:not(.mdmark) th {
+  background: var(--bg-hover);
+  color: var(--text-muted);
+  font-weight: 600;
+  font-size: 12px;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+.data-table tbody tr,
+.markdown-body:not(.mdmark) tbody tr { transition: background 0.1s ease; }
+.data-table tbody tr:hover,
+.markdown-body:not(.mdmark) tbody tr:hover { background: var(--bg-hover); }
+.data-table tr.hidden,
+.markdown-body:not(.mdmark) tr.hidden { display: none; }
+
+/* テーブル上部のフィルタ検索ボックス */
+.table-filter {
+  display: block;
+  width: 100%;
+  max-width: 320px;
+  margin-bottom: var(--space-sm);
+}
+
+
+/* ==========================================================================
+   9. バッジ・カード・その他表示要素
+   ========================================================================== */
+.badge {
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 600;
+}
+.badge.ok { background: rgba(22, 163, 74, 0.12); color: var(--ok); }
+.badge.warn { background: rgba(202, 138, 4, 0.15); color: var(--warn); }
+.badge.danger { background: rgba(220, 38, 38, 0.12); color: var(--danger); }
+
+.pager {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-md);
+  margin-top: var(--space-md);
+  color: var(--text-muted);
+}
+
+/* 画面下部の一時通知 */
+.toast {
+  position: fixed;
+  bottom: var(--space-lg);
+  left: 50%;
+  transform: translateX(-50%);
+  background: var(--bg-elevated);
+  border: 1px solid var(--border);
+  color: var(--text);
+  padding: var(--space-sm) var(--space-md);
+  border-radius: var(--radius-sm);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.12);
+}
+
+.card {
+  background: var(--bg-elevated);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  padding: var(--space-md);
+  margin-bottom: var(--space-md);
+}
+.card h2 { margin: 0 0 var(--space-md) 0; font-size: 16px; }
+
+.section-spacer { margin-top: var(--space-lg); }
+
+/* 採用案リストで採用済みを目立たせるバー */
+.adopted-banner {
+  background: rgba(22, 163, 74, 0.08);
+  border: 1px solid var(--ok);
+  border-radius: var(--radius-sm);
+  padding: var(--space-sm) var(--space-md);
+  margin-bottom: var(--space-md);
+  color: var(--ok);
+  font-weight: 600;
+}
+
+
+/* ==========================================================================
+   10. 詳細画面用グリッド
+   ========================================================================== */
+.detail-grid {
+  display: grid;
+  grid-template-columns: 2fr 1fr;
+  gap: var(--space-lg);
+}
+
+.field-row {
+  display: grid;
+  grid-template-columns: 120px 1fr;
+  padding: var(--space-sm) 0;
+  border-bottom: 1px solid var(--border);
+}
+.field-row:last-child { border-bottom: none; }
+.field-label { color: var(--text-muted); }
+.field-value input,
+.field-value textarea { width: 100%; }
+
+.meta-list { list-style: none; margin: 0; padding: 0; }
+.meta-list li { padding: var(--space-xs) 0; color: var(--text-muted); }
+.meta-list strong { color: var(--text); }
+
+
+/* ==========================================================================
+   11. Markdown 描画エリア
+   本文の Markdown は app.js が mdmark で描く。中の見た目は mdmark のスタイル（vendor/mdmark/index.css）が持ち、
+   ここは本文の外の枠と、mdmark を使わないページ（.markdown-body:not(.mdmark)）の本文の見た目を持つ。
+   ========================================================================== */
+.markdown-body {
+  background: var(--bg-elevated);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  padding: var(--space-lg);
+}
+/* mdmark で描いた本文: 幅は本文の枠が決める */
+.markdown-body.mdmark { --mdmark-content-width: none; }
+/* 閉じた見出しに同じ階層の閉じた見出しが続くとき: 後の見出しの上の余白を詰める */
+.markdown-body.mdmark h2.mdmark-heading:has(> .mdmark-section-toggle[aria-expanded="false"]) + .mdmark-section-body + h2.mdmark-heading:has(> .mdmark-section-toggle[aria-expanded="false"]),
+.markdown-body.mdmark h3.mdmark-heading:has(> .mdmark-section-toggle[aria-expanded="false"]) + .mdmark-section-body + h3.mdmark-heading:has(> .mdmark-section-toggle[aria-expanded="false"]),
+.markdown-body.mdmark h4.mdmark-heading:has(> .mdmark-section-toggle[aria-expanded="false"]) + .mdmark-section-body + h4.mdmark-heading:has(> .mdmark-section-toggle[aria-expanded="false"]) {
+  margin-top: var(--space-sm);
+}
+.markdown-body > *:first-child { margin-top: 0; }
+.markdown-body > *:last-child { margin-bottom: 0; }
+
+.markdown-body:not(.mdmark) h1,
+.markdown-body:not(.mdmark) h2,
+.markdown-body:not(.mdmark) h3,
+.markdown-body:not(.mdmark) h4 {
+  margin-top: var(--space-lg);
+  margin-bottom: var(--space-sm);
+  line-height: 1.3;
+}
+.markdown-body:not(.mdmark) h1 { font-size: 22px; border-bottom: 1px solid var(--border); padding-bottom: var(--space-xs); }
+.markdown-body:not(.mdmark) h2 { font-size: 18px; border-bottom: 1px solid var(--border); padding-bottom: var(--space-xs); }
+.markdown-body:not(.mdmark) h3 { font-size: 16px; }
+.markdown-body:not(.mdmark) h4 { font-size: 14px; color: var(--text-muted); }
+
+/* 着地のための余白は html の scroll-padding-top だけに持たせる
+   （見出し側にも持たせると余白 2 つ分ずれる） */
+.markdown-body :is(h1, h2, h3, h4) {
+  scroll-margin-top: 0;
+}
+
+/* 見出し: 区切りの無い長い語も行の幅で折り返し、アンカーを画面の外へ出さない */
+.markdown-body :is(h1, h2, h3, h4) { overflow-wrap: anywhere; }
+
+/* コードブロック・図・描いた markdown の右上に並ぶボタン群（重ねたときだけ見せる） */
+.code-actions {
+  position: absolute;
+  top: var(--space-xs);
+  right: var(--space-xs);
+  z-index: 1;
+  display: flex;
+  gap: var(--space-xs);
+  opacity: 0;
+  transition: opacity 0.15s ease;
+}
+.markdown-body pre:hover > .code-actions,
+.mermaid-holder:hover > .code-actions,
+.markdown-preview:hover > .code-actions { opacity: 1; }
+
+/* コピーボタンと、描いた表示と元のコードの切り替えボタン */
+.code-copy,
+.code-view-toggle {
+  padding: 2px 8px;
+  font-size: 11px;
+  font-family: var(--font-base);
+  color: var(--text-muted);
+  background: var(--bg-elevated);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+}
+.code-copy:hover,
+.code-view-toggle:hover { color: var(--accent); border-color: var(--accent); }
+
+.markdown-body:not(.mdmark) p { margin: var(--space-sm) 0; }
+
+.markdown-body:not(.mdmark) ul,
+.markdown-body:not(.mdmark) ol { padding-left: var(--space-lg); margin: var(--space-sm) 0; }
+.markdown-body:not(.mdmark) li { margin: var(--space-xs) 0; }
+
+.markdown-body:not(.mdmark) blockquote {
+  margin: var(--space-sm) 0;
+  padding: var(--space-xs) var(--space-md);
+  border-left: 3px solid var(--border);
+  color: var(--text-muted);
+}
+
+.markdown-body:not(.mdmark) code {
+  font-family: var(--font-mono);
+  font-size: 12.5px;
+  background: var(--bg-code);
+  padding: 1px 6px;
+  border-radius: var(--radius-sm);
+}
+.markdown-body:not(.mdmark) pre {
+  background: var(--bg-code);
+  padding: var(--space-md);
+  border-radius: var(--radius-sm);
+  overflow-x: auto;
+}
+.markdown-body:not(.mdmark) pre code { background: transparent; padding: 0; }
+/* 言語ラベルを持つコードブロック: ラベルの高さの分だけ上の余白を広げ、1 行目と重ねない */
+.markdown-body pre:has(> .code-lang) { padding-top: calc(var(--space-md) + var(--space-lg)); }
+
+.markdown-body:not(.mdmark) img { max-width: 100%; height: auto; }
+
+.markdown-body:not(.mdmark) hr {
+  border: none;
+  border-top: 1px solid var(--border);
+  margin: var(--space-lg) 0;
+}
+
+/* ==========================================================================
+   11b. コールアウト
+   mdmark を使わないページが持つ種別の class つきのコールアウト。
+   ========================================================================== */
+.callout {
+  margin: var(--space-md) 0;
+  padding: var(--space-sm) var(--space-md);
+  border-left: 4px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--bg-elevated);
+}
+.callout p { margin: var(--space-xs) 0; }
+.callout-title { font-weight: 600; color: var(--callout-color); }
+.callout-note { --callout-color: var(--accent); border-left-color: var(--accent); }
+.callout-tip { --callout-color: var(--ok); border-left-color: var(--ok); }
+.callout-important { --callout-color: var(--important); border-left-color: var(--important); }
+.callout-warn { --callout-color: var(--warn); border-left-color: var(--warn); }
+/* 警告より強い。線を太くして色でも幅でも差を付ける */
+.callout-danger { --callout-color: var(--danger); border-left-color: var(--danger); border-left-width: 8px; }
+
+/* 本文の <details> をそのまま使う（開閉はブラウザに任せる。mdmark を使わないページ）
+   閉じている間は summary の高さだけにする（padding-block は summary 側で持つ） */
+.markdown-body:not(.mdmark) details {
+  margin: var(--space-md) 0;
+  padding: 0 var(--space-md);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  background: var(--bg-elevated);
+}
+.markdown-body:not(.mdmark) details[open] { padding-bottom: var(--space-sm); }
+.markdown-body:not(.mdmark) summary {
+  min-height: 0;
+  padding-block: calc((var(--tap-min) - 1lh) / 2);
+  font-weight: 600;
+  cursor: pointer;
+}
+
+
+/* ==========================================================================
+   12. トップに戻るボタン
+   app.js がスクロール量に応じて .visible を切り替える。
+   中身は線のアイコン（.icon）だけで、共通の button の余白を 0 にして縦横の中央に置く。
+   ========================================================================== */
+.back-to-top {
+  position: fixed;
+  bottom: var(--space-lg);
+  right: var(--space-lg);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  padding: 0;
+  border-radius: 50%;
+  background: var(--accent);
+  color: #fff;
+  border: none;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.2s ease, transform 0.2s ease;
+  z-index: 20;
+}
+.back-to-top.visible { opacity: 1; pointer-events: auto; }
+.back-to-top:hover { background: var(--accent-hover); transform: translateY(-2px); }
+
+
+/* ==========================================================================
+   14. サイドバー・右目次
+   サイドバー: セクション → サブセクション → ページの 3 段。既定は全て閉じる。
+   右目次: 960px 未満では本文の冒頭へ畳んで置く（.toc-inline）。
+   ========================================================================== */
+.docnav {
+  position: sticky;
+  top: var(--header-h);
+  max-height: calc(100vh - var(--header-h));
+  overflow-y: auto;
+}
+.docnav-section > button,
+.docnav-subsection > button {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  min-height: var(--tap-min);
+  padding: 0 var(--space-sm);
+  background: none;
+  border: 0;
+  color: var(--text);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+.docnav-subsection > button { padding-left: var(--space-md); color: var(--text-muted); }
+.docnav-section > button:hover,
+.docnav-subsection > button:hover { background: var(--bg-hover); }
+/* 開閉マーク。開いている間だけ回す */
+.docnav-caret { transition: transform 0.15s; }
+[aria-expanded="true"] > .docnav-caret { transform: rotate(90deg); }
+.docnav-pages { margin: 0; padding: 0; list-style: none; }
+.docnav-pages a {
+  display: flex;
+  align-items: center;
+  min-height: var(--tap-min);
+  padding: 0 var(--space-sm) 0 var(--space-lg);
+  color: var(--text-muted);
+  text-decoration: none;
+}
+.docnav-pages a:hover { background: var(--bg-hover); color: var(--text); }
+.docnav-pages a[aria-current="page"] { color: var(--accent); background: var(--bg-hover); }
+/* 今のタブの外へ移るページ: 項目の右端に ↗ を揃えて置く */
+.docnav-external::after { content: "↗"; margin-left: auto; padding-left: var(--space-xs); font-size: 0.85em; }
+
+.docs-toc {
+  position: sticky;
+  top: var(--header-h);
+  max-height: calc(100vh - var(--header-h));
+  overflow-y: auto;
+  font-size: 0.9em;
+}
+.docs-toc ul { margin: 0; padding: 0; list-style: none; }
+.docs-toc a { display: block; padding: var(--space-xs) 0; color: var(--text-muted); text-decoration: none; }
+.docs-toc a.active { color: var(--accent); }
+.docs-toc .toc-h3,
+.docs-toc a.toc-h3 { padding-left: var(--space-md); }
+.toc-inline { margin-bottom: var(--space-lg); border: 1px solid var(--border); border-radius: var(--radius-md); }
+.toc-inline > summary { min-height: var(--tap-min); display: flex; align-items: center; padding: 0 var(--space-md); cursor: pointer; }
+
+
+/* ==========================================================================
+   14b. ドロワー
+   720px 以下でサイドバーを重ねて出すときの見え方。
+   ========================================================================== */
+.drawer-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: var(--z-drawer);
+  background: rgba(0, 0, 0, 0.4);
+}
+
+
+/* ==========================================================================
+   14c. 起票サイドバー
+   960px 以上は右目次の列、720〜960px は左サイドバーの列を譲って本文と並べる。
+   720px 以下は下から開くシートにする。
+   ========================================================================== */
+:root { --issue-w: 320px; }
+
+body.issue-open .docs-layout {
+  grid-template-columns: var(--sidebar-w) minmax(0, 1fr) var(--issue-w);
+}
+body.issue-open .docs-toc { display: none; }
+
+.issue-panel {
+  position: sticky;
+  top: var(--header-h);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-sm);
+  max-height: calc(100vh - var(--header-h) - var(--space-lg));
+  padding: var(--space-md);
+  overflow-y: auto;
+  background: var(--bg-elevated);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+}
+.issue-panel[hidden] { display: none; }
+.issue-panel-head { display: flex; align-items: center; justify-content: space-between; }
+.issue-panel-head h2 { margin: 0; font-size: 16px; }
+.issue-field { display: flex; flex-direction: column; gap: var(--space-xs); font-size: 12px; color: var(--text-muted); }
+.issue-field input,
+.issue-field textarea { width: 100%; font-size: 16px; color: var(--text); }
+.issue-field textarea { resize: vertical; min-height: 12em; font-family: var(--font-mono); font-size: 13px; }
+.issue-warn {
+  margin: 0;
+  padding: var(--space-xs) var(--space-sm);
+  font-size: 12px;
+  color: var(--warn);
+  border-left: 3px solid var(--warn);
+  background: rgba(202, 138, 4, 0.08);
+}
+.issue-meta { display: flex; align-items: center; gap: var(--space-sm); font-size: 12px; color: var(--text-muted); }
+.issue-hint { margin: 0; font-size: 12px; color: var(--text-muted); }
+.issue-actions { display: flex; justify-content: flex-end; gap: var(--space-sm); }
+
+
+/* ==========================================================================
+   14d. 見出し単位の検索の結果と検索モーダル
+   ========================================================================== */
+:root { --search-modal-w: 640px; }
+
+.search-hit {
+  display: block;
+  padding: var(--space-sm) var(--space-md);
+  color: var(--text);
+  text-decoration: none;
+  border-left: 3px solid transparent;
+}
+.search-hit.is-selected { background: var(--bg-hover); border-left-color: var(--accent); }
+.search-crumb { display: block; }
+.search-crumb-page { color: var(--text-muted); }
+.search-crumb-heading { font-weight: 600; }
+.search-excerpt {
+  display: block;
+  overflow: hidden;
+  font-size: 12px;
+  color: var(--text-muted);
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+.search-hit mark { color: inherit; background: rgba(37, 99, 235, 0.18); border-radius: 2px; }
+.search-group { margin: 0; padding: var(--space-sm) var(--space-md) var(--space-xs); font-size: 11px; color: var(--text-muted); }
+.search-recent {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  width: 100%;
+  min-height: var(--tap-min);
+  padding: var(--space-xs) var(--space-md);
+  text-align: left;
+  color: var(--text);
+  background: transparent;
+  border: 0;
+  border-radius: 0;
+}
+.search-recent:hover { background: var(--bg-hover); }
+.search-empty { padding: var(--space-md); color: var(--text-muted); }
+.search-loading { margin: 0; padding: var(--space-md); color: var(--text-muted); }
+
+.search-modal { position: fixed; inset: 0; z-index: var(--z-overlay); }
+.search-modal[hidden] { display: none; }
+.search-modal-backdrop { position: absolute; inset: 0; background: rgba(0, 0, 0, 0.4); }
+.search-modal-dialog {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  width: min(var(--search-modal-w), calc(100vw - 2 * var(--space-md)));
+  max-height: 70vh;
+  margin: 10vh auto 0;
+  background: var(--bg-elevated);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  box-shadow: 0 16px 48px rgba(0, 0, 0, 0.24);
+}
+.search-modal-head { display: flex; gap: var(--space-sm); padding: var(--space-md); border-bottom: 1px solid var(--border); }
+.search-modal-head input { flex: 1; font-size: 16px; min-height: var(--tap-min); }
+.search-modal-close { display: none; }
+.search-modal-results { flex: 1; overflow-y: auto; padding: var(--space-xs) 0; }
+.search-modal-keys {
+  margin: 0;
+  padding: var(--space-sm) var(--space-md);
+  font-size: 12px;
+  color: var(--text-muted);
+  border-top: 1px solid var(--border);
+}
+body.search-modal-open { overflow: hidden; }
+
+
+/* ==========================================================================
+   15. コード言語ラベル
+   ========================================================================== */
+.code-lang,
+.markdown-preview-badge {
+  position: absolute;
+  top: var(--space-xs);
+  left: var(--space-sm);
+  font-size: 10px;
+  font-family: var(--font-mono);
+  color: var(--text-muted);
+  text-transform: lowercase;
+  letter-spacing: 0.03em;
+  padding: 1px 6px;
+  background: var(--bg-elevated);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+}
+/* バッジは文言をそのまま見せる */
+.markdown-preview-badge { text-transform: none; }
+
+/* 描いた markdown の入れ物。図の入れ物と同じ枠と地色と横スクロールで本文と見分け、上にバッジとボタン群の分の余白を取る */
+.markdown-preview {
+  padding: calc(var(--space-md) + var(--space-lg)) var(--space-md) var(--space-md);
+  margin: var(--space-md) 0;
+  background: var(--bg-elevated);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  overflow-x: auto;
+  text-align: left;
+}
+
+
+/* ==========================================================================
+   16. Mermaid ホルダー
+   ========================================================================== */
+.mermaid-holder {
+  padding: var(--space-md);
+  margin: var(--space-md) 0;
+  background: var(--bg-elevated);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  overflow-x: auto;
+  text-align: center;
+  cursor: zoom-in;
+}
+.mermaid-holder svg { max-width: 100%; height: auto; }
+/* click リンク付きノードはカーソルで押せると分かるようにする */
+.mermaid-holder svg a { cursor: pointer; }
+/* click リンク付きノードのラベルに下線を引いて参照と分かるようにする（SVG text / HTML ラベル両対応） */
+.mermaid-holder svg a text,
+.mermaid-holder svg a .nodeLabel {
+  text-decoration: underline;
+}
+/* click リンク付きノードのホバー強調 */
+.mermaid-holder svg a:hover { opacity: 0.7; }
+.mermaid-error {
+  padding: var(--space-sm) var(--space-md);
+  border-left: 4px solid var(--danger);
+  background: var(--bg-code);
+}
+/* 拡大した図は横幅を重ねに合わせ、縦が収まらなければ縦のスクロールかスワイプで動かす */
+.zoom-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: var(--z-overlay);
+  background: var(--bg);
+  overflow: auto;
+  /* 端に着いたスクロールを下の本文へ抜けさせない */
+  overscroll-behavior: contain;
+}
+.zoom-overlay > svg { height: auto; }
+/* スクロールしても画面の隅に留める */
+.overlay-close {
+  position: fixed;
+  top: var(--space-md);
+  right: var(--space-md);
+  min-width: var(--tap-min);
+  min-height: var(--tap-min);
+}
+
+/* 埋め込んだ図の枠: 上下に本文の段落と同じ余白を取る */
+.embed-figure { margin: var(--space-md) 0; }
+/* 中の図は自ページの図と同じ入れ物で描くので、余白は枠に任せる */
+.embed-figure > pre,
+.embed-figure > .mermaid-holder { margin: 0; }
+/* 図の下の埋め込み元の表示: 小さく控えめに、図との間を詰める */
+.embed-caption {
+  margin-top: var(--space-xs);
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+
+/* ==========================================================================
+   17. 狭幅対応
+   ========================================================================== */
+@media (max-width: 960px) {
+  .docs-layout,
+  .docs-layout.no-sidebar {
+    grid-template-columns: var(--sidebar-w) minmax(0, 1fr);
+  }
+  .docs-layout.no-sidebar { grid-template-columns: minmax(0, 1fr); }
+  .docs-toc { display: none; }
+
+  body.issue-open .docs-layout { grid-template-columns: minmax(0, 1fr) var(--issue-w); }
+  body.issue-open .docnav { display: none; }
+}
+
+@media (max-width: 720px) {
+  .layout { grid-template-columns: 1fr; }
+  .sidebar { display: none; }
+  .detail-grid { grid-template-columns: 1fr; }
+  .main { padding: var(--space-md); }
+  .topbar-search { display: none; }
+
+  .docs-layout,
+  .docs-layout.no-sidebar { grid-template-columns: minmax(0, 1fr); }
+
+  /* ヘッダーのアイコンボタンは押せる大きさの同じ正方形に揃える */
+  .drawer-toggle,
+  .search-toggle,
+  .issue-toggle,
+  .comment-toggle,
+  .theme-toggle {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: var(--tap-min);
+    height: var(--tap-min);
+    padding: 0;
+    line-height: 1;
+  }
+  .topbar-actions > .search-toggle { display: inline-flex; }
+  .issue-toggle-label { display: none; }
+  /* コメントのボタンは文言を隠してアイコンだけにし、数をアイコンの右上に重ねる */
+  .comment-toggle-label { display: none; }
+  .comment-toggle .comment-count {
+    position: absolute;
+    top: 4px;
+    right: 2px;
+    min-width: 18px;
+    padding: 0 4px;
+  }
+  .search-kbd { display: none; }
+
+  /* サイドバーはドロワーとして左から出す */
+  .docnav {
+    position: fixed;
+    top: 0;
+    left: 0;
+    z-index: calc(var(--z-drawer) + 1);
+    width: var(--sidebar-w);
+    height: 100%;
+    max-height: none;
+    padding: var(--space-md);
+    background: var(--bg-elevated);
+    border-right: 1px solid var(--border);
+  }
+  .docnav[hidden] { display: none; }
+
+  /* 起票サイドバーは下から開くシートにする */
+  body.issue-open .docs-layout { grid-template-columns: minmax(0, 1fr); }
+  .issue-panel {
+    position: fixed;
+    top: auto;
+    right: 0;
+    bottom: 0;
+    left: 0;
+    z-index: var(--z-overlay);
+    max-height: 75vh;
+    border-radius: var(--radius-md) var(--radius-md) 0 0;
+    box-shadow: 0 -8px 32px rgba(0, 0, 0, 0.2);
+  }
+
+  /* 検索モーダルは全画面で出す */
+  .search-modal-dialog {
+    width: 100%;
+    max-height: none;
+    height: 100%;
+    margin: 0;
+    border: 0;
+    border-radius: 0;
+  }
+  .search-modal-close { display: inline-flex; align-items: center; }
+  .search-modal-keys { display: none; }
+}
+
+
+/* ==========================================================================
+   18. 写せなかったときの面
+   コピーを写しへ入れられなかったときに、写す中身を選んだ状態で出す面
+   ========================================================================== */
+/* 面の位置: 押したボタンの下に出し、画面の端では反対側へ返す */
+.table-menu {
+  inset: auto;
+  position-area: block-end span-inline-start;
+  position-try-fallbacks: flip-inline, flip-block;
+  width: min(280px, calc(100vw - 2 * var(--space-md)));
+}
+
+/* 写せなかったときの面の題: 注意の字色 */
+.copy-fallback-title { margin: 0 0 var(--space-xs); font-weight: 600; color: var(--danger); }
+/* 写せなかったときの面の案内: 補助の字色 */
+.copy-fallback-note { margin: 0 0 var(--space-sm); color: var(--text-muted); }
+/* 写せなかった中身の欄: 面の幅いっぱいにし、等幅で長い行を欄の幅で折り返す */
+.copy-fallback-area {
+  width: 100%;
+  font-family: var(--font-mono);
+  font-size: 12px;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  resize: vertical;
+}
+
+/* スマホ幅: 写せなかったときの面はボタンの位置に依らず、画面の下から出す面にする */
+@media (max-width: 600px) {
+  .table-menu {
+    position-area: none;
+    inset: auto 0 0 0;
+    width: 100%;
+    max-width: none;
+    max-height: 60vh;
+    margin: 0;
+    overflow-y: auto;
+    border-radius: var(--radius-md) var(--radius-md) 0 0;
+  }
+}
+
+
+/* ==========================================================================
+   19. コメント
+   コメントのパネル・入口のボタン
+   ========================================================================== */
+/* パネルの幅 */
+:root { --panel-w: 360px; }
+
+/* コメントのパネル: 本文の右の列に上へ貼り付け、画面の高さを超えた分だけ中でスクロールする */
+body.side-open .docs-layout { grid-template-columns: var(--sidebar-w) minmax(0, 1fr) var(--panel-w); }
+body.side-open .docs-layout.no-sidebar { grid-template-columns: minmax(0, 1fr) var(--panel-w); }
+/* 開いている間は右の目次を隠して列を譲る */
+body.side-open .docs-toc { display: none; }
+.side-panel {
+  position: sticky;
+  top: calc(var(--header-h) + var(--space-md));
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-sm);
+  max-height: calc(100vh - var(--header-h) - var(--space-xl));
+  padding: var(--space-md);
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  background: var(--bg-elevated);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+}
+.side-panel[hidden] { display: none; }
+/* パネルの見出しの行: 題名と閉じるボタン */
+.side-panel-head { display: flex; align-items: flex-start; justify-content: space-between; gap: var(--space-sm); }
+.side-panel-head h2 { margin: 0; font-size: 16px; overflow-wrap: anywhere; }
+/* Octicons の形のアイコン: 文字と同じ色で描く */
+.icon-svg { width: 16px; height: 16px; fill: currentColor; flex: none; }
+.side-panel .icon-button { display: inline-flex; align-items: center; justify-content: center; flex: none; width: var(--control-h); height: var(--control-h); padding: 0; }
+
+/* すべて選択とまとめての操作 */
+.comment-toolbar { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: var(--space-xs) var(--space-sm); padding-bottom: var(--space-xs); border-bottom: 1px solid var(--border); }
+.comment-all { display: flex; align-items: center; gap: var(--space-xs); min-height: var(--tap-min); font-size: 12px; color: var(--text-muted); }
+.comment-toolbar-actions { display: flex; gap: var(--space-xs); }
+.comment-toolbar button { height: var(--control-h); padding: 0 var(--space-sm); font-size: 12px; }
+/* コメントの一覧: 上から詰めて積む */
+.comment-list { display: flex; flex-direction: column; gap: var(--space-sm); margin: 0; padding: 0; list-style: none; }
+/* コメント 1 つ: 頭・引用・本文・下のボタンを縦に並べる */
+.comment { display: flex; flex-direction: column; gap: var(--space-xs); padding: var(--space-sm); border: 1px solid var(--border); border-radius: var(--radius-sm); transition: background-color 0.3s ease, border-color 0.3s ease; }
+/* 足した・移った先のコメント: 背景で一時だけ目立たせる */
+.comment.flash { border-color: var(--accent); background: rgba(37, 99, 235, 0.08); }
+@media (prefers-reduced-motion: reduce) {
+  /* 動きを減らす設定では色だけ変える */
+  .comment { transition: none; }
+}
+/* コメントの頭: 選択・場所・見出しへ移動 */
+.comment-head { display: flex; align-items: flex-start; gap: var(--space-sm); }
+.comment-head .comment-place { flex: 1; }
+/* コメントの場所（ページのパスと見出し） */
+.comment-place { margin: 0; font-family: var(--font-mono); font-size: 12px; color: var(--text-muted); overflow-wrap: anywhere; }
+/* 選んだ文字列の引用 */
+.comment-quote { margin: 0; padding: var(--space-xs) var(--space-sm); font-size: 12px; color: var(--text); background: var(--bg-code); border-radius: var(--radius-sm); overflow-wrap: anywhere; }
+/* コメントの本文と、修正・書く枠の入力欄 */
+.comment-body { margin: 0; font-size: 13px; white-space: pre-wrap; overflow-wrap: anywhere; }
+.side-panel textarea { width: 100%; font-size: 16px; color: var(--text); resize: vertical; }
+/* コメントの下のボタン */
+.comment-actions { display: flex; justify-content: flex-end; gap: var(--space-xs); }
+.comment-actions button { height: var(--control-h); padding: 0 var(--space-sm); font-size: 12px; }
+/* 書く枠: 最後のコメントのすぐ下（無ければ一番上） */
+.comment-compose { display: flex; flex-direction: column; gap: var(--space-xs); padding: var(--space-sm); border: 1px solid var(--accent); border-radius: var(--radius-sm); }
+/* 入力チェックのエラー: 注意の字色で入力欄の下に 1 行 */
+.comment-error { margin: 0; font-size: 12px; color: var(--danger); }
+.comment-error[hidden] { display: none; }
+/* コメントが無いこと */
+.comment-empty { margin: 0; font-size: 13px; color: var(--text-muted); }
+
+/* 選んだ範囲の「コメントを追加」: 文書の座標で選択の下へ浮かせる（既定は隠す） */
+.selection-comment { position: absolute; z-index: var(--z-drawer); height: var(--control-h); padding: 0 var(--space-sm); font-size: 12px; box-shadow: 0 4px 16px rgba(0, 0, 0, 0.16); }
+.selection-comment[hidden] { display: none; }
+
+/* 移った先の見出し: 背景で一時だけ目立たせる */
+.line-flash,
+.line-flash > td { background: rgba(37, 99, 235, 0.14); }
+
+/* 一時通知: 下からのシートより手前に出し、文字の幅に合わせて 1 行に収める */
+.toast { z-index: calc(var(--z-overlay) + 1); width: max-content; max-width: calc(100vw - 2 * var(--space-md)); }
+
+/* ヘッダーの GitHub を開くボタン: マークだけの正方形。隣のテーマの切替と大きさを揃える */
+.github-open {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: var(--control-h);
+  height: var(--control-h);
+  padding: 0;
+  color: var(--text);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+}
+.github-open:hover { background: var(--bg-hover); }
+
+
+/* ==========================================================================
+   20. コメントの狭幅対応
+   ========================================================================== */
+@media (max-width: 960px) {
+  /* 右の目次の列を持たない幅では、パネルを本文の横に 2 列目として置く */
+  body.side-open .docs-layout,
+  body.side-open .docs-layout.no-sidebar { grid-template-columns: minmax(0, 1fr) var(--panel-w); }
+  body.side-open .docnav { display: none; }
+}
+
+@media (max-width: 720px) {
+  /* パネルは画面の下端に沿う下からのシートにする */
+  body.side-open .docs-layout,
+  body.side-open .docs-layout.no-sidebar { grid-template-columns: minmax(0, 1fr); }
+  .side-panel {
+    position: fixed;
+    top: auto;
+    right: 0;
+    bottom: 0;
+    left: 0;
+    z-index: var(--z-overlay);
+    max-height: 75vh;
+    border-radius: var(--radius-md) var(--radius-md) 0 0;
+    box-shadow: 0 -8px 32px rgba(0, 0, 0, 0.2);
+  }
+  /* GitHub を開くボタンはヘッダーに出さない */
+  .github-open { display: none; }
+  /* 選んだときの「コメントを追加」は指で押せる高さにする */
+  .selection-comment { height: var(--tap-min); }
+}

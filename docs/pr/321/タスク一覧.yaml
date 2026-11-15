@@ -65,8 +65,10 @@ tasks:
     updated_by: planner
     updated_at: '2026-11-15T09:24:34.682636+00:00'
   - process: ドキュメント修正
-    status: todo
+    status: done
     note: publish で docs/README.md・docs/_config.yml・docs/module/README.md を作り直し、docs/data/README.md を作成して commit する
+    updated_by: planner
+    updated_at: '2026-11-15T09:30:01.265474+00:00'
   - process: 単体テスト作成
     status: skipped
     reason: コードを変えない

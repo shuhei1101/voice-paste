@@ -75,7 +75,7 @@
   切り戻し: 配布先のエージェント統合への追従/切り戻し.py
   失敗時: 実行者が原因を確かめて依頼元へ返す
   確認方法: '`agent_context.yaml` と `.claude/agent-settings/` に 3 つのエージェント名が無く、元の割り当ての資料が planner・tester に割り当たっている'
-  状態: 未
+  状態: 済
 プロジェクトの索引の設定ファイルへの移行:
   説明: '配布先のリポジトリの .claude/settings.json の env に RULE_INJECT_INDEXES_PROJECT があれば、その値（カンマ区切りの索引のパス）を利用者の rule-inject の設定ファイル（~/.config/rule-inject/settings.yaml）の projects[] へ、match をそのリポジトリのクローンの絶対パス、indexes を値の並びにした要素として追加し、env から RULE_INJECT_INDEXES_PROJECT を削除して commit する。rule-inject の反映作業『利用者の設定ファイルへの移行』で設定ファイルができた後に行い、値がクローンの直下の rules.yaml だけなら rule-inject の既定で読まれるため projects に足さない。設定ファイルは書き換える前にバックアップし、切り戻しはバックアップと .claude/settings.json の変更前の内容を戻す（配布元: https://github.com/shuhei1101/ai-monitor/tree/v0.4.0/docs/pr/3211/%E5%8F%8D%E6%98%A0%E4%BD%9C%E6%A5%AD/%E3%83%97%E3%83%AD%E3%82%B8%E3%82%A7%E3%82%AF%E3%83%88%E3%81%AE%E7%B4%A2%E5%BC%95%E3%81%AE%E8%A8%AD%E5%AE%9A%E3%83%95%E3%82%A1%E3%82%A4%E3%83%AB%E3%81%B8%E3%81%AE%E7%A7%BB%E8%A1%8C）'
   タグ:

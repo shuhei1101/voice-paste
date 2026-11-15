@@ -60,7 +60,9 @@ tasks:
     updated_by: planner
     updated_at: '2026-11-15T10:58:03.945765+00:00'
   - process: モジュール構成設計
-    status: todo
+    status: done
+    updated_by: planner
+    updated_at: '2026-11-15T11:13:56.152707+00:00'
   - process: ドキュメント修正
     status: skipped
     reason: 設計書のほかに更新するドキュメントが無いため対象外

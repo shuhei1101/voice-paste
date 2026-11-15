@@ -27,12 +27,22 @@ COPY_IGNORE = (".git", "node_modules", ".venv", ".claude", "__pycache__")
 
 # knowledge のスキーマの行の ref
 REF_LINE = re.compile(r"^(?P<head>\s*ref:\s*)(?P<ref>design-schemas/v[0-9.]+)\s*$")
+# 書き換えるキー（knowledge のスキーマが持たないキー）
+KEYS = ("implementation", "introduced", "error_message", "directory", "per_env")
 # 書き換える違反の行（{ファイル}:{項目のパス}.{キー}: Schema に無い項目。最上位のキーは項目のパスを持たない）
-VIOLATION = re.compile(
-    r"^(?P<file>[^:]+):(?:(?P<path>.+)\.)?(?P<key>implementation|introduced|error_message|directory|per_env): Schema に無い項目$"
-)
-# 移す先の notes の節の名前（knowledge に相当するキーが無いもの）
-NOTE_TITLES = {"directory": "ディレクトリ", "per_env": "環境ごとの値"}
+VIOLATION = re.compile(rf"^(?P<file>[^:]+):(?:(?P<path>.+)\.)?(?P<key>{'|'.join(KEYS)}): Schema に無い項目$")
+# 検査は 1 つの要素につき違反を 1 件ずつ出すため、キーの数と、違反が無いことを確かめる 1 回だけ繰り返す
+MAX_ROUNDS = len(KEYS) + 1
+# モジュール構成の directory のツリーでない記述と、上書きを持たない per_env を移す notes の節
+DIRECTORY_NOTE = "ディレクトリ構成"
+PER_ENV_NOTE = "環境ごとの値"
+# モジュール構成の directory のツリーを移すフォルダ構成の設計書と、ツリーを読む配布元の変換
+LAYOUT_GLOB = "docs/layout/LAY-*.yaml"
+UPSTREAM_CONVERSION = f"{FROM_VERSION}:schemas/conversions/{FROM_VERSION}.py"
+# config の per_env を overrides の行にする元（OS ごとの上書き）
+OS_OVERRIDES_FILE = Path("config/defaults.yaml")
+OS_OVERRIDES_KEY = "os_overrides"
+
 # 書き換えの後も残ってよい違反（対応テストファイルの不在と、データの設計書の作成が直す source の欠落）
 ALLOWED = (
     re.compile(r"^[^:]+:test_file: 対応テストファイルがありません: "),

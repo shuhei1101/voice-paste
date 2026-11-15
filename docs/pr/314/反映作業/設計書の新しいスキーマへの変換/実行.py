@@ -1,6 +1,8 @@
 """dev-docs.yaml の knowledge のスキーマの ref を統一し、設計書を新しいスキーマへ変換する。"""
 
 import difflib
+import importlib.util
+import subprocess
 import shutil
 import sys
 import tempfile
@@ -17,9 +19,16 @@ from common import (  # noqa: E402
     DOCS_DIR,
     ELEMENT_KEYS,
     FILES_YMLS,
+    DIRECTORY_NOTE,
     FROM_VERSION,
+    KNOWLEDGE,
+    LAYOUT_GLOB,
     LOCAL_SCHEMAS,
-    NOTE_TITLES,
+    MAX_ROUNDS,
+    OS_OVERRIDES_FILE,
+    OS_OVERRIDES_KEY,
+    PER_ENV_NOTE,
+    UPSTREAM_CONVERSION,
     REF_LINE,
     TO_REF,
     VIOLATION,
@@ -141,10 +150,66 @@ def move_to_notes(element, title, text):
     notes[title] = text
 
 
-def rewrite_keys(root, violations):
+def load_upstream(work):
+    """配布元 v0.4.0 の変換を読み込み、モジュール構成の directory のツリーを読む関数を返す。"""
+    source = subprocess.run(
+        ["git", "-C", str(AI_MONITOR), "show", UPSTREAM_CONVERSION], capture_output=True, text=True, check=False
+    )
+    if source.returncode != 0:
+        fail("配布元の変換の読み込み", ["git", "-C", AI_MONITOR, "show", UPSTREAM_CONVERSION], source.stderr)
+    path = work.parent / "upstream_conversion.py"
+    path.write_text(source.stdout, encoding="utf-8")
+    spec = importlib.util.spec_from_file_location("upstream_conversion", path)
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    return module
+
+
+def layout_order():
+    """フォルダ構成のエントリの項目の並びを、knowledge のスキーマから返す。"""
+    command = ["git", "-C", str(KNOWLEDGE), "show", f"{TO_REF}:schemas/design/layout.schema.yaml"]
+    done = subprocess.run(command, capture_output=True, text=True, check=False)
+    if done.returncode != 0:
+        fail("フォルダ構成のスキーマの読み込み", command, done.stderr)
+    return list(YAML(typ="safe").load(done.stdout)["$defs"]["entry"]["properties"])
+
+
+def os_overrides(root):
+    """config/defaults.yaml の OS ごとの上書きを、(環境, 設定のキー, 値) の並びにして返す。"""
+    data = YAML(typ="safe").load((root / OS_OVERRIDES_FILE).read_text(encoding="utf-8"))
+    rows = []
+
+    def walk(env, prefix, value):
+        # 辞書は下の段へ、id を持つ要素の一覧は `{一覧}[{id}].{キー}` で、それ以外は値として持つ
+        if isinstance(value, dict):
+            for key, child in value.items():
+                walk(env, f"{prefix}.{key}" if prefix else key, child)
+        elif isinstance(value, list) and value and all(isinstance(e, dict) and "id" in e for e in value):
+            for element in value:
+                for key, child in element.items():
+                    if key != "id":
+                        walk(env, f"{prefix}[{element['id']}].{key}", child)
+        else:
+            rows.append((env, prefix, value))
+
+    for env, overrides in (data.get(OS_OVERRIDES_KEY) or {}).items():
+        walk(env, "", overrides)
+    return rows
+
+
+def overrides_for(setting_key, overrides):
+    """設定のキーを上書きする (環境, キー, 値) を返す（`{一覧}[].{キー}` は一覧の全ての要素に当てる）。"""
+    if "[]" in setting_key:
+        head, tail = setting_key.split("[]", 1)
+        return [r for r in overrides if r[1].startswith(f"{head}[") and r[1].endswith(f"]{tail}")]
+    return [r for r in overrides if r[1] == setting_key]
+
+
+def rewrite_keys(root, violations, upstream, overrides):
     """knowledge のスキーマが持たないキーを書き換える。"""
     docs = {}
     files_cache = {}
+    tree = {}
     for v in violations:
         file = v.group("file")
         if file not in docs:
@@ -156,28 +221,61 @@ def rewrite_keys(root, violations):
         key = v.group("key")
         if key == "introduced":
             # 入れた PR の番号は git の履歴が持つ
-            del element[key]
+            pass
         elif key == "implementation":
             # 実装の場所は管理用の YAML の implements で持つ。コードが無ければ notes に残す
             if not add_implements(root, files_cache, str(element[key]), str(doc["id"])):
                 move_to_notes(element, "実装の場所", element[key])
-            del element[key]
-        elif key in NOTE_TITLES:
-            # 相当するキーが無いものは notes の節へ移す
-            move_to_notes(element, NOTE_TITLES[key], element[key])
-            del element[key]
+        elif key == "directory":
+            # 配布元の変換と同じく、ツリーはフォルダ構成の設計書へ、ツリーでない記述は notes へ移す
+            rows, text = upstream._split_directory(str(element[key]))
+            for row_path, comment in rows:
+                upstream._add_row(tree, row_path, comment)
+            if text:
+                move_to_notes(element, DIRECTORY_NOTE, text)
+        elif key == "per_env":
+            # OS ごとの上書きがあれば overrides の行にし、無ければ notes へ移す
+            rows = overrides_for(str(element["key"]), overrides)
+            if rows:
+                if doc.get("overrides") is None:
+                    doc["overrides"] = []
+                for env, override_key, value in rows:
+                    if not any(o.get("key") == override_key and env in str(o.get("file")) for o in doc["overrides"]):
+                        doc["overrides"].append(
+                            CommentedMap(
+                                file=f"{OS_OVERRIDES_FILE}（{OS_OVERRIDES_KEY}.{env}）",
+                                key=override_key,
+                                value=str(value).lower() if isinstance(value, bool) else str(value),
+                                description=str(element[key]),
+                            )
+                        )
+            else:
+                move_to_notes(element, PER_ENV_NOTE, element[key])
         else:
             # 入力チェックの表に同じ要素があれば、表示位置はそちらが持つ
             checks = {str(c.get("element")) for c in doc.get("input_checks") or []}
             if str(element.get("name")) not in checks:
                 move_to_notes(element, "エラーの表示", element[key])
-            del element[key]
+        del element[key]
+    if tree:
+        merge_layout(root, docs, tree, upstream)
     for file, doc in docs.items():
         with (root / file).open("w", encoding="utf-8") as f:
             yaml_rt().dump(doc, f)
     for files_yml, data in files_cache.items():
         with (root / files_yml).open("w", encoding="utf-8") as f:
             yaml_rt().dump(data, f)
+
+
+def merge_layout(root, docs, tree, upstream):
+    """モジュール構成の directory のツリーのうち、フォルダ構成の設計書に無いエントリだけを足す。"""
+    layouts = sorted(root.glob(LAYOUT_GLOB))
+    if len(layouts) != 1:
+        fail("フォルダ構成の設計書", stderr=f"{LAYOUT_GLOB} が {len(layouts)} 件（1 件だけを想定）")
+    file = str(layouts[0].relative_to(root))
+    if file not in docs:
+        docs[file] = yaml_rt().load(layouts[0].read_text(encoding="utf-8"))
+    upstream._merge_entries(docs[file]["entries"], tree, layout_order())
 
 
 def changed_files(work):
@@ -201,12 +299,14 @@ def plan(work):
         fail("変換", command, stderr or stdout)
     print("変換: ok")
     # 検査は 1 つの要素の違反を 1 件ずつ出すため、書き換える違反が無くなるまで繰り返す
+    upstream = load_upstream(work)
+    overrides = os_overrides(work)
     total = 0
-    for _ in range(len(NOTE_TITLES) + 3):
+    for _ in range(MAX_ROUNDS):
         violations = [m for line in validate_lines(work) if (m := VIOLATION.match(line))]
         if not violations:
             break
-        rewrite_keys(work, violations)
+        rewrite_keys(work, violations, upstream, overrides)
         total += len(violations)
     else:
         fail("キーの書き換え", stderr="書き換える違反が残っている")

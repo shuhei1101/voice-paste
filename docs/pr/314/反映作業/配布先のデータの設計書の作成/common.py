@@ -25,7 +25,7 @@ DATA_ROW = """  - id: data
 INDEX_SUMMARY = "ER 図のテーブルが保存するデータの構造を、オブジェクトのキーの表で記載する設計書。"
 MAX_ARGS = 2
 CODE_QUOTES = 2
-ID_RE = re.compile(r"^(?P<prefix>[A-Z]+)-(?P<mid>\d+)-(?P<n>\d+)$")
+ID_RE = re.compile(r"^(?P<prefix>[A-Z]+)-(?:(?P<mid>\d+)-)?(?P<n>\d+)$")
 
 
 def fail(step, detail):
@@ -111,12 +111,12 @@ def field_key(name):
 
 
 def data_mid(er_docs, data_docs):
-    """作成するデータの設計書の ID の中の番号を、既存の ER 図・データの設計書の ID から決める。"""
-    for doc in list(data_docs) + list(er_docs):
-        m = ID_RE.match(str(doc.get("id", "")))
-        if m:
+    """作成するデータの設計書の ID の中の番号を、既存の ER 図・データの設計書の ID から決める（`{種類}-{番号}` の形なら空文字）。"""
+    matches = [m for doc in list(data_docs) + list(er_docs) if (m := ID_RE.match(str(doc.get("id", ""))))]
+    for m in matches:
+        if m.group("mid"):
             return m.group("mid")
-    return None
+    return "" if matches else None
 
 
 def build_data_doc(doc_id, er_id, table):

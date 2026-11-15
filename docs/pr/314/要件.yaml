@@ -1,7 +1,7 @@
 docs:
   - page: docs/layout/LAY-1.yaml
     new: false
-    change: '`schemas` のエントリをスキーマのコピーの削除に合わせて直し、`schemas` の下の `conversions` のエントリを削除し、`docs/rules.yaml` を直下の `rules.yaml` へ移し、`docs/data/` のエントリを足し、`docs/_theme/` を import-site の取り込み後の構成に合わせる'
+    change: '`schemas` のエントリをスキーマのコピーの削除に合わせて直し、`schemas` の下の `conversions` のエントリを削除し、`docs/rules.yaml` を直下の `rules.yaml` へ移し、`docs/data/` のエントリを足し、`docs/_theme/` を import-site の取り込み後の構成に合わせる。反映作業『設計書の新しいスキーマへの変換』が、モジュール構成の `directory` のツリーのうち LAY-1 に無いエントリ（`resources` のアイコン・`src/voice_paste/` の下のファイル等）を足す'
     status: todo
   - page: docs/_config.yml
     new: false
@@ -31,3 +31,6 @@ scope_out:
   - item: 配布元の反映作業『配布先のデータの設計書の作成』の ID の決め方の修正
     reason: AI Monitor の配布物の不具合で、配布元の shuhei1101/ai-monitor#3473 で直す
     plan: '#3473'
+  - item: シナリオの `test_file`（tests/e2e/ を指す 12 件）の参照先が無い設計書の検査の違反
+    reason: '#276 で E2E を作り直すときのマーカーとして残した参照で、base ブランチにもある。検証の側の修正は AI Monitor の shuhei1101/ai-monitor#3330 で行う'
+    plan: '#3330'

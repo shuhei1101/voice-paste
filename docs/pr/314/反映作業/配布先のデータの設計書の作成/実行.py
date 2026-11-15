@@ -69,7 +69,7 @@ mid = data_mid(existing, [yaml.safe_load(t) or {} for _, t in er_docs])
 if mid is None:
     fail(
         "前提確認",
-        "ER 図の ID から番号を決められません（`{種類}-{番号}-{連番}` の形の ID がありません）",
+        "ER 図の ID から番号を決められません（`{種類}-{番号}-{連番}` か `{種類}-{番号}` の形の ID がありません）",
     )
 next_n = 1 + max(
     [int(m.group("n")) for d in existing if (m := ID_RE.match(str(d.get("id", ""))))] or [0]
@@ -83,7 +83,7 @@ for path, text in er_docs:
     for table in doc.get("tables") or []:
         if table.get("source"):
             continue
-        doc_id = f"DATA-{mid}-{next_n}"
+        doc_id = f"DATA-{mid}-{next_n}" if mid else f"DATA-{next_n}"
         next_n += 1
         keys = list(table.keys())
         table.insert(keys.index("title") + 1 if "title" in keys else 1, "source", f"{doc_id}#")

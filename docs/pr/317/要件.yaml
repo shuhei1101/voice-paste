@@ -3,9 +3,13 @@ docs:
   - page: docs/mock/files.yml
     new: false
     change: pages/settings/288/index.md・refs/288/index.md の 2 行に tags を記載する
-    status: todo
+    status: done
+    updated_by: planner
+    updated_at: '2026-11-15T03:41:01.861699+00:00'
   - page: docs/_root/files.yml
     new: false
     change: ../index.md・../design-policy.md の 2 行に description と tags を記載する
-    status: todo
+    status: done
+    updated_by: planner
+    updated_at: '2026-11-15T03:41:01.861699+00:00'
 scope_out: []

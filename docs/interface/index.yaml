@@ -28,3 +28,5 @@ items:
     summary: GET /health。モデルを読み込み終えたことを返却する
   - page: IF-14.py.yaml
     summary: POST /shutdown。常駐アプリが起動したサーバーを止める
+  - page: IF-15.yaml
+    summary: workflow_dispatch。指定された層のテストの全件をランナーで実行する

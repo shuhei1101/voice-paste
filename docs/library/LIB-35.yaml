@@ -1,0 +1,33 @@
+id: LIB-35
+visibility: internal
+title: astral-sh/setup-uv
+tags:
+  - name: tool:github-actions
+    main: true
+  - name: topic:ci
+lead: GitHub Actions のジョブに uv を入れ、PATH に通す action。
+kind: サービス
+adoption: 採用
+dependency_scope: 開発のみ
+used_in:
+  - .github/workflows/test.yml
+upstream: astral-sh/setup-uv
+license: MIT
+official_url: https://github.com/astral-sh/setup-uv
+docs_url: https://github.com/astral-sh/setup-uv#readme
+verification:
+  state: 未確認
+  detail: workflow_dispatch は既定のブランチ develop にある workflow だけを起動できるため、作業 PR の中では動かせない。develop へ入った後の作業 PR のランナーでの全件実行で確かめる
+version:
+  current: v10.3.3
+  latest: v10.3.3
+  checked_on: '2026-11-15'
+  source: .github/workflows/test.yml
+  pinning: メジャーバージョンのタグで指定する
+catalogs:
+  - name: action
+    version: v10.3.3
+    entries:
+      - name: astral-sh/setup-uv@v10
+        kind: action
+        purpose: uv を入れる

@@ -18,8 +18,9 @@ official_url: https://github.com/pytest-dev/pytest-timeout
 docs_url: https://github.com/pytest-dev/pytest-timeout#readme
 purl: pkg:pypi/pytest-timeout
 verification:
-  state: 未確認
-  detail: dev の依存に追加する工程『実装』で、上限を超える `time.sleep` のテストに `--timeout` を当てて、そのテストが失敗になることを確認する
+  state: 済
+  date: '2026-11-15'
+  detail: 手元の Windows の `.venv` で、10 秒 `time.sleep` するテスト 1 件に `--timeout=2` を当て、`Timeout` の行とスタックを出して終了コード 1 で終わることを確認した
 version:
   current: 2.4.0
   latest: 2.4.0
@@ -40,4 +41,5 @@ catalogs:
       - name: --timeout
         kind: コマンドの引数
         purpose: テスト 1 件の上限の時間（秒）を設ける
-        verification_state: docs_only
+        verification_state: verified
+        verified_at: '2026-11-15T15:38:00+09:00'

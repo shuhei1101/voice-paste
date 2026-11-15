@@ -17,8 +17,9 @@ license: MIT
 official_url: https://github.com/rhysd/actionlint
 docs_url: https://github.com/rhysd/actionlint/blob/main/docs/usage.md
 verification:
-  state: 未確認
-  detail: workflow のファイルを作る工程『実装』で、`actionlint` を当てて確かめる
+  state: 済
+  date: '2026-11-15'
+  detail: '`.github/workflows/test.yml` に引数なしの `actionlint` を当て、違反 0 件・終了コード 0 で終わることを確認した'
 version:
   current: 1.7.12
   latest: 1.7.12
@@ -37,4 +38,5 @@ catalogs:
         kind: コマンド
         purpose: workflow のファイルを検査する
         description: 引数を省くと `.github/workflows/` の全ての workflow を検査する。違反があれば終了コード 1 で終わる。
-        verification_state: docs_only
+        verification_state: verified
+        verified_at: '2026-11-15T15:39:00+09:00'

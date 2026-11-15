@@ -1,0 +1,1 @@
+# publish で作り直した目次の README.md と _config.yml を commit して index.yaml と揃える

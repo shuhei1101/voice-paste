@@ -186,7 +186,7 @@ notes:
     | ブランチを取得する | `actions/checkout` で起動したブランチを取得する |
     | uv を入れる | `astral-sh/setup-uv` で uv を入れる |
     | Python の依存を入れる | `uv sync --frozen` で依存を入れる（Python のバージョンは `.python-version` から uv が入れる） |
-    | 層の全件を回す | `shell: bash`（Windows のランナーの Git Bash）で `uv run pytest {層のフォルダ} -v -p no:cacheprovider --timeout={テスト 1 件の上限の時間} > test.log 2>&1` を実行し、pytest の終了コードを step の成否にする |
+    | 層の全件を回す | `shell: bash`（Windows のランナーの Git Bash）で `uv run --frozen pytest {層のフォルダ} -v -p no:cacheprovider --timeout={テスト 1 件の上限の時間} > test.log 2>&1` を実行し、pytest の終了コードを step の成否にする |
     | ログを成果物に上げる | `if: always()` で `actions/upload-artifact` により `test.log` を成果物 `test-log` に上げる |
   タイムアウトの決め方: |-
     判定フローチャート『タイムアウトの決め方』では、自分の処理の完了を待つだけで進み具合の出力（pytest の `-v` のテスト 1 件ごとの行）があるため、無出力の時間で止まったことを検知する。

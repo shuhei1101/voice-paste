@@ -1,0 +1,23 @@
+docs:
+  - page: docs/test-procedure/TP-1.yaml
+    new: false
+    change: 層ごとの location と runner の層の run_runner を記載し、lint の層の全件実行に actionlint を加える
+    status: todo
+  - page: docs/architecture/ARCH-1.yaml
+    new: false
+    change: workflow を持つサブシステムと、GitHub Actions との境界を追加する
+    status: todo
+  - page: docs/layout/LAY-1.yaml
+    new: false
+    change: .github/workflows/ のエントリを追加する
+    status: todo
+scope_out:
+  - item: スキーマのコピー（schemas/test-procedure.schema.yaml・schemas/interface.schema.yaml）の更新
+    reason: '#314 で schemas/ のコピーを削除し、knowledge のスキーマを参照する形へ移ったため、更新する対象が無い'
+    plan: none
+  - item: push・PR を契機にした workflow の起動
+    reason: テンプレート『テスト実行方法』の run_runner は workflow_dispatch だけで起動する
+    plan: none
+  - item: ランナーと手元の skip の件数の比較
+    reason: workflow_dispatch は develop にある workflow だけを起動できるため、この作業 PR の全件実行は手元で回す。develop へ入った後の最初の作業 PR で比べる
+    plan: none

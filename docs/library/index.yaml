@@ -66,3 +66,13 @@ items:
     summary: WSL の文字起こしのサーバーで、Haas-ja-v1.0 のモデルで音声を文字に起こす
   - page: LIB-31.yaml
     summary: haas_asr がモデルの推論に使用する
+  - page: LIB-34.yaml
+    summary: GitHub Actions のジョブで、テストを回すブランチを取得する
+  - page: LIB-35.yaml
+    summary: GitHub Actions のジョブに uv を入れる
+  - page: LIB-36.yaml
+    summary: GitHub Actions のジョブのテストのログを成果物に上げる
+  - page: LIB-37.yaml
+    summary: lint で GitHub Actions の workflow のファイルを検査する
+  - page: LIB-38.yaml
+    summary: ランナーでの全件実行で、テスト 1 件の上限の時間を設ける

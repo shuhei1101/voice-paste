@@ -20,6 +20,11 @@ layers:
         ```bash
         .venv/Scripts/python.exe -m pytest {単体テストファイルパス}
         ```
+    location: runner
+    run_runner: |-
+      ```bash
+      run_url=$(gh workflow run test.yml --ref "$(git branch --show-current)" -f layer=unit | grep -o 'https://[^ ]*/actions/runs/[0-9]*') && run_id=${run_url##*/} && (rc=0; gh run watch "$run_id" --exit-status > /dev/null || rc=1; if gh run download "$run_id" -n test-log -D "/tmp/test-log-$run_id"; then cat "/tmp/test-log-$run_id/test.log"; else gh run view "$run_id" --log-failed; fi; exit $rc)
+      ```
   - id: TL-2
     name: 結合テスト（バック）
     run_all: |-
@@ -39,6 +44,11 @@ layers:
         ```bash
         .venv/Scripts/python.exe -m pytest {結合テストファイルパス}
         ```
+    location: runner
+    run_runner: |-
+      ```bash
+      run_url=$(gh workflow run test.yml --ref "$(git branch --show-current)" -f layer=integration | grep -o 'https://[^ ]*/actions/runs/[0-9]*') && run_id=${run_url##*/} && (rc=0; gh run watch "$run_id" --exit-status > /dev/null || rc=1; if gh run download "$run_id" -n test-log -D "/tmp/test-log-$run_id"; then cat "/tmp/test-log-$run_id/test.log"; else gh run view "$run_id" --log-failed; fi; exit $rc)
+      ```
   - id: TL-3
     name: 非機能要件テスト
     run_all: |-
@@ -101,6 +111,7 @@ layers:
         ```
 
         特定のケースだけを実行するときは、3 の `tests/nfr` を pytest のノード ID の並びに替える。
+    location: local
   - id: TL-4
     name: 外部疎通テスト
     run_all: |-
@@ -119,12 +130,14 @@ layers:
         ```bash
         .venv/Scripts/python.exe -m pytest {外部疎通テストファイルパス} --run-external
         ```
+    location: local
   - id: TL-5
     name: lint
-    description: import-linter で pyproject.toml の `[tool.importlinter]` の契約（層・feature の独立・出力先の独立）を検査し、`uv lock --check` で pyproject.toml と uv.lock の食い違いを検査する。画面のスクリプト（`src/voice_paste/server/web/assets/app.ts`）は `tsc` の型検査と ESLint で検査し、コミットした `app.js` が `app.ts` から再生成したものと同じかを確認する。単体テストと一緒に回す。
+    description: import-linter で pyproject.toml の `[tool.importlinter]` の契約（層・feature の独立・出力先の独立）を検査し、`uv lock --check` で pyproject.toml と uv.lock の食い違いを検査する。画面のスクリプト（`src/voice_paste/server/web/assets/app.ts`）は `tsc` の型検査と ESLint で検査し、コミットした `app.js` が `app.ts` から再生成したものと同じかを確認する。GitHub Actions の workflow のファイルは actionlint で検査する。単体テストと一緒に回す。
     prerequisites:
       - 外部依存なし
       - 画面のスクリプトの検査は、開発コマンド『ビルド・生成』の前提（`npm ci`）を満たしておく
+      - actionlint を外部ライブラリ『actionlint』のインストール手順で入れる（WSL の `~/.local/bin`）
     run_all: |-
       ```bash
       uv lock --check
@@ -132,8 +145,29 @@ layers:
       npm run typecheck
       npm run lint
       npm run build && git diff --exit-code -- src/voice_paste/server/web/assets/app.js
+      actionlint
       ```
-    results: '`uv lock --check` は食い違いがあれば差分を出して終了コード 1。`lint-imports` は契約ごとの KEPT / BROKEN と、破った import の行を標準出力に出す（破れていれば終了コード 1）。`npm run typecheck`・`npm run lint` は違反の行を出して終了コード 1。`git diff --exit-code` はコミットした `app.js` が再生成したものと違えば差分を出して終了コード 1'
+    results: '`uv lock --check` は食い違いがあれば差分を出して終了コード 1。`lint-imports` は契約ごとの KEPT / BROKEN と、破った import の行を標準出力に出す（破れていれば終了コード 1）。`npm run typecheck`・`npm run lint` は違反の行を出して終了コード 1。`git diff --exit-code` はコミットした `app.js` が再生成したものと違えば差分を出して終了コード 1。`actionlint` は違反の行を出して終了コード 1'
+    location: local
+  - id: TL-6
+    name: E2E テスト
+    run_all: |-
+      ```bash
+      .venv/Scripts/python.exe -m pytest tests/e2e/workflow --run-e2e
+      ```
+    description: pytest から `gh` で本物の GitHub Actions の workflow を起動し、インターフェース定義の workflow のフローを確認する。`tests/e2e/workflow/` は workflow のインターフェース定義ごとのファイルを配置する。
+    prerequisites:
+      - '`gh auth status` で、voice-paste のリポジトリへ push と workflow の起動ができる認証になっている'
+      - 検証用のブランチを本物のリポジトリへ push し、GitHub Actions の実行を起動する（公開リポジトリの標準のランナーのため費用は無い）。ブランチはテストの終わりに削除する
+      - '`workflow_dispatch` は develop にある workflow だけを起動できるため、workflow が develop へ入った後に回す'
+      - '`--run-e2e` を付けたときだけ走る（付けなければ skip する）'
+    run_one:
+      label: ファイル
+      command: |-
+        ```bash
+        .venv/Scripts/python.exe -m pytest {E2E テストファイルパス} --run-e2e
+        ```
+    location: local
 prerequisites:
   - リポジトリの直下で Windows の uv（WSL からは `uv.exe`）の `uv sync --frozen --extra local-whisper` を実行し、`.venv/` に環境を作る（`uv.lock` のバージョンで入る。pytest と import-linter と pywin32 は pyproject.toml の `[dependency-groups]` の dev から入る。`local-whisper` の extra は非機能要件テストがローカルの Whisper で起こすために含める。単体テストと結合テストは extra を含めない `uv sync --frozen` で作った環境でも通る）
   - 実機のテスト（非機能要件テスト）が起こす常駐アプリは、`tests/conftest.py` の `QT_QPA_PLATFORM=offscreen` のまま起動し、実機の画面に出さない（別プロセスで起動するもの・再起動で起動するものも同じ）

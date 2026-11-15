@@ -22,5 +22,6 @@
 | [音声を文字に起こす](./IF-12.py.yaml) | POST /transcriptions。受けた音声を Haas-ja-v1.0 で文字に起こして返却する |
 | [準備できたかを返す](./IF-13.py.yaml) | GET /health。モデルを読み込み終えたことを返却する |
 | [停止する](./IF-14.py.yaml) | POST /shutdown。常駐アプリが起動したサーバーを止める |
+| [テストの全件実行](./IF-15.yaml) | workflow_dispatch。指定された層のテストの全件をランナーで実行する |
 
 <!-- /table -->

@@ -1,0 +1,6 @@
+confirmations:
+  - topic: workflow のファイルを push するための workflow の権限
+    decision: A（手元の認証に workflow の権限を加える）
+    decided_by: 返信
+    thread: https://github.com/shuhei1101/voice-paste/pull/318#discussion_r4577357623
+    commit: 36f8695

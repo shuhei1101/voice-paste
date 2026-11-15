@@ -1,0 +1,22 @@
+# workflow test.yml は develop に無い（git ls-tree origin/develop -- .github/workflows/test.yml が空）。workflow_dispatch は既定のブランチにある workflow だけを起動できるため、E2E テストの層の全件実行（--run-e2e）は回せない。
+# 起動できないことの確認:
+$ gh workflow run test.yml --ref chore/test/run-layers-on-github-actions -f layer=unit
+HTTP 404: workflow test.yml not found on the default branch (https://api.github.com/repositories/1208027903/actions/workflows/test.yml)
+exit=1
+# テストの収集と、--run-e2e が無いときに skip することの確認:
+$ .venv/Scripts/python.exe -m pytest tests/e2e/workflow -v -p no:cacheprovider
+============================= test session starts =============================
+platform win32 -- Python 3.14.3, pytest-9.1.1, pluggy-1.7.0 -- C:\Users\shuhe\repo\voice-paste\.claude\worktrees\chore-test-run-layers-on-github-actions\.venv\Scripts\python.exe
+rootdir: C:\Users\shuhe\repo\voice-paste\.claude\worktrees\chore-test-run-layers-on-github-actions
+configfile: pyproject.toml
+plugins: anyio-4.15.1, platformdirs-4.13.3, timeout-2.4.0
+collecting ... collected 5 items
+
+tests/e2e/workflow/test_test_yml.py::test_normal SKIPPED (--run-e2e ...) [ 20%]
+tests/e2e/workflow/test_test_yml.py::test_normal_when_integration SKIPPED [ 40%]
+tests/e2e/workflow/test_test_yml.py::test_error_when_test_fails SKIPPED  [ 60%]
+tests/e2e/workflow/test_test_yml.py::test_error_when_test_times_out SKIPPED [ 80%]
+tests/e2e/workflow/test_test_yml.py::test_error_when_setup_fails SKIPPED [100%]
+
+============================= 5 skipped in 0.04s ==============================
+exit=0

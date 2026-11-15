@@ -1,0 +1,42 @@
+id: LIB-37
+visibility: internal
+title: actionlint
+tags:
+  - name: tool:actionlint
+    main: true
+  - name: topic:lint
+  - name: topic:ci
+lead: GitHub Actions の workflow のファイルを検査する linter。構文・式・`run` のシェル（shellcheck があれば）を検査し、違反を行つきで出す。
+kind: CLI
+adoption: 採用
+dependency_scope: 開発のみ
+used_in:
+  - docs/test-procedure/TP-1.yaml
+upstream: rhysd/actionlint
+license: MIT
+official_url: https://github.com/rhysd/actionlint
+docs_url: https://github.com/rhysd/actionlint/blob/main/docs/usage.md
+verification:
+  state: 済
+  date: '2026-11-15'
+  detail: '`.github/workflows/test.yml` に引数なしの `actionlint` を当て、違反 0 件・終了コード 0 で終わることを確認した'
+version:
+  current: 1.7.12
+  latest: 1.7.12
+  checked_on: '2026-11-15'
+  source: '`actionlint -version`'
+  pinning: リリースのバイナリを入れる
+install: |-
+  ```bash
+  bash <(curl https://raw.githubusercontent.com/rhysd/actionlint/main/scripts/download-actionlint.bash) 1.7.12 ~/.local/bin
+  ```
+catalogs:
+  - name: コマンド
+    version: 1.7.12
+    entries:
+      - name: actionlint
+        kind: コマンド
+        purpose: workflow のファイルを検査する
+        description: 引数を省くと `.github/workflows/` の全ての workflow を検査する。違反があれば終了コード 1 で終わる。
+        verification_state: verified
+        verified_at: '2026-11-15T15:39:00+09:00'

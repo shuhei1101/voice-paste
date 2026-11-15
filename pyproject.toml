@@ -42,6 +42,7 @@ dev = [
     "pytest~=9.1",
     "import-linter~=2.15",
     "pywin32~=312.0; sys_platform == \"win32\"",
+    "pytest-timeout~=2.4",
 ]
 
 [project.scripts]

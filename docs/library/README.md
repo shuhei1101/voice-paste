@@ -35,9 +35,16 @@
 | [python-multipart](./LIB-22.yaml) | ブラウザから送信された multipart の音声を FastAPI の UploadFile で受け取る |
 | [python-xlib](./LIB-23.yaml) | Linux でアクティブなウィンドウの WM_CLASS を Xorg から読み込む |
 | [evdev](./LIB-6.yaml) | Linux の Wayland のセッションで、仮想キーボードから貼り付けのキーと Enter を送信する |
+| [Windows の電源要求の API](./LIB-33.yaml) | Windows で録音の間、画面の消灯とアイドルによるスリープを抑止する |
+| [gnome-session-inhibit](./LIB-32.yaml) | Linux の GNOME のセッションで録音の間、アイドル（画面の消灯）を抑止する |
 | [Focused Window D-Bus](./LIB-1.yaml) | Linux の Wayland のセッションで、フォーカスしているウィンドウの wm_class を GNOME Shell の拡張から読み込む |
 | [Open JTalk](./LIB-3.yaml) | Linux の非機能要件テストで、録音の入力にする文を WAV に書き出す |
 | [haas_asr](./LIB-30.yaml) | WSL の文字起こしのサーバーで、Haas-ja-v1.0 のモデルで音声を文字に起こす |
 | [NeMo](./LIB-31.yaml) | haas_asr がモデルの推論に使用する |
+| [actions/checkout](./LIB-34.yaml) | GitHub Actions のジョブで、テストを回すブランチを取得する |
+| [astral-sh/setup-uv](./LIB-35.yaml) | GitHub Actions のジョブに uv を入れる |
+| [actions/upload-artifact](./LIB-36.yaml) | GitHub Actions のジョブのテストのログを成果物に上げる |
+| [actionlint](./LIB-37.yaml) | lint で GitHub Actions の workflow のファイルを検査する |
+| [pytest-timeout](./LIB-38.yaml) | ランナーでの全件実行で、テスト 1 件の上限の時間を設ける |
 
 <!-- /table -->

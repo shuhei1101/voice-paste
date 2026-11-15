@@ -1,0 +1,45 @@
+id: LIB-38
+visibility: internal
+title: pytest-timeout
+tags:
+  - name: tool:pytest
+    main: true
+  - name: topic:タイムアウト
+  - name: topic:testing
+lead: pytest のテスト 1 件ごとに上限の時間を設け、超えたテストを止めて失敗にするプラグイン。止めるときにスレッドのスタックを出力する。
+kind: ライブラリ
+adoption: 採用
+dependency_scope: 開発のみ
+used_in:
+  - .github/workflows/test.yml
+upstream: pytest-dev/pytest-timeout
+license: MIT
+official_url: https://github.com/pytest-dev/pytest-timeout
+docs_url: https://github.com/pytest-dev/pytest-timeout#readme
+purl: pkg:pypi/pytest-timeout
+verification:
+  state: 済
+  date: '2026-11-15'
+  detail: 手元の Windows の `.venv` で、10 秒 `time.sleep` するテスト 1 件に `--timeout=2` を当て、`Timeout` の行とスタックを出して終了コード 1 で終わることを確認した
+version:
+  current: 2.4.0
+  latest: 2.4.0
+  checked_on: '2026-11-15'
+  source: uv.lock
+  pinning: 互換範囲（`~=2.4`）で指定する
+install: |-
+  ```bash
+  uv.exe add --dev "pytest-timeout~=2.4"
+  ```
+limitations:
+  - item: Windows での止め方
+    content: Windows には `SIGALRM` が無いため `thread` の方式になり、超えたときにスタックを出力してプロセスごと終わる。後に続くテストは回らない
+catalogs:
+  - name: コマンドの引数
+    version: 2.4.0
+    entries:
+      - name: --timeout
+        kind: コマンドの引数
+        purpose: テスト 1 件の上限の時間（秒）を設ける
+        verification_state: verified
+        verified_at: '2026-11-15T15:38:00+09:00'

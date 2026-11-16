@@ -11,4 +11,4 @@
   切り戻し: 配布先の mdmark の設定へのノードの種類の記載/切り戻し.py
   失敗時: 既定の対処を 1 回、2 回連続で失敗したら依頼元へ返す
   確認方法: リポジトリの直下の mdmark.config.yaml の map.kinds に 7 つのクラスがあり、生成した設計書の Markdown を mdmark check に渡すと map_unknown_class が出ない
-  状態: 未
+  状態: 済

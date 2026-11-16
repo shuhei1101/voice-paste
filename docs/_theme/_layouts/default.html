@@ -6,7 +6,7 @@
   <title>{% if page.title %}{{ page.title }} - {{ site.title }}{% else %}{{ site.title }}{% endif %}</title>
   <link rel="stylesheet" href="{{ '/assets/' | relative_url }}style.css">
   <!-- 本文の見た目は mdmark の配布物のスタイルが持つ（本文を描く mdmark のスクリプトは app.js が読む） -->
-  <link rel="stylesheet" href="{{ '/assets/' | relative_url }}vendor/mdmark/index.css">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/shuhei1101/mdmark@{{ site.mdmark.version | default: 'develop' }}/dist/index.css">
   <!-- Mermaid は設計書の図の検査と同じ版に固定したものを読み、ダーク/ライトの切り替えに追従させるため app.js から初期化する（自動 start はしない） -->
   <script src="{{ '/assets/' | relative_url }}vendor/mermaid.min.js"></script>
   <script src="{{ '/assets/' | relative_url }}app.js" defer></script>
@@ -47,6 +47,8 @@
   data-page="{{ data_page }}"
   data-issue-repo="{{ site.github.repository_nwo }}"
   data-issue-labels="{{ site.issue_form.labels | join: ',' }}"
+  data-mdmark-url="https://cdn.jsdelivr.net/gh/shuhei1101/mdmark@{{ site.mdmark.version | default: 'develop' }}/dist/"
+  data-mdmark-config="{&#34;features&#34;: {&#34;back-to-top&#34;: false, &#34;mermaid&#34;: false, &#34;side-toc&#34;: false}, &#34;map&#34;: {&#34;kinds&#34;: {&#34;action&#34;: {&#34;icon&#34;: &#34;square-pen&#34;, &#34;label&#34;: &#34;アクション&#34;, &#34;shape&#34;: &#34;rounded&#34;}, &#34;data&#34;: {&#34;color&#34;: &#34;purple&#34;, &#34;icon&#34;: &#34;database&#34;, &#34;label&#34;: &#34;保存先&#34;, &#34;shape&#34;: &#34;rect&#34;}, &#34;external&#34;: {&#34;color&#34;: &#34;green&#34;, &#34;icon&#34;: &#34;globe&#34;, &#34;label&#34;: &#34;外部&#34;, &#34;shape&#34;: &#34;pill&#34;}, &#34;question&#34;: {&#34;color&#34;: &#34;orange&#34;, &#34;icon&#34;: &#34;circle-help&#34;, &#34;label&#34;: &#34;質問&#34;, &#34;shape&#34;: &#34;double&#34;}, &#34;result&#34;: {&#34;color&#34;: &#34;green&#34;, &#34;icon&#34;: &#34;flag&#34;, &#34;label&#34;: &#34;結果&#34;, &#34;shape&#34;: &#34;pill&#34;}, &#34;script&#34;: {&#34;icon&#34;: &#34;cog&#34;, &#34;label&#34;: &#34;処理&#34;, &#34;shape&#34;: &#34;rounded&#34;}, &#34;start&#34;: {&#34;color&#34;: &#34;blue&#34;, &#34;icon&#34;: &#34;play&#34;, &#34;label&#34;: &#34;開始&#34;, &#34;shape&#34;: &#34;pill&#34;}}, &#34;lines&#34;: {&#34;-.-&gt;&#34;: {&#34;dash&#34;: &#34;dashed&#34;, &#34;head&#34;: &#34;open&#34;}, &#34;==&gt;&#34;: {&#34;width&#34;: &#34;thick&#34;}}}}"
 >
   <!-- トップバー -->
   <header class="topbar">

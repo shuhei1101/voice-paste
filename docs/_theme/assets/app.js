@@ -264,9 +264,10 @@ async function renderMermaid(article) {
         theme: document.documentElement.dataset.theme === "dark" ? "dark" : "default",
     });
     for (const [i, code] of blocks.entries()) {
-        const pre = code.parentElement;
+        // mdmark がコードブロックを包む .mdmark-code があれば、包みを元のコードの表示として扱う
+        const pre = code.closest(".mdmark-code") ?? code.parentElement;
         const src = code.textContent;
-        // div.mermaid-holder を pre の直前に置き、pre は元のコードの表示として隠しておく（元テキストは data-mermaid-src に退避）
+        // div.mermaid-holder を元のコードの表示の直前に置き、元のコードの表示は隠しておく（元テキストは data-mermaid-src に退避）
         const holder = document.createElement("div");
         holder.className = "mermaid-holder";
         holder.dataset.mermaidSrc = src;
@@ -625,6 +626,9 @@ const THEME_STORAGE_KEY = "docs-theme";
 /** 現在のテーマを html[data-theme] に反映 */
 function applyTheme(theme) {
     document.documentElement.dataset.theme = theme;
+    // mdmark の本文の配色を祖先の class で切り替える（一方だけを付ける）
+    document.documentElement.classList.toggle("mdmark-theme-dark", theme === "dark");
+    document.documentElement.classList.toggle("mdmark-theme-light", theme !== "dark");
     // Mermaid にも反映（再描画）
     if (window.mermaid && typeof window.mermaid.initialize === "function") {
         window.mermaid.initialize({ startOnLoad: false, securityLevel: "loose", theme: theme === "dark" ? "dark" : "default" });
@@ -1223,7 +1227,7 @@ async function renderMarkdownBlocks(article) {
         // 描いた表示の入れ物に中身を描き、左上にバッジを、右上のボタン群に中身を写すボタンを置く
         const preview = document.createElement("div");
         preview.className = "markdown-preview";
-        mdmark.mount(preview, { markdown: src });
+        mdmark.mount(preview, { markdown: src, config: readMdmarkConfig() });
         const badge = document.createElement("span");
         badge.className = "markdown-preview-badge";
         badge.textContent = CODE_VIEW_LABELS.badge;
@@ -1909,8 +1913,8 @@ function bindComments(article) {
  * 本文の Markdown（textarea[data-mdmark-source]）を、既定で閉じる見出しの指定を差し込んでから mdmark の mount で描く。
  * 見出しの節の開閉・アンカー・表・タブ・ステップ・ファイルツリー・コードの行の印・バッジ・注意書きは mdmark が描く
  * ---------------------------------------------------------------------------- */
-/* mdmark の配布物の場所（app.js からの相対） */
-const MDMARK_MODULE = "vendor/mdmark/index.js";
+/* mdmark の配布物の `dist/` の中のモジュールのファイル名（`dist/` の場所は <body> の data-mdmark-url） */
+const MDMARK_MODULE = "index.js";
 /* Liquid の `raw` / `endraw` のタグ（空白を削る `-` 付きのタグも当てる） */
 const LIQUID_RAW_PATTERN = /\{%-?\s*(?:end)?raw\s*-?%\}/g;
 /* ページを開いた時点で節を閉じる見出し。`#` の数が階層、空白の後ろが見出し名 */
@@ -1923,24 +1927,42 @@ const CLOSED_SECTION_HEADINGS = [
     "### 記述例",
     "### 異常系",
 ];
-/* 見出しの直後のコメントから `section:` の値を取り出す */
-const SECTION_DIRECTIVE_PATTERN = /^\s*section:\s*(\S+)\s*$/;
+/* 見出しの直後のコメントが `section:` の後ろに引数を持つか（JSON の記載と前の書き方のどちらも書き手の指定とみなす） */
+const SECTION_DIRECTIVE_PATTERN = /^\s*section:\s*(\S.*?)\s*$/;
 /* 既定で閉じる指定の行 */
-const SECTION_CLOSED_LINE = "<!-- section: closed -->";
-/* app.js を読み込んだ時点のスクリプトの場所（動的 import の基準。読み込みが終わると currentScript は無くなる） */
-const APP_SCRIPT_URL = document.currentScript?.src ?? "";
+const SECTION_CLOSED_LINE = '<!-- section: {"open": false} -->';
 /* mdmark の読み込みの結果（1 ページで 1 度だけ読む） */
 let mdmarkLoading = null;
-/** mdmark の配布物を読み込む（読めなければ null） */
+/** mdmark の配布物を <body> の data-mdmark-url の場所から読み込む（読めなければ null） */
 function loadMdmark() {
     if (!mdmarkLoading) {
-        const url = new URL(MDMARK_MODULE, APP_SCRIPT_URL || window.location.href).href;
+        const base = document.body.dataset.mdmarkUrl;
+        // 場所が無い: 読めないものとして扱う
+        if (!base) {
+            console.warn("mdmark の場所がありません");
+            mdmarkLoading = Promise.resolve(null);
+            return mdmarkLoading;
+        }
+        const url = new URL(MDMARK_MODULE, base).href;
         mdmarkLoading = import(url).then((module) => module).catch((e) => {
             console.warn("mdmark を読み込めません", url, e);
             return null;
         });
     }
     return mdmarkLoading;
+}
+/** <body> の data-mdmark-config から mdmark の mount の設定を読む（無い・読めなければ undefined） */
+function readMdmarkConfig() {
+    const text = document.body.dataset.mdmarkConfig;
+    if (!text)
+        return undefined;
+    try {
+        return JSON.parse(text);
+    }
+    catch (e) {
+        console.warn("mdmark の設定を読めません", e);
+        return undefined;
+    }
 }
 /** 見出しの階層と文言が、既定で閉じる見出しに当たるかを返す */
 function matchesClosedHeading(level, text) {
@@ -2001,7 +2023,7 @@ async function mountBody(article) {
         article.replaceChildren(raw);
         return false;
     }
-    mdmark.mount(article, { markdown });
+    mdmark.mount(article, { markdown, config: readMdmarkConfig() });
     return true;
 }
 /** 要素を包む閉じた節を外側から順に開き、要素を包む隠れたタブを選ぶ */

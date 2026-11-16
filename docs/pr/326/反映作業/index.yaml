@@ -1,0 +1,14 @@
+配布先の mdmark の設定へのノードの種類の記載:
+  説明: '配布先のリポジトリの直下の mdmark.config.yaml の map.kinds に、AI Monitor の design_docs generate が生成する図のノードの種類（external・script・data・start・question・action・result）を、AI Monitor の design_docs の定数と同じ値で記載する。ファイルが無ければ作る。ほかのキーは変えない。スクリプトは `uv run --no-project --with ruamel.yaml python -B {スクリプト} {対象のリポジトリ}` で起動する（配布元: https://github.com/shuhei1101/ai-monitor/tree/v0.5.0/docs/pr/3462/%E5%8F%8D%E6%98%A0%E4%BD%9C%E6%A5%AD/%E9%85%8D%E5%B8%83%E5%85%88%E3%81%AE%20mdmark%20%E3%81%AE%E8%A8%AD%E5%AE%9A%E3%81%B8%E3%81%AE%E3%83%8E%E3%83%BC%E3%83%89%E3%81%AE%E7%A8%AE%E9%A1%9E%E3%81%AE%E8%A8%98%E8%BC%89）'
+  タグ: [設定の追記]
+  実行者: planner
+  時期: マージの前
+  回数: 1 回限り
+  可逆: true
+  疎通確認: 配布先の mdmark の設定へのノードの種類の記載/疎通確認.py
+  実行: 配布先の mdmark の設定へのノードの種類の記載/実行.py
+  確認: 配布先の mdmark の設定へのノードの種類の記載/確認.py
+  切り戻し: 配布先の mdmark の設定へのノードの種類の記載/切り戻し.py
+  失敗時: 既定の対処を 1 回、2 回連続で失敗したら依頼元へ返す
+  確認方法: リポジトリの直下の mdmark.config.yaml の map.kinds に 7 つのクラスがあり、生成した設計書の Markdown を mdmark check に渡すと map_unknown_class が出ない
+  状態: 未

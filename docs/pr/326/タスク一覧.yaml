@@ -75,7 +75,10 @@ tasks:
     updated_by: planner
     updated_at: '2026-11-16T15:54:00.424504+00:00'
   - process: 実装
-    status: todo
+    status: done
+    note: 'import-site で docs/_theme/ を v0.5.0 へ取り込み（vendor/mdmark を削除）、ai-monitor-version.ini と ai-monitor-theme.yaml を v0.5.0 へ更新。文書のマーカーは #297 で JSON の記載へ移行済みで、残る旧い書き方はインラインコードの中の言及だけ。settings.yaml は mcp_tools を持たず既定の割り当てで wait_for_issues が渡るため変更なし。反映作業の実行はマージの前に行う'
+    updated_by: planner
+    updated_at: '2026-11-16T16:21:25.778365+00:00'
   - process: 結合テスト作成
     status: skipped
     reason: コードを変えない

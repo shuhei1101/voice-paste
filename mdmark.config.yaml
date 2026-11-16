@@ -1,0 +1,41 @@
+map:
+  kinds:
+    external:
+      label: 外部
+      icon: globe
+      shape: pill
+      color: green
+    script:
+      label: 処理
+      icon: cog
+      shape: rounded
+    data:
+      label: 保存先
+      icon: database
+      shape: rect
+      color: purple
+    start:
+      label: 開始
+      icon: play
+      shape: pill
+      color: blue
+    question:
+      label: 質問
+      icon: circle-help
+      shape: double
+      color: orange
+    action:
+      label: アクション
+      icon: square-pen
+      shape: rounded
+    result:
+      label: 結果
+      icon: flag
+      shape: pill
+      color: green
+  lines:
+    -.->:
+      dash: dashed
+      head: open
+    ==>:
+      width: thick

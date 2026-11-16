@@ -1,0 +1,86 @@
+tasks:
+  - process: 初期構築
+    status: skipped
+    reason: 既存リポジトリのため対象外
+    updated_by: planner
+    updated_at: '2026-11-16T15:54:00.424504+00:00'
+  - process: リバースエンジニアリング
+    status: skipped
+    reason: 設計書は揃っており棚卸しは要らない
+    updated_by: planner
+    updated_at: '2026-11-16T15:54:00.424504+00:00'
+  - process: 方針決め
+    status: skipped
+    reason: 方針決めの依頼ではない
+    updated_by: planner
+    updated_at: '2026-11-16T15:54:00.424504+00:00'
+  - process: PoC 検証
+    status: skipped
+    reason: 配布元の反映作業のスクリプトと import-site を当てる追従で、未検証の技術機構に依存しない
+    updated_by: planner
+    updated_at: '2026-11-16T15:54:00.424504+00:00'
+  - process: 複合ユースケース設計
+    status: skipped
+    reason: アプリの振る舞いを変えない配布物への追従
+    updated_by: planner
+    updated_at: '2026-11-16T15:54:00.424504+00:00'
+  - process: デザインスタイル選定
+    status: skipped
+    reason: '画面に関わる変更が無い（モック要否: 画面を変えない）'
+    updated_by: planner
+    updated_at: '2026-11-16T15:54:00.424504+00:00'
+  - process: 画面一覧・画面遷移
+    status: skipped
+    reason: '画面に関わる変更が無い（モック要否: 画面を変えない）'
+    updated_by: planner
+    updated_at: '2026-11-16T15:54:00.424504+00:00'
+  - process: 単一ユースケース設計
+    status: skipped
+    reason: アプリの振る舞いを変えない配布物への追従
+    updated_by: planner
+    updated_at: '2026-11-16T15:54:00.424504+00:00'
+  - process: モック作成
+    status: skipped
+    reason: '画面に関わる変更が無い（モック要否: 画面を変えない）'
+    updated_by: planner
+    updated_at: '2026-11-16T15:54:00.424504+00:00'
+  - process: インターフェース定義設計
+    status: skipped
+    reason: 外部インターフェースを変えない
+    updated_by: planner
+    updated_at: '2026-11-16T15:54:00.424504+00:00'
+  - process: 部品設計
+    status: skipped
+    reason: 画面の部品を変えない
+    updated_by: planner
+    updated_at: '2026-11-16T15:54:00.424504+00:00'
+  - process: 画面設計
+    status: skipped
+    reason: '画面を変えない（画面設計要否: 画面の変更なし）'
+    updated_by: planner
+    updated_at: '2026-11-16T15:54:00.424504+00:00'
+  - process: モジュール構成設計
+    status: skipped
+    reason: コードのモジュールを変えない
+    updated_by: planner
+    updated_at: '2026-11-16T15:54:00.424504+00:00'
+  - process: ドキュメント修正
+    status: done
+    note: LAY-1 に mdmark.config.yaml を追加し、_theme/assets の説明を直す
+    updated_by: planner
+    updated_at: '2026-11-16T16:20:37.926065+00:00'
+  - process: 単体テスト作成
+    status: skipped
+    reason: コードを変えない
+    updated_by: planner
+    updated_at: '2026-11-16T15:54:00.424504+00:00'
+  - process: 実装
+    status: done
+    note: 'import-site で docs/_theme/ を v0.5.0 へ取り込み（vendor/mdmark を削除）、ai-monitor-version.ini と ai-monitor-theme.yaml を v0.5.0 へ更新。文書のマーカーは #297 で JSON の記載へ移行済みで、残る旧い書き方はインラインコードの中の言及だけ。settings.yaml は mcp_tools を持たず既定の割り当てで wait_for_issues が渡るため変更なし。反映作業の実行はマージの前に行う'
+    updated_by: planner
+    updated_at: '2026-11-16T16:21:25.778365+00:00'
+  - process: 結合テスト作成
+    status: skipped
+    reason: コードを変えない
+    updated_by: planner
+    updated_at: '2026-11-16T15:54:00.424504+00:00'

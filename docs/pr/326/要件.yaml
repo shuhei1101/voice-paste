@@ -1,0 +1,11 @@
+docs:
+  - page: docs/layout/LAY-1.yaml
+    new: false
+    change: 直下のファイルに `mdmark.config.yaml`（mdmark の設定。生成する図のノードの種類）を足し、`docs/_theme/assets` の中身を import-site の取り込み後の構成（mdmark を同梱せず jsDelivr から読む）に合わせる
+    status: done
+    updated_by: planner
+    updated_at: '2026-11-16T16:20:35.803611+00:00'
+scope_out:
+  - item: ナビゲーションの設定 dev-docs.yaml と LAY-1 のナビゲーションの行の修正
+    reason: '#324 の要望で、この追従とは目的が違う（LAY-1 は別の行を触る）'
+    plan: '#324'

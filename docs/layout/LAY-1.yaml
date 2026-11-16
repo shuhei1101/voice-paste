@@ -107,6 +107,11 @@ entries:
     content_types:
       - tool_config
   - type: file
+    name: mdmark.config.yaml
+    contents: mdmark の設定（AI Monitor の design_docs generate が生成する図のノードの種類）
+    content_types:
+      - tool_config
+  - type: file
     name: eslint.config.mjs
     contents: 外の端末の画面のスクリプトの ESLint の設定
     content_types:
@@ -903,7 +908,7 @@ entries:
               - tool_config
           - type: folder
             name: assets
-            contents: ページのスクリプト・スタイルと、mdmark・Mermaid の同梱
+            contents: ページのスクリプト・スタイルと、Mermaid の同梱（mdmark は jsDelivr から読む）
             content_types:
               - tool_config
           - type: file

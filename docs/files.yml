@@ -1,0 +1,195 @@
+files:
+- path: index.md
+  visibility: public
+  description: voice-paste の公開ドキュメント全体の目次として、はじめに・使い方・リファレンスのページへの入口を記載し、公開ドキュメントのページを探すときに参照する。
+  tags:
+  - topic:目次
+  - topic:ドキュメント
+  - topic:使い方
+  - topic:リファレンス
+- path: design-policy.md
+  visibility: internal
+  description: 画面全体に通すデザインスタイルと、色・書体・文言の役割を記載し、画面やモックの見た目と文言を決めるときに参照する。
+  tags:
+  - topic:デザインスタイル
+  - topic:デザイン
+  - topic:スタイル
+  - topic:画面
+  - topic:色
+  - topic:書体
+  - topic:文言
+  - topic:方針
+  - topic:雰囲気
+  - topic:モチーフ
+  - topic:装飾
+  - topic:文字
+  - topic:形状
+  - topic:奥行き
+  - topic:動き
+  - action:採用
+- path: README.md
+  name: ドキュメント全体の目次
+  visibility: internal
+  description: docs/ の設計書のフォルダの一覧を index.yaml から生成した目次として受け持ち、GitHub で設計書のフォルダを探すときに参照する。
+  tags:
+  - topic:目次
+  - topic:ドキュメント
+- path: _config.yml
+  name: GitHub Pages のサイトの設定
+  visibility: internal
+  description: docs/ を Jekyll のサイトとして公開するときのタイトル・URL・読み込むテーマを受け持ち、公開ドキュメントのサイトの設定を変えるときに参照する。
+  tags:
+  - tool:jekyll
+  - topic:設定
+- path: _theme/_data/nav.project.yml
+  name: 公開ドキュメントのプロジェクト固有のタブ
+  visibility: internal
+  description: 公開ドキュメントのサイトの、docs/guide/ の分類から書き出したプロジェクト固有のタブを受け持ち、サイトのタブの並びを確認するときに参照する。
+  tags:
+  - topic:タブ
+  - topic:ドキュメント
+  - tool:jekyll
+- path: _theme/_data/nav.yml
+  name: 公開ドキュメントの上タブの並び
+  visibility: internal
+  description: 公開ドキュメントのサイトの上タブの並びと実体を持たないタブの行き先を受け持ち、サイトのタブを変えるときに参照する。
+  tags:
+  - topic:タブ
+  - topic:ドキュメント
+  - tool:jekyll
+- path: _theme/_includes/sidebar-source.html
+  name: 公開ドキュメントのサイドバーの元の目次
+  visibility: internal
+  description: README の目次の表からサイドバーの元になる隠し要素を埋める処理を受け持ち、サイトのサイドバーの項目の出し方を変えるときに参照する。
+  tags:
+  - topic:目次
+  - tool:jekyll
+- path: _theme/_includes/tab-link.html
+  name: 公開ドキュメントの上タブのリンク
+  visibility: internal
+  description: 上タブ 1 つ分の種別ごとの行き先とリンクを出す処理を受け持ち、サイトのタブのリンクの出し方を変えるときに参照する。
+  tags:
+  - topic:タブ
+  - tool:jekyll
+- path: _theme/_layouts/default.html
+  name: 公開ドキュメントの共通のレイアウト
+  visibility: internal
+  description: 公開ドキュメントの全てのページの骨格・タブ・サイドバーの配置を受け持ち、サイトのページの構成を変えるときに参照する。
+  tags:
+  - topic:ドキュメント
+  - tool:jekyll
+- path: _theme/assets/app.js
+  name: 公開ドキュメントの共通のスクリプト
+  visibility: internal
+  description: 公開ドキュメントとモックの全てのページで読み込む表示の補助の処理を受け持ち、サイトの画面の振る舞いを変えるときに参照する。
+  tags:
+  - topic:ドキュメント
+  - topic:モック
+- path: _theme/assets/style.css
+  name: 公開ドキュメントの共通のスタイル
+  visibility: internal
+  description: 公開ドキュメントとモックの全てのページで読み込む見た目を受け持ち、サイトの見た目を変えるときに参照する。
+  tags:
+  - topic:スタイル
+  - topic:ドキュメント
+  - topic:モック
+- path: _theme/llms.txt
+  name: LLM 向けのページの一覧
+  visibility: internal
+  description: 全ての README の目次の表から、パスと概要を 1 行 1 ページで並べた LLM 向けの一覧を受け持ち、LLM 向けの一覧の出し方を変えるときに参照する。
+  tags:
+  - topic:目次
+  - tool:jekyll
+- path: architecture/README.md
+  name: アーキテクチャ図の目次
+  visibility: internal
+  description: アーキテクチャ図のフォルダの文書の一覧を index.yaml から生成した目次として受け持ち、GitHub でアーキテクチャ図を探すときに参照する。
+  tags:
+  - topic:目次
+- path: config/README.md
+  name: 設定の設計書の目次
+  visibility: internal
+  description: 設定の設計書のフォルダの文書の一覧を index.yaml から生成した目次として受け持ち、GitHub で設定の設計書を探すときに参照する。
+  tags:
+  - topic:目次
+- path: data/README.md
+  name: データの設計書の目次
+  visibility: internal
+  description: データの設計書のフォルダの文書の一覧を index.yaml から生成した目次として受け持ち、GitHub でデータの設計書を探すときに参照する。
+  tags:
+  - topic:目次
+- path: dev-command/README.md
+  name: 開発コマンドの目次
+  visibility: internal
+  description: 開発コマンドのフォルダの文書の一覧を index.yaml から生成した目次として受け持ち、GitHub で開発コマンドを探すときに参照する。
+  tags:
+  - topic:目次
+- path: er/README.md
+  name: ER 図の目次
+  visibility: internal
+  description: ER 図のフォルダの文書の一覧を index.yaml から生成した目次として受け持ち、GitHub でER 図を探すときに参照する。
+  tags:
+  - topic:目次
+- path: external-api/README.md
+  name: 外部 API の設計書の目次
+  visibility: internal
+  description: 外部 API の設計書のフォルダの文書の一覧を index.yaml から生成した目次として受け持ち、GitHub で外部 API の設計書を探すときに参照する。
+  tags:
+  - topic:目次
+- path: glossary/README.md
+  name: 用語集の目次
+  visibility: internal
+  description: 用語集のフォルダの文書の一覧を index.yaml から生成した目次として受け持ち、GitHub で用語集を探すときに参照する。
+  tags:
+  - topic:目次
+- path: interface/README.md
+  name: インターフェース定義の目次
+  visibility: internal
+  description: インターフェース定義のフォルダの文書の一覧を index.yaml から生成した目次として受け持ち、GitHub でインターフェース定義を探すときに参照する。
+  tags:
+  - topic:目次
+- path: layout/README.md
+  name: フォルダ構成の目次
+  visibility: internal
+  description: フォルダ構成のフォルダの文書の一覧を index.yaml から生成した目次として受け持ち、GitHub でフォルダ構成を探すときに参照する。
+  tags:
+  - topic:目次
+- path: library/README.md
+  name: 外部ライブラリの設計書の目次
+  visibility: internal
+  description: 外部ライブラリの設計書のフォルダの文書の一覧を index.yaml から生成した目次として受け持ち、GitHub で外部ライブラリの設計書を探すときに参照する。
+  tags:
+  - topic:目次
+- path: module/README.md
+  name: モジュール構成の目次
+  visibility: internal
+  description: モジュール構成のフォルダの文書の一覧を index.yaml から生成した目次として受け持ち、GitHub でモジュール構成を探すときに参照する。
+  tags:
+  - topic:目次
+- path: nonfunctional/README.md
+  name: 非機能要件の目次
+  visibility: internal
+  description: 非機能要件のフォルダの文書の一覧を index.yaml から生成した目次として受け持ち、GitHub で非機能要件を探すときに参照する。
+  tags:
+  - topic:目次
+- path: scenario/README.md
+  name: シナリオの目次
+  visibility: internal
+  description: シナリオのフォルダの文書の一覧を index.yaml から生成した目次として受け持ち、GitHub でシナリオを探すときに参照する。
+  tags:
+  - topic:目次
+- path: screen/README.md
+  name: 画面設計の目次
+  visibility: internal
+  description: 画面設計のフォルダの文書の一覧を index.yaml から生成した目次として受け持ち、GitHub で画面設計を探すときに参照する。
+  tags:
+  - topic:目次
+- path: test-procedure/README.md
+  name: テスト実行方法の目次
+  visibility: internal
+  description: テスト実行方法のフォルダの文書の一覧を index.yaml から生成した目次として受け持ち、GitHub でテスト実行方法を探すときに参照する。
+  tags:
+  - topic:目次
+checkpoint:
+  commit: 017d6ed91a2f044da6faa1b839b32da28ec952ee
+  reviewed: []

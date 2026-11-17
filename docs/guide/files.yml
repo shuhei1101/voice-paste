@@ -45,3 +45,6 @@ files:
   - topic:エンドポイント
   - action:録音
   - topic:http
+checkpoint:
+  commit: 017d6ed91a2f044da6faa1b839b32da28ec952ee
+  reviewed: []

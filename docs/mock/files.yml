@@ -350,3 +350,609 @@ files:
   - topic:モック
   - topic:デザインスタイル
   - topic:スタイル
+- path: "components/check-indicator/index.html"
+  name: "チェックボックス・ラジオボタンのマーカーの部品のモック"
+  description: "設定画面のチェックボックス・ラジオボタンのマーカーと選択欄の開くマーカー（案 A・案 B ごとに オン・オフ・使えない・フォーカス・長い名前、ラジオの選択肢の間、今の Qt の描画）の状態ごとの見た目を並べた部品のモックを受け持ち、チェックボックス・ラジオボタンのマーカーの部品の案を確認するときに参照する。"
+  tags:
+  - topic:モック
+  - topic:部品
+- path: "components/confirm-button/index.html"
+  name: "確定のボタンの部品のモック"
+  description: "録音の画面の確定のボタン（主の操作・通常・フォーカス・AI チャットの送信先）の状態ごとの見た目を並べた部品のモックを受け持ち、確定のボタンの部品の案を確認するときに参照する。"
+  tags:
+  - topic:モック
+  - topic:部品
+- path: "components/edge-phrase-editor/index.html"
+  name: "文言の一覧の欄の部品のモック"
+  description: "設定画面のハルシネーションの文言の一覧（案 A・案 B ごとに 通常・長い文言・エラー、案 A の追加した直後・行が無い）の状態ごとの見た目を並べた部品のモックを受け持ち、文言の一覧の欄の部品の案を確認するときに参照する。"
+  tags:
+  - topic:モック
+  - topic:部品
+- path: "components/glossary-editor/index.html"
+  name: "用語集の欄の部品のモック"
+  description: "設定画面の用語集の一覧と行の表（用語集が 1 つ・補正に使わない用語集を編集・追加した直後・エラー・長い名前と表記・誤変換を削除する行（採用は案 B））の状態ごとの見た目を並べた部品のモックを受け持ち、用語集の欄の部品の案を確認するときに参照する。"
+  tags:
+  - topic:モック
+  - topic:部品
+- path: "components/glossary-preset-editor/index.html"
+  name: "用語集のプリセットの欄の部品のモック"
+  description: "設定画面の用語集のプリセットの一覧と使う用語集の並び（案 A・案 B ごとに 既定のプリセットだけ・2 つの用語集を並べた・使わない用語集がある・使う用語集が無い・全ての用語集を使っている・追加した直後・エラー・長い名前）の状態ごとの見た目を並べた部品のモックを受け持ち、用語集のプリセットの欄の部品の案を確認するときに参照する。"
+  tags:
+  - topic:モック
+  - topic:部品
+- path: "components/hint-preset-editor/index.html"
+  name: "表記のヒントの欄の部品のモック"
+  description: "設定画面の表記のヒントの欄（通常・プリセットが無い・追加した直後・長い名前と語・エラー）の状態ごとの見た目を並べた部品のモックを受け持ち、表記のヒントの欄の部品の案を確認するときに参照する。"
+  tags:
+  - topic:モック
+  - topic:部品
+- path: "components/hotkey-button/index.html"
+  name: "ホットキーを持つボタンの部品のモック"
+  description: "録音の画面のホットキーを持つボタン（案 A・案 B ごとに 通常・かざす・フォーカス・主の操作・取り消し・ホットキーが空・長いホットキー）の状態ごとの見た目を並べた部品のモックを受け持ち、ホットキーを持つボタンの部品の案を確認するときに参照する。"
+  tags:
+  - topic:モック
+  - topic:部品
+- path: "components/hotkey-input/index.html"
+  name: "ホットキーの欄の部品のモック"
+  description: "設定画面のホットキーの欄（通常・入力待ち・重なる・長い組み合わせ）の状態ごとの見た目を並べた部品のモックを受け持ち、ホットキーの欄の部品の案を確認するときに参照する。"
+  tags:
+  - topic:モック
+  - topic:部品
+- path: "components/output-switch/index.html"
+  name: "出力先の切り替えの部品のモック"
+  description: "文字起こし中の表示の今の出力先と切り替え（案 A の一覧・案 B / C のボタンの通常・かざす・フォーカス・選んでいる・ホットキーが空・オンが 2 つ・プリセットで確定）の状態ごとの見た目を並べた部品のモックを受け持ち、出力先の切り替えの部品の案を確認するときに参照する。"
+  tags:
+  - topic:モック
+  - topic:部品
+- path: "components/preset-editor/index.html"
+  name: "プリセットの欄の部品のモック"
+  description: "設定画面の種類ごとのタブに並べるカスタムプリセットの 1 件分（ブラウザ添付・エンドポイントへ送信・ホットキーなし・無効・追加した直後・エラー・長いタイトル）の状態ごとの見た目を並べた部品のモックを受け持ち、プリセットの欄の部品の案を確認するときに参照する。"
+  tags:
+  - topic:モック
+  - topic:部品
+- path: "components/recording-window-head/index.html"
+  name: "録音の画面の見出しの行の部品のモック"
+  description: "録音の画面の見出しの行（通常・行にかざす・非表示 / × にかざす・押下・フォーカス・長い経過時間）の状態ごとの見た目を並べた部品のモックを受け持ち、録音の画面の見出しの行の部品の案を確認するときに参照する。"
+  tags:
+  - topic:モック
+  - topic:部品
+- path: "components/web-glossary-preset-select/index.html"
+  name: "用語集のプリセットの選択欄の部品のモック"
+  description: "外の端末の文字起こしの画面の用語集のプリセットの選択欄（案 A・案 B ごとに 既定のまま・別のプリセットを選択・録音中・送信中・一覧の取得失敗・一覧に無いプリセット・長い名前）の状態ごとの見た目を並べた部品のモックを受け持ち、用語集のプリセットの選択欄の部品の案を確認するときに参照する。"
+  tags:
+  - topic:モック
+  - topic:部品
+- path: "components/web-kept-audio/index.html"
+  name: "端末内の音声の行の部品のモック"
+  description: "外の端末の文字起こしの画面の端末内の音声の行（送信中・送信済み・送信失敗・文字起こし前・長い録音）の状態ごとの見た目を並べた部品のモックを受け持ち、端末内の音声の行の部品の案を確認するときに参照する。"
+  tags:
+  - topic:モック
+  - topic:部品
+- path: "components/web-result-item/index.html"
+  name: "結果の 1 件の部品のモック"
+  description: "外の端末の文字起こしの画面の結果の 1 件（文字起こし待ち・文字起こし中・文字起こし完了・コピー済み・文字起こし失敗・結果消失・長い名前と文）の状態ごとの見た目を並べた部品のモックを受け持ち、結果の 1 件の部品の案を確認するときに参照する。"
+  tags:
+  - topic:モック
+  - topic:部品
+- path: "pages/busy-dialog/288/a-reason-by-cause/index.html"
+  name: "処理中のダイアログの案 a-reason-by-cause（#288）"
+  description: "#288（録音を開始した直後の取り消しで固まらないようにし、終了の処理中に録音を始められない理由を示す）で作った処理中のダイアログの案「始められない理由（前の録音の終了の処理中・API の録音の処理中）ごとに本文を分ける」のモックを受け持ち、その変更の処理中のダイアログの案を確認するときに参照する。"
+  tags:
+  - topic:モック
+  - topic:画面
+- path: "pages/busy-dialog/37/a-standard/index.html"
+  name: "処理中のダイアログの案 a-standard（#37）"
+  description: "#37（画面・トレイ・ホットキーを PySide6 の新しい構成で作り直す）で作った処理中のダイアログの案「API から始めた録音の間に録音開始のホットキーを押したときの知らせ」のモックを受け持ち、その変更の処理中のダイアログの案を確認するときに参照する。"
+  tags:
+  - topic:モック
+  - topic:画面
+- path: "pages/recording-window/37/a-standard/index.html"
+  name: "録音の画面の案 a-standard（#37）"
+  description: "#37（画面・トレイ・ホットキーを PySide6 の新しい構成で作り直す）で作った録音の画面の案「話している間だけ出る小さな窓。状態・経過時間・波形と、確定・一時停止・取り消しの操作を並べる」のモックを受け持ち、その変更の録音の画面の案を確認するときに参照する。"
+  tags:
+  - topic:モック
+  - topic:画面
+- path: "pages/recording-window/44/a-standard/index.html"
+  name: "録音の画面の案 a-standard（#44）"
+  description: "#44（AI チャットの送り先をカスタムプリセットにし、エンドポイントへ送る種類を足す）で作った録音の画面の案「固定の出力先の下に、出すとしたカスタムプリセットのボタンを設定の並びで出す」のモックを受け持ち、その変更の録音の画面の案を確認するときに参照する。"
+  tags:
+  - topic:モック
+  - topic:画面
+- path: "pages/recording-window/48/a-head-controls/index.html"
+  name: "録音の画面の案 a-head-controls（#48）"
+  description: "#48（録音の画面をドラッグで動かし、録音中に隠して戻し、× で取り消せるようにする）で作った録音の画面の案「見出しの行をつかんで動かし、見出しの右端に「隠す」と「×」を置く」のモックを受け持ち、その変更の録音の画面の案を確認するときに参照する。"
+  tags:
+  - topic:モック
+  - topic:画面
+- path: "pages/recording-window/82/a-key-below/index.html"
+  name: "録音の画面の案 a-key-below（#82）"
+  description: "#82（録音の画面のホットキーを見切れずに出し、「確定して届ける」の見出しを消す）で作った録音の画面の案「ボタンの名前の下に、枠で囲んだホットキーを出す。見出し「確定して届ける」を消す」のモックを受け持ち、その変更の録音の画面の案を確認するときに参照する。"
+  tags:
+  - topic:モック
+  - topic:画面
+- path: "pages/recording-window/82/b-key-right/index.html"
+  name: "録音の画面の案 b-key-right（#82）"
+  description: "#82（録音の画面のホットキーを見切れずに出し、「確定して届ける」の見出しを消す）で作った録音の画面の案「名前の右にホットキーを出したまま、ボタンを収まる幅まで広げる。見出し「確定して届ける」を消す」のモックを受け持ち、その変更の録音の画面の案を確認するときに参照する。"
+  tags:
+  - topic:モック
+  - topic:画面
+- path: "pages/recording-window/94/a-cool-gray/index.html"
+  name: "録音の画面の案 a-cool-gray（#94）"
+  description: "#94（アプリの明暗を設定で選べるようにし、録音の画面を背景から見分けやすい配色にする）で作った録音の画面の案「窓の面を青みのグレー、窓の外側の縁を濃いグレーにする。ダークは面を今より明るい黒、縁を明るいグレーにする」のモックを受け持ち、その変更の録音の画面の案を確認するときに参照する。"
+  tags:
+  - topic:モック
+  - topic:画面
+- path: "pages/recording-window/94/b-warm-gray/index.html"
+  name: "録音の画面の案 b-warm-gray（#94）"
+  description: "#94（アプリの明暗を設定で選べるようにし、録音の画面を背景から見分けやすい配色にする）で作った録音の画面の案「案 A と同じ考え方で、面を生成りのグレー、ダークを茶みの黒にする」のモックを受け持ち、その変更の録音の画面の案を確認するときに参照する。"
+  tags:
+  - topic:モック
+  - topic:画面
+- path: "pages/recording-window/94/c-head-tint/index.html"
+  name: "録音の画面の案 c-head-tint（#94）"
+  description: "#94（アプリの明暗を設定で選べるようにし、録音の画面を背景から見分けやすい配色にする）で作った録音の画面の案「案 A の配色に加えて、見出しの行に状態の色を薄めた地を敷く」のモックを受け持ち、その変更の録音の画面の案を確認するときに参照する。"
+  tags:
+  - topic:モック
+  - topic:画面
+- path: "pages/settings-discard-dialog/37/a-standard/index.html"
+  name: "変えた値を捨てる確認の案 a-standard（#37）"
+  description: "#37（画面・トレイ・ホットキーを PySide6 の新しい構成で作り直す）で作った変えた値を捨てる確認の案「欄を変えたまま設定画面を閉じるときの確認」のモックを受け持ち、その変更の変えた値を捨てる確認の案を確認するときに参照する。"
+  tags:
+  - topic:モック
+  - topic:画面
+- path: "pages/settings-reset-dialog/37/a-standard/index.html"
+  name: "既定に戻す確認の案 a-standard（#37）"
+  description: "#37（画面・トレイ・ホットキーを PySide6 の新しい構成で作り直す）で作った既定に戻す確認の案「全ての設定を既定の値へ戻すときの確認」のモックを受け持ち、その変更の既定に戻す確認の案を確認するときに参照する。"
+  tags:
+  - topic:モック
+  - topic:画面
+- path: "pages/settings/101/a-footer-notice/app.js"
+  name: "設定画面の案 a-footer-notice（#101）のスクリプト"
+  description: "#101（設定画面で保存しても画面を閉じないようにする）で作った設定画面の案 a-footer-notice のモックの振る舞いを受け持ち、その案の操作を確かめるときに参照する。"
+  tags:
+  - topic:モック
+  - topic:画面
+- path: "pages/settings/101/a-footer-notice/index.html"
+  name: "設定画面の案 a-footer-notice（#101）"
+  description: "#101（設定画面で保存しても画面を閉じないようにする）で作った設定画面の案「「保存」を押しても設定画面を閉じず、フッターの上に保存できたことを出し、欄を変えたら消す」のモックを受け持ち、その変更の設定画面の案を確認するときに参照する。"
+  tags:
+  - topic:モック
+  - topic:画面
+- path: "pages/settings/152/a-placeholder/index.html"
+  name: "設定画面の案 a-placeholder（#152）"
+  description: "#152（用語集の正しい表記を空にした行で、誤変換を消せるようにする）で作った設定画面の案「用語集の行の表で、正しい表記の欄が空のときに、欄へプレースホルダ「（消す）」を出す」のモックを受け持ち、その変更の設定画面の案を確認するときに参照する。"
+  tags:
+  - topic:モック
+  - topic:画面
+- path: "pages/settings/152/b-lead-note/index.html"
+  name: "設定画面の案 b-lead-note（#152）"
+  description: "#152（用語集の正しい表記を空にした行で、誤変換を消せるようにする）で作った設定画面の案「用語集の行の表の上に、正しい表記を空にすると誤変換を消すことを 1 文で書く」のモックを受け持ち、その変更の設定画面の案を確認するときに参照する。"
+  tags:
+  - topic:モック
+  - topic:画面
+- path: "pages/settings/159/a-accent-fg/index.html"
+  name: "設定画面の案 a-accent-fg（#159）"
+  description: "#159（設定画面のチェックボックスなどの印を、選んだ状態が見分けられるように表示する）で作った設定画面の案「オンのチェックボックスの箱とラジオボタンの点を、選択中の印の色（accent_fg）で塗る」のモックを受け持ち、その変更の設定画面の案を確認するときに参照する。"
+  tags:
+  - topic:モック
+  - topic:画面
+- path: "pages/settings/159/b-primary/index.html"
+  name: "設定画面の案 b-primary（#159）"
+  description: "#159（設定画面のチェックボックスなどの印を、選んだ状態が見分けられるように表示する）で作った設定画面の案「オンのチェックボックスの箱とラジオボタンの点を、主ボタンの緑（primary）で塗る」のモックを受け持ち、その変更の設定画面の案を確認するときに参照する。"
+  tags:
+  - topic:モック
+  - topic:画面
+- path: "pages/settings/166/a-row-arrows/index.html"
+  name: "設定画面の案 a-row-arrows（#166）"
+  description: "#166（起こした文字の文頭・文末に紛れ込む決まった文言を、登録した一覧で消せるようにする）で作った設定画面の案「「ハルシネーション」のまとまりの文言の表で、行の右端の上へ・下へのボタンで 1 行ずつ並べ替える」のモックを受け持ち、その変更の設定画面の案を確認するときに参照する。"
+  tags:
+  - topic:モック
+  - topic:画面
+- path: "pages/settings/166/b-drag-handle/index.html"
+  name: "設定画面の案 b-drag-handle（#166）"
+  description: "#166（起こした文字の文頭・文末に紛れ込む決まった文言を、登録した一覧で消せるようにする）で作った設定画面の案「「ハルシネーション」のまとまりの文言の表で、行の左端のつまみを掴むか Alt+↑ / Alt+↓ で並べ替える」のモックを受け持ち、その変更の設定画面の案を確認するときに参照する。"
+  tags:
+  - topic:モック
+  - topic:画面
+- path: "pages/settings/173/a-check-list/index.html"
+  name: "設定画面の案 a-check-list（#173）"
+  description: "#173（補正に使う用語集を複数まとめて選べる用語集のプリセットを追加し、API からも選べるようにする）で作った設定画面の案「「用語集」のまとまりの先頭に用語集のプリセットの一覧を置き、選んだプリセットの下に全ての用語集を並べてチェックで使う用語集を選ぶ。並びはつまみか Alt+↑ / Alt+↓ で変える」のモックを受け持ち、その変更の設定画面の案を確認するときに参照する。"
+  tags:
+  - topic:モック
+  - topic:画面
+- path: "pages/settings/173/b-picked-list/index.html"
+  name: "設定画面の案 b-picked-list（#173）"
+  description: "#173（補正に使う用語集を複数まとめて選べる用語集のプリセットを追加し、API からも選べるようにする）で作った設定画面の案「「用語集」のまとまりの先頭に用語集のプリセットの一覧を置き、選んだプリセットの下に使う用語集だけを並べ、選択欄から追加し × で外す。並びはつまみか Alt+↑ / Alt+↓ で変える」のモックを受け持ち、その変更の設定画面の案を確認するときに参照する。"
+  tags:
+  - topic:モック
+  - topic:画面
+- path: "pages/settings/264/a-word-pairs/index.html"
+  name: "設定画面の案 a-word-pairs（#264）"
+  description: "#264（文字起こしのエンジンに WSL で動かす日本語の音声認識モデル Haas-ja-v1.0 を追加する）で作った設定画面の案「語の欄・読みの欄・削除のボタンの組を、今の語の一覧と同じ格子に並べる。幅が足りないときは 1 列に積む」のモックを受け持ち、その変更の設定画面の案を確認するときに参照する。"
+  tags:
+  - topic:モック
+  - topic:画面
+- path: "pages/settings/264/b-word-table/index.html"
+  name: "設定画面の案 b-word-table（#264）"
+  description: "#264（文字起こしのエンジンに WSL で動かす日本語の音声認識モデル Haas-ja-v1.0 を追加する）で作った設定画面の案「語と読みを 1 行に 1 語ずつ並べ、列の見出しを 1 度だけ出す」のモックを受け持ち、その変更の設定画面の案を確認するときに参照する。"
+  tags:
+  - topic:モック
+  - topic:画面
+- path: "pages/settings/274/a-engine-tabs/index.html"
+  name: "設定画面の案 a-engine-tabs（#274）"
+  description: "#274（設定画面の文字起こしの設定をエンジンごとのタブに分け、選んでいないエンジンの設定も変えられるようにする）で作った設定画面の案「文字起こしのまとまりで、エンジンの選択の下にエンジンごとのタブを並べる」のモックを受け持ち、その変更の設定画面の案を確認するときに参照する。"
+  tags:
+  - topic:モック
+  - topic:画面
+- path: "pages/settings/274/b-engine-sections/index.html"
+  name: "設定画面の案 b-engine-sections（#274）"
+  description: "#274（設定画面の文字起こしの設定をエンジンごとのタブに分け、選んでいないエンジンの設定も変えられるようにする）で作った設定画面の案「文字起こしのまとまりで、エンジンごとに開閉できるまとまりを縦に積む」のモックを受け持ち、その変更の設定画面の案を確認するときに参照する。"
+  tags:
+  - topic:モック
+  - topic:画面
+- path: "pages/settings/288/a-grace-row/index.html"
+  name: "設定画面の案 a-grace-row（#288）"
+  description: "#288（録音を開始した直後の取り消しで固まらないようにし、終了の処理中に録音を始められない理由を示す）で作った設定画面の案「「録音」のまとまりに、取り消しの猶予の秒数の欄を足す」のモックを受け持ち、その変更の設定画面の案を確認するときに参照する。"
+  tags:
+  - topic:モック
+  - topic:画面
+- path: "pages/settings/291/a-shortcuts-first/index.html"
+  name: "設定画面の案 a-shortcuts-first（#291）"
+  description: "#291（設定画面を開いたまま録音でき、トレイから用語集とショートカットの設定へ直接開けるようにする）で作った設定画面の案「まとまりのメニューの先頭に「ショートカット」を追加し、行の追加ボタンを見出しの右に配置する」のモックを受け持ち、その変更の設定画面の案を確認するときに参照する。"
+  tags:
+  - topic:モック
+  - topic:画面
+- path: "pages/settings/292/a-group-top/index.html"
+  name: "設定画面の案 a-group-top（#292）"
+  description: "#292（録音している間、画面が自動で暗くならないようにする設定を追加する）で作った設定画面の案「「録音」のまとまりの先頭に「録音中に画面を暗くしない」のチェックボックスを追加する」のモックを受け持ち、その変更の設定画面の案を確認するときに参照する。"
+  tags:
+  - topic:モック
+  - topic:画面
+- path: "pages/settings/37/a-standard/index.html"
+  name: "設定画面の案 a-standard（#37）"
+  description: "#37（画面・トレイ・ホットキーを PySide6 の新しい構成で作り直す）で作った設定画面の案「settings.toml の全てのキーを 7 つのまとまりで変える」のモックを受け持ち、その変更の設定画面の案を確認するときに参照する。"
+  tags:
+  - topic:モック
+  - topic:画面
+- path: "pages/settings/44/a-inline/index.html"
+  name: "設定画面の案 a-inline（#44）"
+  description: "#44（AI チャットの送り先をカスタムプリセットにし、エンドポイントへ送る種類を足す）で作った設定画面の案「カスタムプリセットを 1 件ずつ全ての欄を開いたまとまりで縦に積み、上へ・下へのボタンで並べ替える」のモックを受け持ち、その変更の設定画面の案を確認するときに参照する。"
+  tags:
+  - topic:モック
+  - topic:画面
+- path: "pages/settings/44/a-inline/kind-tabs/index.html"
+  name: "設定画面の案 a-inline / kind-tabs（#44）"
+  description: "#44（AI チャットの送り先をカスタムプリセットにし、エンドポイントへ送る種類を足す）で作った設定画面の案「案 A を元に、カスタムプリセットを種類ごとに左のメニューの「ブラウザ添付」「エンドポイントへ送る」のタブへ分け、それぞれに一覧とオプションを置く」のモックを受け持ち、その変更の設定画面の案を確認するときに参照する。"
+  tags:
+  - topic:モック
+  - topic:画面
+- path: "pages/settings/44/b-list-detail/index.html"
+  name: "設定画面の案 b-list-detail（#44）"
+  description: "#44（AI チャットの送り先をカスタムプリセットにし、エンドポイントへ送る種類を足す）で作った設定画面の案「カスタムプリセットを表に並べ、タイトルを押して選んだ 1 件の欄を表の下に出す」のモックを受け持ち、その変更の設定画面の案を確認するときに参照する。"
+  tags:
+  - topic:モック
+  - topic:画面
+- path: "pages/settings/94/a-theme-radio/index.html"
+  name: "設定画面の案 a-theme-radio（#94）"
+  description: "#94（アプリの明暗を設定で選べるようにし、録音の画面を背景から見分けやすい配色にする）で作った設定画面の案「「画面」のまとまりの先頭に、欄「画面の明暗」と「Windows の設定に従う」「ライト」「ダーク」のラジオボタンを足す」のモックを受け持ち、その変更の設定画面の案を確認するときに参照する。"
+  tags:
+  - topic:モック
+  - topic:画面
+- path: "pages/settings/97/a-glossary-group/index.html"
+  name: "設定画面の案 a-glossary-group（#97）"
+  description: "#97（用語集を設定画面で編集し、プリセットで切り替えて行ごとにオン・オフできるようにする）で作った設定画面の案「左のメニューの「文字起こし」の次に「用語集」のまとまりを足し、用語集の一覧と、選んだ用語集の行の表を置く」のモックを受け持ち、その変更の設定画面の案を確認するときに参照する。"
+  tags:
+  - topic:モック
+  - topic:画面
+- path: "pages/settings/97/b-in-transcription/index.html"
+  name: "設定画面の案 b-in-transcription（#97）"
+  description: "#97（用語集を設定画面で編集し、プリセットで切り替えて行ごとにオン・オフできるようにする）で作った設定画面の案「用語集の一覧と行の表を、「文字起こし」のまとまりの末尾の小見出し「用語集」に置く」のモックを受け持ち、その変更の設定画面の案を確認するときに参照する。"
+  tags:
+  - topic:モック
+  - topic:画面
+- path: "pages/settings/99/a-hint-group/index.html"
+  name: "設定画面の案 a-hint-group（#99）"
+  description: "#99（文字起こしに渡す手がかりの語をプリセットで保存して切り替え、設定画面から編集できるようにする）で作った設定画面の案「左のメニューの「文字起こし」の次に「表記のヒント」のまとまりを足し、有効なヒントの長さと、ヒントのプリセットの一覧を置く」のモックを受け持ち、その変更の設定画面の案を確認するときに参照する。"
+  tags:
+  - topic:モック
+  - topic:画面
+- path: "pages/settings/99/b-in-glossary/index.html"
+  name: "設定画面の案 b-in-glossary（#99）"
+  description: "#99（文字起こしに渡す手がかりの語をプリセットで保存して切り替え、設定画面から編集できるようにする）で作った設定画面の案「有効なヒントの長さとヒントのプリセットの一覧を、「用語集」のまとまりの末尾の小見出し「表記のヒント」に置く」のモックを受け持ち、その変更の設定画面の案を確認するときに参照する。"
+  tags:
+  - topic:モック
+  - topic:画面
+- path: "pages/transcribing-indicator/108/a-hotkey/index.html"
+  name: "文字起こし中の表示の案 a-hotkey（#108）"
+  description: "#108（文字起こし中に、確定で選んだ出力先を固定の出力先の間で切り替えられるようにする）で作った文字起こし中の表示の案「確定のホットキーで切り替える。表示は押せず、出力先とキーの一覧で今の出力先を示す」のモックを受け持ち、その変更の文字起こし中の表示の案を確認するときに参照する。"
+  tags:
+  - topic:モック
+  - topic:画面
+- path: "pages/transcribing-indicator/108/b-buttons/index.html"
+  name: "文字起こし中の表示の案 b-buttons（#108）"
+  description: "#108（文字起こし中に、確定で選んだ出力先を固定の出力先の間で切り替えられるようにする）で作った文字起こし中の表示の案「表示の出力先のボタンで切り替え、押した後は前面を貼り付け先へ戻す」のモックを受け持ち、その変更の文字起こし中の表示の案を確認するときに参照する。"
+  tags:
+  - topic:モック
+  - topic:画面
+- path: "pages/transcribing-indicator/108/c-both/index.html"
+  name: "文字起こし中の表示の案 c-both（#108）"
+  description: "#108（文字起こし中に、確定で選んだ出力先を固定の出力先の間で切り替えられるようにする）で作った文字起こし中の表示の案「ホットキーとボタンの両方で切り替える。ボタンの名前の下にキーを出す」のモックを受け持ち、その変更の文字起こし中の表示の案を確認するときに参照する。"
+  tags:
+  - topic:モック
+  - topic:画面
+- path: "pages/transcribing-indicator/37/a-standard/index.html"
+  name: "文字起こし中の表示の案 a-standard（#37）"
+  description: "#37（画面・トレイ・ホットキーを PySide6 の新しい構成で作り直す）で作った文字起こし中の表示の案「確定から届けるまでの経過と残りの時間を出す。フォーカスを取らない」のモックを受け持ち、その変更の文字起こし中の表示の案を確認するときに参照する。"
+  tags:
+  - topic:モック
+  - topic:画面
+- path: "pages/tray-notification/291/a-switched/index.html"
+  name: "トレイの通知の案 a-switched（#291）"
+  description: "#291（設定画面を開いたまま録音でき、トレイから用語集とショートカットの設定へ直接開けるようにする）で作ったトレイの通知の案「ショートカットで用語集のプリセットを切り替えたことを、切り替えたプリセットの名前で知らせる」のモックを受け持ち、その変更のトレイの通知の案を確認するときに参照する。"
+  tags:
+  - topic:モック
+  - topic:画面
+- path: "pages/tray-notification/37/a-notification/index.html"
+  name: "トレイの通知の案 a-notification（#37）"
+  description: "#37（画面・トレイ・ホットキーを PySide6 の新しい構成で作り直す）で作ったトレイの通知の案「全てトレイの通知で知らせる」のモックを受け持ち、その変更のトレイの通知の案を確認するときに参照する。"
+  tags:
+  - topic:モック
+  - topic:画面
+- path: "pages/tray-notification/37/b-dialog/index.html"
+  name: "トレイの通知の案 b-dialog（#37）"
+  description: "#37（画面・トレイ・ホットキーを PySide6 の新しい構成で作り直す）で作ったトレイの通知の案「文字起こしに失敗・届けられないの 2 つだけをダイアログで知らせ、ほかは通知で知らせる」のモックを受け持ち、その変更のトレイの通知の案を確認するときに参照する。"
+  tags:
+  - topic:モック
+  - topic:画面
+- path: "pages/tray/291/a-menu-items/index.html"
+  name: "トレイの案 a-menu-items（#291）"
+  description: "#291（設定画面を開いたまま録音でき、トレイから用語集とショートカットの設定へ直接開けるようにする）で作ったトレイの案「「設定…」の直下に「用語集の設定…」「ショートカットの設定…」を追加し、録音中も設定の項目を押せる」のモックを受け持ち、その変更のトレイの案を確認するときに参照する。"
+  tags:
+  - topic:モック
+  - topic:画面
+- path: "pages/tray/37/a-standard/index.html"
+  name: "トレイの案 a-standard（#37）"
+  description: "#37（画面・トレイ・ホットキーを PySide6 の新しい構成で作り直す）で作ったトレイの案「状態ごとのアイコンと、待機中・処理中・準備に失敗した起動のメニュー」のモックを受け持ち、その変更のトレイの案を確認するときに参照する。"
+  tags:
+  - topic:モック
+  - topic:画面
+- path: "pages/tray/48/a-show-item/index.html"
+  name: "トレイの案 a-show-item（#48）"
+  description: "#48（録音の画面をドラッグで動かし、録音中に隠して戻し、× で取り消せるようにする）で作ったトレイの案「メニューの「録音を始める」の下に「録音の画面を出す」を足し、録音の画面を隠しているときだけ押せる」のモックを受け持ち、その変更のトレイの案を確認するときに参照する。"
+  tags:
+  - topic:モック
+  - topic:画面
+- path: "pages/web-confirm-dialog/171/a-standard/index.html"
+  name: "外の端末の取り消せない操作の確認の案 a-standard（#171）"
+  description: "#171（外の端末のブラウザから音声を送って文字に起こす画面とエンドポイントを追加する）で作った外の端末の取り消せない操作の確認の案「結果の削除と、文字起こし前の音声を新しい録音で置換するときに出す確認のモーダル」のモックを受け持ち、その変更の外の端末の取り消せない操作の確認の案を確認するときに参照する。"
+  tags:
+  - topic:モック
+  - topic:画面
+- path: "pages/web-transcription/171/a-standard/index.html"
+  name: "外の端末の文字起こしの画面の案 a-standard（#171）"
+  description: "#171（外の端末のブラウザから音声を送って文字に起こす画面とエンドポイントを追加する）で作った外の端末の文字起こしの画面の案「上に音声送信の区画（録音・ファイル送信・端末内の音声）、下に結果の一覧を 1 カラムで並べる」のモックを受け持ち、その変更の外の端末の文字起こしの画面の案を確認するときに参照する。"
+  tags:
+  - topic:モック
+  - topic:画面
+- path: "pages/web-transcription/180/a-follow-settings/index.html"
+  name: "外の端末の文字起こしの画面の案 a-follow-settings（#180）"
+  description: "#180（外の端末のブラウザの画面から送信する音声で、補正に使う用語集のプリセットを選択できるようにする）で作った外の端末の文字起こしの画面の案「音声送信の区画に用語集のプリセットの選択欄を置き、先頭の「設定に従う（{設定で選んでいるプリセット}）」を既定にする」のモックを受け持ち、その変更の外の端末の文字起こしの画面の案を確認するときに参照する。"
+  tags:
+  - topic:モック
+  - topic:画面
+- path: "pages/web-transcription/180/b-preselect-active/index.html"
+  name: "外の端末の文字起こしの画面の案 b-preselect-active（#180）"
+  description: "#180（外の端末のブラウザの画面から送信する音声で、補正に使う用語集のプリセットを選択できるようにする）で作った外の端末の文字起こしの画面の案「音声送信の区画に用語集のプリセットの選択欄を置き、開いたときに設定で選んでいるプリセットを選択した状態で出す」のモックを受け持ち、その変更の外の端末の文字起こしの画面の案を確認するときに参照する。"
+  tags:
+  - topic:モック
+  - topic:画面
+- path: "pages/web-transcription/292/a-below-preset/index.html"
+  name: "外の端末の文字起こしの画面の案 a-below-preset（#292）"
+  description: "#292（録音している間、画面が自動で暗くならないようにする設定を追加する）で作った外の端末の文字起こしの画面の案「音声送信の区画で、用語集のプリセットの選択欄のすぐ下に「録音中は画面を暗くしない」のチェックを置く」のモックを受け持ち、その変更の外の端末の文字起こしの画面の案を確認するときに参照する。"
+  tags:
+  - topic:モック
+  - topic:画面
+- path: "refs/108/assets/app.js"
+  name: "#108 のモックの共有のスクリプト"
+  description: "#108（文字起こし中に、確定で選んだ出力先を固定の出力先の間で切り替えられるようにする）で作った画面のモックが共有する振る舞いを受け持ち、その作業 PR のモックの振る舞いを変えるときに参照する。"
+  tags:
+  - topic:モック
+  - topic:画面
+- path: "refs/108/assets/style.css"
+  name: "#108 のモックの共有のスタイル"
+  description: "#108（文字起こし中に、確定で選んだ出力先を固定の出力先の間で切り替えられるようにする）で作った画面のモックが共有する見た目を受け持ち、その作業 PR のモックの見た目を変えるときに参照する。"
+  tags:
+  - topic:モック
+  - topic:スタイル
+- path: "refs/159/assets/style.css"
+  name: "#159 のモックの共有のスタイル"
+  description: "#159（設定画面のチェックボックスなどの印を、選んだ状態が見分けられるように表示する）で作った画面のモックが共有する見た目を受け持ち、その作業 PR のモックの見た目を変えるときに参照する。"
+  tags:
+  - topic:モック
+  - topic:スタイル
+- path: "refs/166/assets/app.js"
+  name: "#166 のモックの共有のスクリプト"
+  description: "#166（起こした文字の文頭・文末に紛れ込む決まった文言を、登録した一覧で消せるようにする）で作った画面のモックが共有する振る舞いを受け持ち、その作業 PR のモックの振る舞いを変えるときに参照する。"
+  tags:
+  - topic:モック
+  - topic:画面
+- path: "refs/166/assets/style.css"
+  name: "#166 のモックの共有のスタイル"
+  description: "#166（起こした文字の文頭・文末に紛れ込む決まった文言を、登録した一覧で消せるようにする）で作った画面のモックが共有する見た目を受け持ち、その作業 PR のモックの見た目を変えるときに参照する。"
+  tags:
+  - topic:モック
+  - topic:スタイル
+- path: "refs/171/assets/app.js"
+  name: "#171 のモックの共有のスクリプト"
+  description: "#171（外の端末のブラウザから音声を送って文字に起こす画面とエンドポイントを追加する）で作った画面のモックが共有する振る舞いを受け持ち、その作業 PR のモックの振る舞いを変えるときに参照する。"
+  tags:
+  - topic:モック
+  - topic:画面
+- path: "refs/171/assets/style.css"
+  name: "#171 のモックの共有のスタイル"
+  description: "#171（外の端末のブラウザから音声を送って文字に起こす画面とエンドポイントを追加する）で作った画面のモックが共有する見た目を受け持ち、その作業 PR のモックの見た目を変えるときに参照する。"
+  tags:
+  - topic:モック
+  - topic:スタイル
+- path: "refs/173/assets/app.js"
+  name: "#173 のモックの共有のスクリプト"
+  description: "#173（補正に使う用語集を複数まとめて選べる用語集のプリセットを追加し、API からも選べるようにする）で作った画面のモックが共有する振る舞いを受け持ち、その作業 PR のモックの振る舞いを変えるときに参照する。"
+  tags:
+  - topic:モック
+  - topic:画面
+- path: "refs/173/assets/style.css"
+  name: "#173 のモックの共有のスタイル"
+  description: "#173（補正に使う用語集を複数まとめて選べる用語集のプリセットを追加し、API からも選べるようにする）で作った画面のモックが共有する見た目を受け持ち、その作業 PR のモックの見た目を変えるときに参照する。"
+  tags:
+  - topic:モック
+  - topic:スタイル
+- path: "refs/180/assets/style.css"
+  name: "#180 のモックの共有のスタイル"
+  description: "#180（外の端末のブラウザの画面から送信する音声で、補正に使う用語集のプリセットを選択できるようにする）で作った画面のモックが共有する見た目を受け持ち、その作業 PR のモックの見た目を変えるときに参照する。"
+  tags:
+  - topic:モック
+  - topic:スタイル
+- path: "refs/264/assets/app.js"
+  name: "#264 のモックの共有のスクリプト"
+  description: "#264（文字起こしのエンジンに WSL で動かす日本語の音声認識モデル Haas-ja-v1.0 を追加する）で作った画面のモックが共有する振る舞いを受け持ち、その作業 PR のモックの振る舞いを変えるときに参照する。"
+  tags:
+  - topic:モック
+  - topic:画面
+- path: "refs/264/assets/style.css"
+  name: "#264 のモックの共有のスタイル"
+  description: "#264（文字起こしのエンジンに WSL で動かす日本語の音声認識モデル Haas-ja-v1.0 を追加する）で作った画面のモックが共有する見た目を受け持ち、その作業 PR のモックの見た目を変えるときに参照する。"
+  tags:
+  - topic:モック
+  - topic:スタイル
+- path: "refs/274/assets/app.js"
+  name: "#274 のモックの共有のスクリプト"
+  description: "#274（設定画面の文字起こしの設定をエンジンごとのタブに分け、選んでいないエンジンの設定も変えられるようにする）で作った画面のモックが共有する振る舞いを受け持ち、その作業 PR のモックの振る舞いを変えるときに参照する。"
+  tags:
+  - topic:モック
+  - topic:画面
+- path: "refs/274/assets/style.css"
+  name: "#274 のモックの共有のスタイル"
+  description: "#274（設定画面の文字起こしの設定をエンジンごとのタブに分け、選んでいないエンジンの設定も変えられるようにする）で作った画面のモックが共有する見た目を受け持ち、その作業 PR のモックの見た目を変えるときに参照する。"
+  tags:
+  - topic:モック
+  - topic:スタイル
+- path: "refs/291/assets/style.css"
+  name: "#291 のモックの共有のスタイル"
+  description: "#291（設定画面を開いたまま録音でき、トレイから用語集とショートカットの設定へ直接開けるようにする）で作った画面のモックが共有する見た目を受け持ち、その作業 PR のモックの見た目を変えるときに参照する。"
+  tags:
+  - topic:モック
+  - topic:スタイル
+- path: "refs/292/assets/style.css"
+  name: "#292 のモックの共有のスタイル"
+  description: "#292（録音している間、画面が自動で暗くならないようにする設定を追加する）で作った画面のモックが共有する見た目を受け持ち、その作業 PR のモックの見た目を変えるときに参照する。"
+  tags:
+  - topic:モック
+  - topic:スタイル
+- path: "refs/37/assets/app.js"
+  name: "#37 のモックの共有のスクリプト"
+  description: "#37（画面・トレイ・ホットキーを PySide6 の新しい構成で作り直す）で作った画面のモックが共有する振る舞いを受け持ち、その作業 PR のモックの振る舞いを変えるときに参照する。"
+  tags:
+  - topic:モック
+  - topic:画面
+- path: "refs/37/assets/style.css"
+  name: "#37 のモックの共有のスタイル"
+  description: "#37（画面・トレイ・ホットキーを PySide6 の新しい構成で作り直す）で作った画面のモックが共有する見た目を受け持ち、その作業 PR のモックの見た目を変えるときに参照する。"
+  tags:
+  - topic:モック
+  - topic:スタイル
+- path: "refs/44/assets/app.js"
+  name: "#44 のモックの共有のスクリプト"
+  description: "#44（AI チャットの送り先をカスタムプリセットにし、エンドポイントへ送る種類を足す）で作った画面のモックが共有する振る舞いを受け持ち、その作業 PR のモックの振る舞いを変えるときに参照する。"
+  tags:
+  - topic:モック
+  - topic:画面
+- path: "refs/44/assets/style.css"
+  name: "#44 のモックの共有のスタイル"
+  description: "#44（AI チャットの送り先をカスタムプリセットにし、エンドポイントへ送る種類を足す）で作った画面のモックが共有する見た目を受け持ち、その作業 PR のモックの見た目を変えるときに参照する。"
+  tags:
+  - topic:モック
+  - topic:スタイル
+- path: "refs/48/assets/style.css"
+  name: "#48 のモックの共有のスタイル"
+  description: "#48（録音の画面をドラッグで動かし、録音中に隠して戻し、× で取り消せるようにする）で作った画面のモックが共有する見た目を受け持ち、その作業 PR のモックの見た目を変えるときに参照する。"
+  tags:
+  - topic:モック
+  - topic:スタイル
+- path: "refs/82/assets/style.css"
+  name: "#82 のモックの共有のスタイル"
+  description: "#82（録音の画面のホットキーを見切れずに出し、「確定して届ける」の見出しを消す）で作った画面のモックが共有する見た目を受け持ち、その作業 PR のモックの見た目を変えるときに参照する。"
+  tags:
+  - topic:モック
+  - topic:スタイル
+- path: "refs/94/assets/style.css"
+  name: "#94 のモックの共有のスタイル"
+  description: "#94（アプリの明暗を設定で選べるようにし、録音の画面を背景から見分けやすい配色にする）で作った画面のモックが共有する見た目を受け持ち、その作業 PR のモックの見た目を変えるときに参照する。"
+  tags:
+  - topic:モック
+  - topic:スタイル
+- path: "refs/97/assets/app.js"
+  name: "#97 のモックの共有のスクリプト"
+  description: "#97（用語集を設定画面で編集し、プリセットで切り替えて行ごとにオン・オフできるようにする）で作った画面のモックが共有する振る舞いを受け持ち、その作業 PR のモックの振る舞いを変えるときに参照する。"
+  tags:
+  - topic:モック
+  - topic:画面
+- path: "refs/97/assets/style.css"
+  name: "#97 のモックの共有のスタイル"
+  description: "#97（用語集を設定画面で編集し、プリセットで切り替えて行ごとにオン・オフできるようにする）で作った画面のモックが共有する見た目を受け持ち、その作業 PR のモックの見た目を変えるときに参照する。"
+  tags:
+  - topic:モック
+  - topic:スタイル
+- path: "refs/99/assets/app.js"
+  name: "#99 のモックの共有のスクリプト"
+  description: "#99（文字起こしに渡す手がかりの語をプリセットで保存して切り替え、設定画面から編集できるようにする）で作った画面のモックが共有する振る舞いを受け持ち、その作業 PR のモックの振る舞いを変えるときに参照する。"
+  tags:
+  - topic:モック
+  - topic:画面
+- path: "refs/99/assets/style.css"
+  name: "#99 のモックの共有のスタイル"
+  description: "#99（文字起こしに渡す手がかりの語をプリセットで保存して切り替え、設定画面から編集できるようにする）で作った画面のモックが共有する見た目を受け持ち、その作業 PR のモックの見た目を変えるときに参照する。"
+  tags:
+  - topic:モック
+  - topic:スタイル
+- path: "styles/developer-tool/index.html"
+  name: "デザインスタイルの候補「開発者ツール」のサンプル画面"
+  description: "デザインスタイルの候補「開発者ツール」で描いたサンプル画面を受け持ち、デザインスタイルの候補を見比べるときに参照する。"
+  tags:
+  - topic:モック
+  - topic:デザインスタイル
+- path: "styles/developer-tool/style.css"
+  name: "デザインスタイルの候補「開発者ツール」のスタイル"
+  description: "デザインスタイルの候補「開発者ツール」のサンプル画面の見た目を受け持ち、その候補の色や書体を確かめるときに参照する。"
+  tags:
+  - topic:モック
+  - topic:デザインスタイル
+  - topic:スタイル
+- path: "styles/monitoring-console/index.html"
+  name: "デザインスタイルの候補「監視コンソール × コンパクト」のサンプル画面"
+  description: "デザインスタイルの候補「監視コンソール × コンパクト」で描いたサンプル画面を受け持ち、デザインスタイルの候補を見比べるときに参照する。"
+  tags:
+  - topic:モック
+  - topic:デザインスタイル
+- path: "styles/monitoring-console/style.css"
+  name: "デザインスタイルの候補「監視コンソール × コンパクト」のスタイル"
+  description: "デザインスタイルの候補「監視コンソール × コンパクト」のサンプル画面の見た目を受け持ち、その候補の色や書体を確かめるときに参照する。"
+  tags:
+  - topic:モック
+  - topic:デザインスタイル
+  - topic:スタイル
+- path: "styles/os-native/index.html"
+  name: "デザインスタイルの候補「OS 標準（Windows 11）」のサンプル画面"
+  description: "デザインスタイルの候補「OS 標準（Windows 11）」で描いたサンプル画面を受け持ち、デザインスタイルの候補を見比べるときに参照する。"
+  tags:
+  - topic:モック
+  - topic:デザインスタイル
+- path: "styles/os-native/style.css"
+  name: "デザインスタイルの候補「OS 標準（Windows 11）」のスタイル"
+  description: "デザインスタイルの候補「OS 標準（Windows 11）」のサンプル画面の見た目を受け持ち、その候補の色や書体を確かめるときに参照する。"
+  tags:
+  - topic:モック
+  - topic:デザインスタイル
+  - topic:スタイル
+checkpoint:
+  commit: 017d6ed91a2f044da6faa1b839b32da28ec952ee
+  reviewed: []

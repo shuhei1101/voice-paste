@@ -1,0 +1,9 @@
+use_cases: []
+docs:
+  - page: dev-docs.yaml
+    new: false
+    change: 'files_guide の schema.ref を knowledge-files スキーマに category を加えた design-schemas/v9.2.0 へ上げ、nav のはじめに・使い方・リファレンスのタブの page の並びの後に auto（document: files_guide、filter に category）を加える'
+    status: done
+    updated_by: planner
+    updated_at: '2026-11-17T06:24:03.975698+00:00'
+scope_out: []

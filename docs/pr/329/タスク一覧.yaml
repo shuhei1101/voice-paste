@@ -1,0 +1,86 @@
+tasks:
+  - process: 初期構築
+    status: skipped
+    reason: 既存リポジトリのため対象外
+    updated_by: planner
+    updated_at: '2026-11-17T03:05:16.467238+00:00'
+  - process: リバースエンジニアリング
+    status: skipped
+    reason: 配信の設定の修正で、設計書の棚卸しは要らない
+    updated_by: planner
+    updated_at: '2026-11-17T03:05:16.467238+00:00'
+  - process: 方針決め
+    status: skipped
+    reason: 方針決めを依頼する Issue ではない
+    updated_by: planner
+    updated_at: '2026-11-17T03:05:16.467238+00:00'
+  - process: PoC 検証
+    status: skipped
+    reason: nav の auto.filter は project-index の設定で既に使用できる機構で、未検証の技術に依存しない
+    updated_by: planner
+    updated_at: '2026-11-17T03:05:16.467238+00:00'
+  - process: 複合ユースケース設計
+    status: skipped
+    reason: アプリの動きを変えない開発ドキュメントの表示の設定だけの変更
+    updated_by: planner
+    updated_at: '2026-11-17T03:05:16.467238+00:00'
+  - process: デザインスタイル選定
+    status: skipped
+    reason: アプリの画面を変えない
+    updated_by: planner
+    updated_at: '2026-11-17T03:05:16.467238+00:00'
+  - process: 画面一覧・画面遷移
+    status: skipped
+    reason: アプリの画面を変えない
+    updated_by: planner
+    updated_at: '2026-11-17T03:05:16.467238+00:00'
+  - process: 単一ユースケース設計
+    status: skipped
+    reason: アプリの動きを変えない
+    updated_by: planner
+    updated_at: '2026-11-17T03:05:16.467238+00:00'
+  - process: モック作成
+    status: skipped
+    reason: アプリの画面を変えない
+    updated_by: planner
+    updated_at: '2026-11-17T03:05:16.467238+00:00'
+  - process: インターフェース定義設計
+    status: skipped
+    reason: インターフェースを変えない
+    updated_by: planner
+    updated_at: '2026-11-17T03:05:16.467238+00:00'
+  - process: 部品設計
+    status: skipped
+    reason: 部品を変えない
+    updated_by: planner
+    updated_at: '2026-11-17T03:05:16.467238+00:00'
+  - process: 画面設計
+    status: skipped
+    reason: アプリの画面を変えない
+    updated_by: planner
+    updated_at: '2026-11-17T03:05:16.467238+00:00'
+  - process: モジュール構成設計
+    status: skipped
+    reason: モジュールを変えない
+    updated_by: planner
+    updated_at: '2026-11-17T03:05:16.467238+00:00'
+  - process: ドキュメント修正
+    status: done
+    note: 'knowledge の knowledge-files スキーマに category を追加する Issue を起票して完了を待ち、dev-docs.yaml の files_guide の schema.ref を上げて、はじめに・使い方・リファレンスのタブを auto（document: files_guide、filter に category）で並べる。修正後に開発ドキュメントサーバーの画面をスクリーンショットで確認する'
+    updated_by: planner
+    updated_at: '2026-11-17T06:24:04.921781+00:00'
+  - process: 単体テスト作成
+    status: skipped
+    reason: コードを変えない
+    updated_by: planner
+    updated_at: '2026-11-17T03:05:16.467238+00:00'
+  - process: 実装
+    status: skipped
+    reason: コードを変えない
+    updated_by: planner
+    updated_at: '2026-11-17T03:05:16.467238+00:00'
+  - process: 結合テスト作成
+    status: skipped
+    reason: コードを変えない
+    updated_by: planner
+    updated_at: '2026-11-17T03:05:16.467238+00:00'

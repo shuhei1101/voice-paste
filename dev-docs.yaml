@@ -238,7 +238,7 @@ documents:
     schema:
       source: knowledge
       path: schemas/knowledge-files.schema.yaml
-      ref: design-schemas/v8.3.0
+      ref: design-schemas/v9.2.0
     records: files
     body_file: path
     metadata:
@@ -286,11 +286,13 @@ nav:
     - title: はじめに
       items:
         - page: files_guide/docs/guide/変更履歴.md
+        - auto: {document: files_guide, filter: {field: category, op: eq, values: [はじめに]}}
     - title: 使い方
       items:
         - page: files_guide/docs/guide/起動と設定.md
         - page: files_guide/docs/guide/録音して貼り付ける.md
         - page: files_guide/docs/guide/外の端末から文字に起こす.md
+        - auto: {document: files_guide, filter: {field: category, op: eq, values: [使い方]}}
     - title: 設計書
       items:
         - group: アーキテクチャ図
@@ -550,6 +552,7 @@ nav:
     - title: リファレンス
       items:
         - page: files_guide/docs/guide/API.md
+        - auto: {document: files_guide, filter: {field: category, op: eq, values: [リファレンス]}}
     - title: 用語集
       items:
         - auto: {document: glossary}

@@ -285,14 +285,12 @@ nav:
   tabs:
     - title: はじめに
       items:
-        - auto:
-            document: files_guide
-            filter: {field: category, op: eq, values: [はじめに]}
+        - page: files_guide/docs/guide/変更履歴.md
     - title: 使い方
       items:
-        - auto:
-            document: files_guide
-            filter: {field: category, op: eq, values: [使い方]}
+        - page: files_guide/docs/guide/起動と設定.md
+        - page: files_guide/docs/guide/録音して貼り付ける.md
+        - page: files_guide/docs/guide/外の端末から文字に起こす.md
     - title: 設計書
       items:
         - group: アーキテクチャ図
@@ -351,9 +349,7 @@ nav:
             - auto: {document: files_tests}
     - title: リファレンス
       items:
-        - auto:
-            document: files_guide
-            filter: {field: category, op: eq, values: [リファレンス]}
+        - page: files_guide/docs/guide/API.md
     - title: 用語集
       items:
         - auto: {document: glossary}

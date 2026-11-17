@@ -1,0 +1,34 @@
+docs:
+  - page: dev-docs.yaml
+    new: false
+    change: documents[] を project-index の setup の推奨の範囲（**/*）に合わせ、対象外の tests/・docs/mock/ のコードと各フォルダの README.md・直下のファイルを管理用の YAML の行で拾う
+    status: todo
+  - page: tests/files.yml
+    new: false
+    change: 対象外のテストのファイルの行を加え、既存の行のメタデータを今の付け方で見直す
+    status: todo
+  - page: docs/mock/files.yml
+    new: false
+    change: 対象外のモックのファイルの行を加え、既存の行のメタデータを今の付け方で見直す
+    status: todo
+  - page: src/files.yml
+    new: false
+    change: 対象外のファイルの行を加え、既存の行のメタデータを今の付け方で見直す
+    status: todo
+  - page: haas_server/src/files.yml
+    new: false
+    change: 既存の行のメタデータを今の付け方で見直す
+    status: todo
+  - page: docs/_root/files.yml
+    new: false
+    change: docs/ 直下のファイルの行を加え、既存の行のメタデータを今の付け方で見直す
+    status: todo
+  - page: docs/guide/files.yml
+    new: false
+    change: 既存の行のメタデータを今の付け方で見直す
+    status: todo
+scope_out:
+  - item: PR の資料（docs/pr/）を検索の対象に入れる
+    reason: 参考の shuhei1101/project-index#132 でも対象に入れておらず、作業 PR ごとの一時の資料で設計書の検索の妨げになる。入れるかはレビューで確定する
+    plan: none
+use_cases: []

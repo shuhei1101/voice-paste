@@ -1,32 +1,58 @@
 docs:
   - page: dev-docs.yaml
     new: false
-    change: documents[] を project-index の setup の推奨の範囲（**/*）に合わせ、対象外の tests/・docs/mock/ のコードと各フォルダの README.md・直下のファイルを管理用の YAML の行で拾う
-    status: todo
+    change: documents[] を推奨の範囲（**/*）に合わせる。直下の files.yml の行 files_repo と docs/files.yml の行 files_docs を追加し（files_root を置き換える）、files_mock の exclude を外す。除外は docs/pr/**・uv.lock・package-lock.json・docs/_theme/assets/vendor/**・docs/_theme/search.json。1 行目のスキーマを project-index v0.1.0 にする
+    status: done
+    updated_by: planner
+    updated_at: '2026-11-17T11:48:51.469484+00:00'
   - page: tests/files.yml
     new: false
     change: 対象外のテストのファイルの行を加え、既存の行のメタデータを今の付け方で見直す
-    status: todo
+    status: done
+    updated_by: planner
+    updated_at: '2026-11-17T11:48:51.469484+00:00'
   - page: docs/mock/files.yml
     new: false
     change: 対象外のモックのファイルの行を加え、既存の行のメタデータを今の付け方で見直す
-    status: todo
+    status: done
+    updated_by: planner
+    updated_at: '2026-11-17T11:48:51.469484+00:00'
   - page: src/files.yml
     new: false
     change: 対象外のファイルの行を加え、既存の行のメタデータを今の付け方で見直す
-    status: todo
+    status: done
+    updated_by: planner
+    updated_at: '2026-11-17T11:48:51.469484+00:00'
   - page: haas_server/src/files.yml
     new: false
     change: 既存の行のメタデータを今の付け方で見直す
-    status: todo
+    status: done
+    updated_by: planner
+    updated_at: '2026-11-17T11:48:51.469484+00:00'
   - page: docs/_root/files.yml
     new: false
-    change: docs/ 直下のファイルの行を加え、既存の行のメタデータを今の付け方で見直す
-    status: todo
+    change: docs/files.yml へ移して削除する
+    status: done
+    updated_by: planner
+    updated_at: '2026-11-17T11:48:51.469484+00:00'
   - page: docs/guide/files.yml
     new: false
-    change: 既存の行のメタデータを今の付け方で見直す
-    status: todo
+    change: 確認の時点を記録する（既存の行の説明は今の中身と合っている）
+    status: done
+    updated_by: planner
+    updated_at: '2026-11-17T11:48:51.469484+00:00'
+  - page: docs/files.yml
+    new: true
+    change: docs/ の直下のページ・各フォルダの README.md・画面の設定（_config.yml・_theme/）の行を持つ
+    status: done
+    updated_by: planner
+    updated_at: '2026-11-17T11:49:02.479796+00:00'
+  - page: files.yml
+    new: true
+    change: リポジトリの直下のファイル・.github/・config/・content/・schemas/・haas_server/ の直下のファイルの行を持つ
+    status: done
+    updated_by: planner
+    updated_at: '2026-11-17T11:49:02.479796+00:00'
 scope_out:
   - item: PR の資料（docs/pr/）を検索の対象に入れる
     reason: 参考の shuhei1101/project-index#132 でも対象に入れておらず、作業 PR ごとの一時の資料で設計書の検索の妨げになる。入れるかはレビューで確定する

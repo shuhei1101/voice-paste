@@ -65,8 +65,10 @@ tasks:
     updated_by: planner
     updated_at: '2026-11-17T11:33:29.774974+00:00'
   - process: ドキュメント修正
-    status: todo
+    status: done
     note: dev-docs.yaml の documents[] と、フォルダごとの管理用の YAML（files.yml）の行とメタデータ
+    updated_by: planner
+    updated_at: '2026-11-17T11:49:04.175155+00:00'
   - process: 単体テスト作成
     status: skipped
     reason: コードを変えない

@@ -1,0 +1,1 @@
+# テスト実行方法の run_runner で run を参照できるまで待ってから gh run watch を呼ぶ

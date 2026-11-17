@@ -1,0 +1,84 @@
+tasks:
+  - process: 初期構築
+    status: skipped
+    reason: 既存リポジトリのため対象外
+    updated_by: planner
+    updated_at: '2026-11-17T09:33:28.295829+00:00'
+  - process: リバースエンジニアリング
+    status: skipped
+    reason: 既存の設計書があるため対象外
+    updated_by: planner
+    updated_at: '2026-11-17T09:33:28.295829+00:00'
+  - process: 方針決め
+    status: skipped
+    reason: 方針決めを依頼する Issue ではない
+    updated_by: planner
+    updated_at: '2026-11-17T09:33:28.295829+00:00'
+  - process: PoC 検証
+    status: skipped
+    reason: gh api で run を参照するだけで、未検証の技術機構に依存しない。同じ待ち方を project-index・claude-balancer で使用している
+    updated_by: planner
+    updated_at: '2026-11-17T09:33:28.295829+00:00'
+  - process: 複合ユースケース設計
+    status: skipped
+    reason: 業務フローは変わらない
+    updated_by: planner
+    updated_at: '2026-11-17T09:33:28.295829+00:00'
+  - process: デザインスタイル選定
+    status: skipped
+    reason: 画面に関わる変更ではない
+    updated_by: planner
+    updated_at: '2026-11-17T09:33:28.295829+00:00'
+  - process: 画面一覧・画面遷移
+    status: skipped
+    reason: 画面に関わる変更ではない
+    updated_by: planner
+    updated_at: '2026-11-17T09:33:28.295829+00:00'
+  - process: 単一ユースケース設計
+    status: skipped
+    reason: 利用者の操作は変わらず、テスト実行方法のコマンドだけが変わる
+    updated_by: planner
+    updated_at: '2026-11-17T09:33:28.295829+00:00'
+  - process: モック作成
+    status: skipped
+    reason: 画面に関わる変更ではない
+    updated_by: planner
+    updated_at: '2026-11-17T09:33:28.295829+00:00'
+  - process: インターフェース定義設計
+    status: skipped
+    reason: workflow の入出力は変わらない
+    updated_by: planner
+    updated_at: '2026-11-17T09:33:28.295829+00:00'
+  - process: 部品設計
+    status: skipped
+    reason: 画面に関わる変更ではない
+    updated_by: planner
+    updated_at: '2026-11-17T09:33:28.295829+00:00'
+  - process: 画面設計
+    status: skipped
+    reason: 画面に関わる変更ではない
+    updated_by: planner
+    updated_at: '2026-11-17T09:33:28.295829+00:00'
+  - process: モジュール構成設計
+    status: skipped
+    reason: Python のモジュールを追加・変更しない
+    updated_by: planner
+    updated_at: '2026-11-17T09:33:28.295829+00:00'
+  - process: ドキュメント修正
+    status: todo
+    note: テスト実行方法（TP-1）の TL-1・TL-2 の run_runner に、run を参照できるまで待つ処理を入れる
+  - process: 単体テスト作成
+    status: skipped
+    reason: 単体テストの対象になるコードを追加・変更しない
+    updated_by: planner
+    updated_at: '2026-11-17T09:33:28.295829+00:00'
+  - process: 実装
+    status: skipped
+    reason: コードを変更しない。変更はテスト実行方法のコマンドだけで、ドキュメント修正で扱う
+    updated_by: planner
+    updated_at: '2026-11-17T09:33:28.295829+00:00'
+  - process: 結合テスト作成
+    status: skipped
+    reason: コードを変更しない
+    updated_by: planner
+    updated_at: '2026-11-17T09:33:28.295829+00:00'

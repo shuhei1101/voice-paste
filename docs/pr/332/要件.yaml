@@ -1,0 +1,9 @@
+docs:
+  - page: docs/test-procedure/TP-1.yaml
+    new: false
+    change: TL-1・TL-2 の run_runner で、run_id を取った後に gh api で run を 1 秒おきに最大 10 回参照し、参照できたら gh run watch を呼ぶ。参照できなければ「実行 {run_id} を 10 秒参照できません」を標準エラーに出して終了コード 1 で終える
+    status: done
+    updated_by: planner
+    updated_at: '2026-11-17T09:49:20.680095+00:00'
+use_cases: []
+scope_out: []

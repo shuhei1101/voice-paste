@@ -45,13 +45,6 @@ files:
   - topic:エンドポイント
   - action:録音
   - topic:http
-- path: README.md
-  name: 公開ドキュメントの目次
-  visibility: public
-  description: docs/guide/ の公開ドキュメントのページを分類ごとに並べた目次を受け持ち、GitHub で公開ドキュメントのページを探すときに参照する。
-  tags:
-  - topic:目次
-  - topic:ドキュメント
 - path: はじめに.md
   name: はじめにの目次
   visibility: public

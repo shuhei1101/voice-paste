@@ -222,7 +222,7 @@ documents:
   - id: files_root
     title: docs の直下の Markdown
     paths: ["docs/_root/files.yml"]
-    exclude: ["*.yaml", "*.yml", README.md]
+    exclude: ["*.yaml", README.md]
     schema:
       source: knowledge
       path: schemas/knowledge-files.schema.yaml
@@ -234,7 +234,7 @@ documents:
   - id: files_guide
     title: 公開ドキュメントの Markdown
     paths: ["docs/guide/files.yml"]
-    exclude: ["*.yaml", "*.yml", README.md, はじめに.md, 使い方.md, リファレンス.md]
+    exclude: ["*.yaml", README.md, はじめに.md, 使い方.md, リファレンス.md]
     schema:
       source: knowledge
       path: schemas/knowledge-files.schema.yaml
@@ -281,3 +281,275 @@ documents:
       ref: design-schemas/v8.3.0
     records: files
     body_file: path
+nav:
+  tabs:
+    - title: はじめに
+      items:
+        - page: files_guide/docs/guide/変更履歴.md
+    - title: 使い方
+      items:
+        - page: files_guide/docs/guide/起動と設定.md
+        - page: files_guide/docs/guide/録音して貼り付ける.md
+        - page: files_guide/docs/guide/外の端末から文字に起こす.md
+    - title: 設計書
+      items:
+        - group: アーキテクチャ図
+          items:
+            - auto: {document: architecture}
+        - group: 非機能要件
+          items:
+            - auto: {document: nonfunctional}
+        - group: シナリオ
+          items:
+            - page: scenario/SC-12
+            - page: scenario/SC-11
+            - page: scenario/SC-10
+            - page: scenario/SC-13
+            - page: scenario/SC-5
+            - page: scenario/SC-8
+            - page: scenario/SC-9
+            - page: scenario/SC-7
+            - page: scenario/SC-1
+            - page: scenario/SC-3
+            - page: scenario/SC-4
+            - page: scenario/SC-6
+            - page: scenario/SC-2
+            - auto: {document: scenario}
+        - group: インターフェース定義
+          items:
+            - page: interface/IF-10
+            - page: interface/IF-8
+            - page: interface/IF-9
+            - page: interface/IF-2
+            - page: interface/IF-3
+            - page: interface/IF-7
+            - page: interface/IF-6
+            - page: interface/IF-5
+            - page: interface/IF-11
+            - page: interface/IF-1
+            - page: interface/IF-4
+            - page: interface/IF-13
+            - page: interface/IF-12
+            - page: interface/IF-14
+            - page: interface/IF-15
+            - auto: {document: interface}
+        - group: モジュール構成
+          items:
+            - page: module/MOD-98
+            - page: module/MOD-99
+            - page: module/MOD-100
+            - page: module/MOD-101
+            - page: module/MOD-1
+            - page: module/MOD-19
+            - page: module/MOD-17
+            - page: module/MOD-20
+            - page: module/MOD-15
+            - page: module/MOD-16
+            - page: module/MOD-18
+            - page: module/MOD-21
+            - page: module/MOD-2
+            - page: module/MOD-4
+            - page: module/MOD-29
+            - page: module/MOD-27
+            - page: module/MOD-28
+            - page: module/MOD-26
+            - page: module/MOD-5
+            - page: module/MOD-32
+            - page: module/MOD-45
+            - page: module/MOD-30
+            - page: module/MOD-33
+            - page: module/MOD-42
+            - page: module/MOD-40
+            - page: module/MOD-43
+            - page: module/MOD-34
+            - page: module/MOD-47
+            - page: module/MOD-41
+            - page: module/MOD-46
+            - page: module/MOD-38
+            - page: module/MOD-39
+            - page: module/MOD-37
+            - page: module/MOD-104
+            - page: module/MOD-36
+            - page: module/MOD-44
+            - page: module/MOD-35
+            - page: module/MOD-31
+            - page: module/MOD-6
+            - page: module/MOD-49
+            - page: module/MOD-52
+            - page: module/MOD-53
+            - page: module/MOD-51
+            - page: module/MOD-50
+            - page: module/MOD-48
+            - page: module/MOD-7
+            - page: module/MOD-58
+            - page: module/MOD-65
+            - page: module/MOD-64
+            - page: module/MOD-62
+            - page: module/MOD-63
+            - page: module/MOD-61
+            - page: module/MOD-59
+            - page: module/MOD-60
+            - page: module/MOD-57
+            - page: module/MOD-56
+            - page: module/MOD-55
+            - page: module/MOD-54
+            - page: module/MOD-8
+            - page: module/MOD-81
+            - page: module/MOD-77
+            - page: module/MOD-71
+            - page: module/MOD-68
+            - page: module/MOD-78
+            - page: module/MOD-67
+            - page: module/MOD-76
+            - page: module/MOD-102
+            - page: module/MOD-103
+            - page: module/MOD-75
+            - page: module/MOD-73
+            - page: module/MOD-74
+            - page: module/MOD-79
+            - page: module/MOD-72
+            - page: module/MOD-80
+            - page: module/MOD-70
+            - page: module/MOD-96
+            - page: module/MOD-97
+            - page: module/MOD-69
+            - page: module/MOD-66
+            - page: module/MOD-9
+            - page: module/MOD-10
+            - page: module/MOD-83
+            - page: module/MOD-82
+            - page: module/MOD-11
+            - page: module/MOD-12
+            - page: module/MOD-84
+            - page: module/MOD-89
+            - page: module/MOD-86
+            - page: module/MOD-87
+            - page: module/MOD-88
+            - page: module/MOD-85
+            - page: module/MOD-13
+            - page: module/MOD-92
+            - page: module/MOD-91
+            - page: module/MOD-90
+            - page: module/MOD-93
+            - page: module/MOD-3
+            - page: module/MOD-25
+            - page: module/MOD-23
+            - page: module/MOD-24
+            - page: module/MOD-22
+            - page: module/MOD-14
+            - page: module/MOD-94
+            - page: module/MOD-95
+            - auto: {document: module}
+        - group: 画面設計
+          items:
+            - page: screen/SCR-1
+            - page: screen/SCR-10
+            - page: screen/SCR-7
+            - page: screen/SCR-3
+            - page: screen/SCR-2
+            - page: screen/SCR-9
+            - page: screen/SCR-5
+            - page: screen/SCR-8
+            - page: screen/SCR-6
+            - page: screen/SCR-4
+            - page: files_root/docs/design-policy.md
+            - auto: {document: screen}
+        - group: データ
+          items:
+            - page: data/DATA-5
+            - page: data/DATA-6
+            - page: data/DATA-7
+            - page: data/DATA-11
+            - page: data/DATA-8
+            - page: data/DATA-9
+            - page: data/DATA-10
+            - page: data/DATA-15
+            - page: data/DATA-12
+            - page: data/DATA-13
+            - page: data/DATA-14
+            - page: data/DATA-1
+            - page: data/DATA-2
+            - page: data/DATA-3
+            - page: data/DATA-4
+            - page: data/DATA-16
+            - auto: {document: data}
+        - group: ER 図
+          items:
+            - page: er/ER-2
+            - page: er/ER-1
+            - auto: {document: er}
+        - group: 設定
+          items:
+            - auto: {document: config}
+        - group: 外部API
+          items:
+            - page: api/API-2
+            - page: api/API-1
+            - auto: {document: api}
+        - group: 外部ライブラリ
+          items:
+            - page: library/LIB-37
+            - page: library/LIB-34
+            - page: library/LIB-36
+            - page: library/LIB-35
+            - page: library/LIB-4
+            - page: library/LIB-5
+            - page: library/LIB-6
+            - page: library/LIB-7
+            - page: library/LIB-8
+            - page: library/LIB-1
+            - page: library/LIB-32
+            - page: library/LIB-30
+            - page: library/LIB-9
+            - page: library/LIB-10
+            - page: library/LIB-2
+            - page: library/LIB-31
+            - page: library/LIB-11
+            - page: library/LIB-12
+            - page: library/LIB-13
+            - page: library/LIB-14
+            - page: library/LIB-15
+            - page: library/LIB-3
+            - page: library/LIB-16
+            - page: library/LIB-17
+            - page: library/LIB-18
+            - page: library/LIB-19
+            - page: library/LIB-20
+            - page: library/LIB-21
+            - page: library/LIB-38
+            - page: library/LIB-22
+            - page: library/LIB-23
+            - page: library/LIB-24
+            - page: library/LIB-25
+            - page: library/LIB-26
+            - page: library/LIB-27
+            - page: library/LIB-28
+            - page: library/LIB-29
+            - page: library/LIB-33
+            - auto: {document: library}
+        - group: フォルダ構成
+          items:
+            - auto: {document: layout}
+        - group: 開発コマンド
+          items:
+            - auto: {document: dev_command}
+        - group: テスト実行方法
+          items:
+            - auto: {document: test_procedure}
+    - title: コード
+      items:
+        - group: 常駐アプリ
+          items:
+            - auto: {document: files_src}
+        - group: Haas の文字起こしのサーバー
+          items:
+            - auto: {document: files_haas_server}
+        - group: テスト
+          items:
+            - auto: {document: files_tests}
+    - title: リファレンス
+      items:
+        - page: files_guide/docs/guide/API.md
+    - title: 用語集
+      items:
+        - auto: {document: glossary}

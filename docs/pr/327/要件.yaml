@@ -1,0 +1,21 @@
+use_cases: []
+docs:
+  - page: dev-docs.yaml
+    new: false
+    change: nav を追加し、タブを規約の順（はじめに・使い方・設計書・コード・リファレンス・用語集）で 7 件以下に並べ、設計書の種類とコードをサイドバーのグループにし、目次と内部のファイルを並べない。files_guide・files_root の exclude から "*.yml" を外し、公開ドキュメントを配信する
+    status: done
+    updated_by: planner
+    updated_at: '2026-11-17T02:46:13.731405+00:00'
+  - page: docs/layout/LAY-1.yaml
+    new: false
+    change: dev-docs.yaml の contents（設計書の種類ごとの場所とスキーマ）に、タブとサイドバーの構成を加える
+    status: done
+    updated_by: planner
+    updated_at: '2026-11-17T02:46:13.731405+00:00'
+scope_out:
+  - item: フォルダの目次が文書の本文の中で重なって表示される事象
+    reason: dev-docs の画面の描き方の不具合で、このリポジトリの配信の設定では直せない
+    plan: shuhei1101/dev-docs#226
+  - item: はじめに・使い方・リファレンスのタブを category の auto.filter で並べ、docs/guide/files.yml に追加した文書が nav を書き換えずに出るようにする（knowledge の knowledge-files スキーマに category を追加する）
+    reason: category は knowledge のスキーマに無い項目で、このリポジトリの配信の設定では使えない。この PR は page で並べる
+    plan: '#328'

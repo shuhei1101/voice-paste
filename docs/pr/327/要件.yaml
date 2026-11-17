@@ -2,12 +2,16 @@ use_cases: []
 docs:
   - page: dev-docs.yaml
     new: false
-    change: nav を追加し、タブを規約の順（はじめに・使い方・設計書・コード・リファレンス・用語集）で 7 件以下に並べ、設計書の種類とコードをサイドバーのグループにし、目次と内部のファイルを並べない
-    status: todo
+    change: nav を追加し、タブを規約の順（はじめに・使い方・設計書・コード・リファレンス・用語集）で 7 件以下に並べ、設計書の種類とコードをサイドバーのグループにし、目次と内部のファイルを並べない。files_guide・files_root の exclude から "*.yml" を外し、公開ドキュメントを配信する
+    status: done
+    updated_by: planner
+    updated_at: '2026-11-17T02:46:13.731405+00:00'
   - page: docs/layout/LAY-1.yaml
     new: false
     change: dev-docs.yaml の contents（設計書の種類ごとの場所とスキーマ）に、タブとサイドバーの構成を加える
-    status: todo
+    status: done
+    updated_by: planner
+    updated_at: '2026-11-17T02:46:13.731405+00:00'
 scope_out:
   - item: フォルダの目次が文書の本文の中で重なって表示される事象
     reason: dev-docs の画面の描き方の不具合で、このリポジトリの配信の設定では直せない

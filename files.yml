@@ -1,0 +1,181 @@
+files:
+  - path: ".gitattributes"
+    name: "改行コードと差分の扱いの指定"
+    description: "ファイルの種類ごとの改行コードとバイナリの扱いを受け持ち、改行コードや差分の扱いを変えるときに参照する。"
+    tags:
+      - tool:git
+  - path: ".github/workflows/test.yml"
+    name: "テストの全件実行の workflow"
+    description: "単体・結合テストの層の全件を GitHub Actions の Windows のランナーで回す処理を受け持ち、ランナーでのテストの実行を変えるときに参照する。"
+    tags:
+      - topic:testing
+      - topic:ci
+      - tool:github-actions
+  - path: ".gitignore"
+    name: "Git で管理しないファイルの指定"
+    description: "環境変数・仮想環境・ログ・ローカルの設定など Git で管理しないファイルを受け持ち、リポジトリに入れないファイルを足すときに参照する。"
+    tags:
+      - tool:git
+  - path: ".python-version"
+    name: "Python のバージョンの指定"
+    description: "uv が環境を作るときの Python のバージョンを受け持ち、Python のバージョンを上げるときに参照する。"
+    tags:
+      - tool:uv
+      - topic:バージョン
+  - path: "CLAUDE.md"
+    name: "エージェント向けのリポジトリの案内"
+    description: "エージェントに読ませるリポジトリの概要とドキュメントの索引の引き方を受け持ち、エージェントの作業の前提を変えるときに参照する。"
+    tags:
+      - topic:ドキュメント
+  - path: "README.md"
+    name: "リポジトリの案内"
+    description: "リポジトリの概要と公開ドキュメントへの入口を受け持ち、GitHub でリポジトリを開いたときに参照する。"
+    tags:
+      - topic:ドキュメント
+  - path: "ai-monitor-theme.yaml"
+    name: "AI Monitor の配布物のテーマの取り込みの指定"
+    description: "AI Monitor から取り込むドキュメントのテーマの方法とバージョンを受け持ち、テーマの取り込みを更新するときに参照する。"
+    tags:
+      - topic:テーマ
+      - topic:バージョン
+  - path: "ai-monitor-version.ini"
+    name: "追従している AI Monitor のバージョン"
+    description: "追従している AI Monitor の配布物のバージョンを受け持ち、AI Monitor の版上げに追従するときに参照する。"
+    tags:
+      - topic:バージョン
+  - path: "config/defaults.yaml"
+    name: "設定の既定値"
+    description: "常駐アプリの全ての設定のキーの既定値を受け持ち、設定のキーを足すときや既定値を変えるときに参照する。"
+    tags:
+      - topic:設定
+      - topic:既定値
+  - path: "config/settings.sample.yaml"
+    name: "設定の見本"
+    description: "settings.yaml と settings.local.yaml に書くことの多いキーの見本を受け持ち、環境の設定を書くときに参照する。"
+    tags:
+      - topic:設定
+  - path: "config/yogo.sample.csv"
+    name: "用語集の CSV の見本"
+    description: "誤変換と正しい表記の対の用語集の CSV の書き方の見本を受け持ち、用語集を作るときに参照する。"
+    tags:
+      - topic:用語集
+      - tool:csv
+  - path: "content/tokens.toml"
+    name: "画面の見た目の値"
+    description: "常駐アプリの画面の書体・色・余白など QSS を組み立てる値を受け持ち、画面の見た目を変えるときに参照する。"
+    tags:
+      - topic:デザイントークン
+      - topic:画面
+      - tool:qt
+      - tool:toml
+  - path: "dev-docs.yaml"
+    name: "配信元の設定"
+    description: "配信元 voice-input の文書の行・スキーマ・画面のタブとサイドバーの構成を受け持ち、検索の対象や画面の構成を変えるときに参照する。"
+    tags:
+      - topic:ドキュメント
+      - topic:設定
+  - path: "eslint.config.mjs"
+    name: "外の端末の画面のスクリプトの lint の設定"
+    description: "外の端末の画面の TypeScript を検査する ESLint の規則を受け持ち、フロントエンドの lint を変えるときに参照する。"
+    tags:
+      - topic:lint
+      - tool:eslint
+      - tool:typescript
+  - path: "files.yml"
+    name: "リポジトリの直下の管理用の YAML"
+    description: "リポジトリの直下と CI・設定の雛形・リソースのファイルのメタデータを受け持ち、それらのファイルを足す・消すときに参照する。"
+    tags:
+      - topic:ドキュメント
+  - path: "haas_server/pyproject.toml"
+    name: "Haas の文字起こしのサーバーのパッケージの定義"
+    description: "WSL で動かす Haas の文字起こしのサーバーの依存と Python のバージョンを受け持ち、サーバーの依存を変えるときに参照する。"
+    tags:
+      - topic:パッケージ
+      - topic:依存
+      - tool:haas-asr
+      - tool:wsl
+  - path: "haas_server/start.sh"
+    name: "Haas の文字起こしのサーバーの起動のスクリプト"
+    description: "WSL の中で環境の Python から Haas の文字起こしのサーバーを起動する処理を受け持ち、サーバーの起動のしかたを変えるときに参照する。"
+    tags:
+      - action:起動
+      - topic:サーバー
+      - tool:haas-asr
+      - tool:wsl
+  - path: "mdmark.config.yaml"
+    name: "mdmark の設定"
+    description: "mdmark で描く図の部品の種類と見た目を受け持ち、ドキュメントの図の描き方を変えるときに参照する。"
+    tags:
+      - tool:mdmark
+      - topic:ドキュメント
+  - path: "package.json"
+    name: "外の端末の画面のスクリプトの開発用の依存"
+    description: "外の端末の画面の TypeScript を tsc で生成し検査する開発用の依存とスクリプトを受け持ち、フロントエンドのビルドや lint を変えるときに参照する。"
+    tags:
+      - topic:依存
+      - tool:typescript
+      - tool:eslint
+  - path: "pyproject.toml"
+    name: "常駐アプリのパッケージの定義"
+    description: "常駐アプリの依存・エントリーポイント・静的検査の設定を受け持ち、依存や検査の設定を変えるときに参照する。"
+    tags:
+      - topic:パッケージ
+      - topic:依存
+      - topic:lint
+      - tool:uv
+  - path: "rules.yaml"
+    name: "ルールの索引"
+    description: "rule-inject がファイルに当てるこのリポジトリ固有のルールの索引を受け持ち、リポジトリ固有のルールを足すときに参照する。"
+    tags:
+      - tool:rule-inject
+  - path: "schemas/glossary.schema.yaml"
+    name: "用語集のスキーマ"
+    description: "用語集の文書の 1 件の用語のキーを受け持ち、用語集のキーを変えるときに参照する。"
+    tags:
+      - topic:用語集
+      - topic:スキーマ
+  - path: "tsconfig.build.json"
+    name: "外の端末の画面のスクリプトの生成の設定"
+    description: "外の端末の画面の TypeScript から app.js を生成する tsc の設定を受け持ち、スクリプトの生成のしかたを変えるときに参照する。"
+    tags:
+      - tool:typescript
+  - path: "tsconfig.json"
+    name: "TypeScript の型検査の設定"
+    description: "外の端末の画面の TypeScript の型検査の設定を受け持ち、型検査の設定を変えるときに参照する。"
+    tags:
+      - tool:typescript
+      - topic:型
+  - path: "version.ini"
+    name: "常駐アプリのバージョン"
+    description: "リリースした常駐アプリのバージョンを受け持ち、リリースでバージョンを上げるときに参照する。"
+    tags:
+      - topic:バージョン
+      - topic:リリース
+  - path: "voice-paste.bat"
+    name: "Windows の起動のバッチファイル"
+    description: "Windows で環境を確かめて常駐アプリを起動し、起動の記録を残す処理を受け持ち、Windows での起動のしかたを変えるときに参照する。"
+    tags:
+      - action:起動
+      - topic:windows
+      - topic:ログ
+  - path: "voice-paste.code-workspace"
+    name: "VS Code のワークスペース"
+    description: "VS Code で開くフォルダの組み合わせを受け持ち、エディタで一緒に開くフォルダを変えるときに参照する。"
+    tags:
+      - tool:vscode
+  - path: "voice-paste.desktop"
+    name: "Linux のアプリの一覧の項目"
+    description: "Linux のアプリの一覧と自動起動から常駐アプリを起動する項目を受け持ち、Linux での起動の項目を変えるときに参照する。"
+    tags:
+      - action:起動
+      - topic:linux
+  - path: "voice-paste.sh"
+    name: "Linux の起動のスクリプト"
+    description: "Linux で環境を確かめて常駐アプリを起動し、起動の記録と通知を残す処理を受け持ち、Linux での起動のしかたを変えるときに参照する。"
+    tags:
+      - action:起動
+      - topic:linux
+      - topic:ログ
+checkpoint:
+  commit: a337524283d022492ef369c013e475ab36fa1550
+  reviewed: []

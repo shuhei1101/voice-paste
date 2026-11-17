@@ -560,7 +560,7 @@ files:
       - to: src/voice_paste/server/token.py
         type: tests
   - path: unit/voice_paste/server/test_web_page.py
-    description: "外の端末の画面の HTML と JS・CSS の配信を検証する単体テストを受け持ち、画面の配信の経路やキャッシュの扱いを変えるときに参照する。"
+    description: "外の端末の画面の HTML と JS・CSS の配信と JS の Content-Type を検証する単体テストを受け持ち、画面の配信の経路や Content-Type・キャッシュの扱いを変えるときに参照する。"
     tags:
       - topic:testing
       - topic:画面
@@ -750,3 +750,672 @@ files:
     related:
       - to: src/voice_paste/ui/windows/transcribing_indicator.py
         type: tests
+  - path: "conftest.py"
+    name: "テストの共通のフィクスチャ"
+    description: "全てのテストの層が使う共通のフィクスチャを受け持ち、テストの共通の前提を変えるときに参照する。"
+    tags:
+      - topic:testing
+  - path: "e2e/workflow/conftest.py"
+    name: "workflow の E2E テストのフィクスチャ"
+    description: "検証用のブランチを作って push し、終わりに消す workflow の E2E テストのフィクスチャを受け持ち、workflow の E2E テストの前提を変えるときに参照する。"
+    tags:
+      - topic:testing
+      - topic:ci
+      - tool:github-actions
+  - path: "e2e/workflow/helpers.py"
+    name: "workflow の E2E テストの補助"
+    description: "workflow の E2E テストが共有するリポジトリの場所とコマンドの実行を受け持ち、workflow の E2E テストの部品を変えるときに参照する。"
+    tags:
+      - topic:testing
+      - topic:ci
+      - tool:github-actions
+  - path: "external/conftest.py"
+    name: "外部の疎通テストのガード"
+    description: "`--run-external` が無いときに外部の疎通テストを全て飛ばす処理を受け持ち、外部の疎通テストの実行の条件を変えるときに参照する。"
+    tags:
+      - topic:testing
+  - path: "external/voice_paste/integrations/display/test_adapter.py"
+    name: "Windows の画面の消灯の抑止の外部の疎通テスト"
+    description: "Windows の実機で電源要求の API を動かし、消灯の抑止が残り解除で消えることを検証する外部の疎通テストを受け持ち、Windows での消灯の抑止を変えるときに参照する。"
+    tags:
+      - topic:testing
+      - topic:消灯
+      - topic:windows
+      - tool:windows-power-request
+    related:
+      - to: src/voice_paste/integrations/display/adapter.py
+        type: tests
+  - path: "integration/conftest.py"
+    name: "結合テストの共通のフィクスチャ"
+    description: "結合テストの共通のフィクスチャを受け持ち、結合テストの共通の前提を変えるときに参照する。"
+    tags:
+      - topic:testing
+      - topic:結合テスト
+  - path: "integration/haas_server/conftest.py"
+    name: "Haas の文字起こしのサーバーの結合テストのフィクスチャ"
+    description: "Haas の文字起こしのサーバーの結合テストのフィクスチャを受け持ち、サーバーの結合テストの前提を変えるときに参照する。"
+    tags:
+      - topic:testing
+      - topic:結合テスト
+      - tool:haas-asr
+  - path: "integration/haas_server/fake_server.py"
+    name: "偽のモデルで動かす Haas の文字起こしのサーバー"
+    description: "偽のモデルで Haas の文字起こしのサーバーを別のプロセスで動かす結合テストの入口を受け持ち、サーバーの結合テストの偽物を変えるときに参照する。"
+    tags:
+      - topic:testing
+      - topic:結合テスト
+      - tool:haas-asr
+      - topic:プロセス
+  - path: "integration/haas_server/helpers.py"
+    name: "Haas の文字起こしのサーバーの結合テストの補助"
+    description: "Haas の文字起こしのサーバーの結合テストの共通の部品を受け持ち、サーバーの結合テストの部品を変えるときに参照する。"
+    tags:
+      - topic:testing
+      - topic:結合テスト
+      - tool:haas-asr
+  - path: "integration/haas_server/test_health.py"
+    name: "準備できたかを返すの結合テスト"
+    description: "Haas の文字起こしのサーバーの準備できたかを返す（GET /health）を検証する結合テストを受け持ち、サーバーの準備の確認を変えるときに参照する。"
+    tags:
+      - topic:testing
+      - topic:結合テスト
+      - tool:haas-asr
+      - topic:ヘルスチェック
+    related:
+      - to: IF-13
+        type: see_also
+  - path: "integration/haas_server/test_shutdown.py"
+    name: "停止するの結合テスト"
+    description: "Haas の文字起こしのサーバーを停止する（POST /shutdown）を検証する結合テストを受け持ち、サーバーの停止を変えるときに参照する。"
+    tags:
+      - topic:testing
+      - topic:結合テスト
+      - tool:haas-asr
+      - action:停止
+    related:
+      - to: IF-14
+        type: see_also
+  - path: "integration/haas_server/test_transcribe.py"
+    name: "音声を文字に起こすの結合テスト"
+    description: "Haas の文字起こしのサーバーの音声を文字に起こす（POST /transcriptions）を検証する結合テストを受け持ち、サーバーの文字起こしを変えるときに参照する。"
+    tags:
+      - topic:testing
+      - topic:結合テスト
+      - tool:haas-asr
+      - topic:文字起こし
+    related:
+      - to: IF-12
+        type: see_also
+  - path: "integration/helpers.py"
+    name: "結合テストの偽物と組み立て"
+    description: "本物の app を空きポートに立て、マイク・音量・文字起こしのエンジンを偽物にする結合テストの組み立てを受け持ち、結合テストの部品を変えるときに参照する。"
+    tags:
+      - topic:testing
+      - topic:結合テスト
+      - tool:httpx
+  - path: "integration/test_accept_web_audio.py"
+    name: "音声を受け付けるの結合テスト"
+    description: "外の端末のブラウザから音声を受け付ける（POST /web/transcriptions）を検証する結合テストを受け持ち、ブラウザの音声の受け付けを変えるときに参照する。"
+    tags:
+      - topic:testing
+      - topic:結合テスト
+      - topic:ブラウザ
+      - topic:api
+      - topic:ジョブ
+    related:
+      - to: IF-11
+        type: see_also
+  - path: "integration/test_complete_session.py"
+    name: "録音を完了するの結合テスト"
+    description: "API から始めた録音を完了する（POST /sessions/{session_id}/complete）を検証する結合テストを受け持ち、API の録音の完了を変えるときに参照する。"
+    tags:
+      - topic:testing
+      - topic:結合テスト
+      - topic:api
+      - topic:録音セッション
+    related:
+      - to: IF-9
+        type: see_also
+  - path: "integration/test_deliver_to_caller.py"
+    name: "呼び出し元へ返すの結合テスト"
+    description: "起こした文字をコールバック先へ返す処理を検証する結合テストを受け持ち、呼び出し元への返送を変えるときに参照する。"
+    tags:
+      - topic:testing
+      - topic:結合テスト
+      - topic:コールバック
+      - topic:api
+    related:
+      - to: IF-3
+        type: see_also
+  - path: "integration/test_deliver_to_endpoint.py"
+    name: "設定のエンドポイントへ送信するの結合テスト"
+    description: "起こした文字をカスタムプリセットの届け先へ送信する処理を検証する結合テストを受け持ち、エンドポイントへの送信を変えるときに参照する。"
+    tags:
+      - topic:testing
+      - topic:結合テスト
+      - topic:エンドポイント
+      - topic:プリセット
+    related:
+      - to: IF-7
+        type: see_also
+  - path: "integration/test_deliver_to_output.py"
+    name: "出力先へ届けるの結合テスト"
+    description: "ホットキーの録音セッションが確定で選んだ出力先・ブラウザ添付のプリセットへ届ける処理を検証する結合テストを受け持ち、出力先へ届ける処理を変えるときに参照する。"
+    tags:
+      - topic:testing
+      - topic:結合テスト
+      - topic:出力先
+      - topic:ホットキー
+  - path: "integration/test_get_web_transcription.py"
+    name: "文字起こしの結果を返すの結合テスト"
+    description: "外の端末へ文字起こしの結果を返す（GET /web/transcriptions/{job_id}）を検証する結合テストを受け持ち、ブラウザへの結果の返し方を変えるときに参照する。"
+    tags:
+      - topic:testing
+      - topic:結合テスト
+      - topic:ブラウザ
+      - topic:api
+      - topic:ジョブ
+    related:
+      - to: IF-4
+        type: see_also
+  - path: "integration/test_list_web_glossary_presets.py"
+    name: "用語集のプリセットの一覧を返すの結合テスト"
+    description: "外の端末へ用語集のプリセットの一覧を返す（GET /web/glossary-presets）を検証する結合テストを受け持ち、ブラウザへのプリセットの一覧の返し方を変えるときに参照する。"
+    tags:
+      - topic:testing
+      - topic:結合テスト
+      - topic:ブラウザ
+      - topic:用語集
+      - topic:プリセット
+    related:
+      - to: IF-5
+        type: see_also
+  - path: "integration/test_serve_web_page.py"
+    name: "画面を配信するの結合テスト"
+    description: "外の端末の文字起こしの画面を配信する（GET /web/）を検証する結合テストを受け持ち、画面の配信を変えるときに参照する。"
+    tags:
+      - topic:testing
+      - topic:結合テスト
+      - topic:ブラウザ
+      - topic:画面
+    related:
+      - to: IF-6
+        type: see_also
+  - path: "integration/test_settings_layers.py"
+    name: "設定を重ねて読むの結合テスト"
+    description: "既定値・環境の値・checkout の上書きを順に重ねて読む処理を検証する結合テストを受け持ち、設定の読み込みを変えるときに参照する。"
+    tags:
+      - topic:testing
+      - topic:結合テスト
+      - topic:設定
+      - topic:レイヤー
+  - path: "integration/test_settings_migration.py"
+    name: "前のバージョンの設定の読み替えの結合テスト"
+    description: "前のバージョンの settings.toml と古い AI チャットの設定の読み替えと保存を検証する結合テストを受け持ち、設定の移行を変えるときに参照する。"
+    tags:
+      - topic:testing
+      - topic:結合テスト
+      - topic:設定
+      - action:移行
+  - path: "integration/test_start_session.py"
+    name: "録音を開始するの結合テスト"
+    description: "API から録音を開始する（POST /sessions）を検証する結合テストを受け持ち、API の録音の開始を変えるときに参照する。"
+    tags:
+      - topic:testing
+      - topic:結合テスト
+      - topic:api
+      - topic:録音セッション
+    related:
+      - to: IF-10
+        type: see_also
+  - path: "integration/test_stop_session.py"
+    name: "録音を停止するの結合テスト"
+    description: "API から始めた録音を停止する（POST /sessions/{session_id}/stop）を検証する結合テストを受け持ち、API の録音の停止を変えるときに参照する。"
+    tags:
+      - topic:testing
+      - topic:結合テスト
+      - topic:api
+      - topic:録音セッション
+    related:
+      - to: IF-8
+        type: see_also
+  - path: "integration/test_transcribe_web_audio.py"
+    name: "ブラウザの音声を文字に起こすの結合テスト"
+    description: "受け付けたブラウザの音声をワーカースレッドで文字に起こす処理を検証する結合テストを受け持ち、ブラウザの音声の文字起こしを変えるときに参照する。"
+    tags:
+      - topic:testing
+      - topic:結合テスト
+      - topic:ブラウザ
+      - topic:文字起こし
+      - topic:ジョブ
+    related:
+      - to: IF-1
+        type: see_also
+  - path: "integration/test_truncate_session.py"
+    name: "上限で打ち切るの結合テスト"
+    description: "上限時間に達した録音セッションを打ち切る処理を検証する結合テストを受け持ち、録音の上限の打ち切りを変えるときに参照する。"
+    tags:
+      - topic:testing
+      - topic:結合テスト
+      - topic:上限
+      - topic:録音セッション
+    related:
+      - to: IF-2
+        type: see_also
+  - path: "integration/ui/conftest.py"
+    name: "画面の結合テストの共通のフィクスチャ"
+    description: "画面の結合テストの共通のフィクスチャを受け持ち、画面の結合テストの前提を変えるときに参照する。"
+    tags:
+      - topic:testing
+      - topic:結合テスト
+      - topic:画面
+  - path: "integration/ui/helpers.py"
+    name: "画面の結合テストの補助"
+    description: "offscreen の QApplication で画面を開き、UiDeps を差し替えた関数で受ける画面の結合テストの補助を受け持ち、画面の結合テストの部品を変えるときに参照する。"
+    tags:
+      - topic:testing
+      - topic:結合テスト
+      - topic:画面
+      - tool:pyside6
+  - path: "integration/ui/test_busy_dialog.py"
+    name: "処理中のダイアログの結合テスト"
+    description: "画面設計『処理中のダイアログ』の表示と操作を検証する結合テストを受け持ち、処理中のダイアログを変えるときに参照する。"
+    tags:
+      - topic:testing
+      - topic:結合テスト
+      - topic:画面
+      - topic:ダイアログ
+    related:
+      - to: SCR-3
+        type: see_also
+  - path: "integration/ui/test_recording_window.py"
+    name: "録音の画面の結合テスト"
+    description: "画面設計『録音の画面』の表示と操作を検証する結合テストを受け持ち、録音の画面を変えるときに参照する。"
+    tags:
+      - topic:testing
+      - topic:結合テスト
+      - topic:画面
+      - topic:録音
+    related:
+      - to: SCR-10
+        type: see_also
+  - path: "integration/ui/test_settings_window.py"
+    name: "設定画面の結合テスト"
+    description: "画面設計『設定画面』『変えた値を捨てる確認』『既定に戻す確認』の表示と操作を検証する結合テストを受け持ち、設定画面を変えるときに参照する。"
+    tags:
+      - topic:testing
+      - topic:結合テスト
+      - topic:画面
+      - topic:設定
+    related:
+      - to: SCR-5
+        type: see_also
+      - to: SCR-8
+        type: see_also
+      - to: SCR-9
+        type: see_also
+  - path: "integration/ui/test_transcribing_indicator.py"
+    name: "文字起こし中の表示の結合テスト"
+    description: "画面設計『文字起こし中の表示』の表示と操作を検証する結合テストを受け持ち、文字起こし中の表示を変えるときに参照する。"
+    tags:
+      - topic:testing
+      - topic:結合テスト
+      - topic:画面
+      - topic:インジケーター
+    related:
+      - to: SCR-7
+        type: see_also
+  - path: "integration/ui/test_tray.py"
+    name: "トレイの結合テスト"
+    description: "画面設計『トレイ』のメニューと操作を検証する結合テストを受け持ち、トレイを変えるときに参照する。"
+    tags:
+      - topic:testing
+      - topic:結合テスト
+      - topic:画面
+      - topic:トレイ
+      - topic:メニュー
+    related:
+      - to: SCR-1
+        type: see_also
+  - path: "integration/ui/test_tray_notification.py"
+    name: "トレイの通知の結合テスト"
+    description: "画面設計『トレイの通知』の通知の出し方を検証する結合テストを受け持ち、トレイの通知を変えるときに参照する。"
+    tags:
+      - topic:testing
+      - topic:結合テスト
+      - topic:画面
+      - topic:トレイ
+      - topic:通知
+    related:
+      - to: SCR-2
+        type: see_also
+  - path: "mocks/mock_externals.py"
+    name: "外部ライブラリのモックの返却値"
+    description: "テストが使う外部ライブラリのモックの返却値を受け持ち、外部ライブラリのモックを変えるときに参照する。"
+    tags:
+      - topic:testing
+  - path: "nfr/fixtures/.gitignore"
+    name: "非機能要件テストの固めた入力を Git で管理しない指定"
+    description: "実機の非機能要件テストの固めた設定・録音・用語集を Git で管理しない指定を受け持ち、固めた入力の置き方を変えるときに参照する。"
+    tags:
+      - topic:testing
+      - tool:git
+  - path: "nfr/test_api_session_limit.py"
+    name: "API の録音セッションの上限時間の非機能要件テスト"
+    description: "API の録音セッションの上限時間（api_session_limit）を検証する非機能要件テストを受け持ち、API の録音の上限時間を変えるときに参照する。"
+    tags:
+      - topic:testing
+      - topic:非機能要件
+      - topic:上限
+      - topic:api
+  - path: "nfr/test_api_start_response_time.py"
+    name: "API の開始の応答時間の非機能要件テスト"
+    description: "API の録音の開始の応答時間（api_start_response_time）を検証する非機能要件テストを受け持ち、API の開始の応答時間を変えるときに参照する。"
+    tags:
+      - topic:testing
+      - topic:非機能要件
+      - topic:待ち時間
+      - topic:api
+  - path: "nfr/test_busy_response_time.py"
+    name: "処理中の開始へのエラーの応答時間の非機能要件テスト"
+    description: "処理中の開始へのエラーの応答時間（busy_response_time）を検証する非機能要件テストを受け持ち、処理中の開始への応答を変えるときに参照する。"
+    tags:
+      - topic:testing
+      - topic:非機能要件
+      - topic:待ち時間
+      - topic:エラー
+  - path: "nfr/test_continuous_session_limit.py"
+    name: "連続録音の上限時間の非機能要件テスト"
+    description: "連続録音の録音セッションの上限時間（continuous_session_limit）を検証する非機能要件テストを受け持ち、連続録音の上限時間を変えるときに参照する。"
+    tags:
+      - topic:testing
+      - topic:非機能要件
+      - topic:上限
+      - topic:連続録音
+  - path: "nfr/test_max_segment_length.py"
+    name: "区間の最大の長さの非機能要件テスト"
+    description: "区間の最大の長さ（max_segment_length）を検証する非機能要件テストを受け持ち、区間の区切り方を変えるときに参照する。"
+    tags:
+      - topic:testing
+      - topic:非機能要件
+      - topic:区間
+      - topic:音声合成
+  - path: "nfr/test_openai_audio_limit.py"
+    name: "OpenAI へ送信する音声の上限の非機能要件テスト"
+    description: "OpenAI へ送信する音声の上限（openai_audio_limit）を検証する非機能要件テストを受け持ち、OpenAI へ送信する音声の上限を変えるときに参照する。"
+    tags:
+      - topic:testing
+      - topic:非機能要件
+      - topic:上限
+      - tool:openai
+  - path: "nfr/test_openai_transcription_retry.py"
+    name: "OpenAI の文字起こしのタイムアウトと再送の非機能要件テスト"
+    description: "OpenAI の文字起こしのタイムアウトと再送（openai_transcription_retry）を検証する非機能要件テストを受け持ち、OpenAI の再送を変えるときに参照する。"
+    tags:
+      - topic:testing
+      - topic:非機能要件
+      - topic:リトライ
+      - topic:タイムアウト
+      - tool:openai
+  - path: "nfr/test_output_extensibility.py"
+    name: "出力先の追加のしやすさの非機能要件テスト"
+    description: "出力先を追加するときに変える既存のモジュール（output_extensibility）を検証する非機能要件テストを受け持ち、出力先の追加の構成を変えるときに参照する。"
+    tags:
+      - topic:testing
+      - topic:非機能要件
+      - topic:出力先
+  - path: "nfr/test_paste_latency.py"
+    name: "話し終えてから貼り付くまでの時間の非機能要件テスト"
+    description: "話し終えてから貼り付くまでの時間（paste_latency）を検証する非機能要件テストを受け持ち、貼り付けまでの時間に効く処理を変えるときに参照する。"
+    tags:
+      - topic:testing
+      - topic:非機能要件
+      - topic:待ち時間
+      - topic:貼り付け
+  - path: "nfr/test_segment_callback_latency.py"
+    name: "区切ってから返送が届くまでの時間の非機能要件テスト"
+    description: "区切ってから返送が届くまでの時間（segment_callback_latency）を検証する非機能要件テストを受け持ち、連続録音の返送までの時間に効く処理を変えるときに参照する。"
+    tags:
+      - topic:testing
+      - topic:非機能要件
+      - topic:待ち時間
+      - topic:区間
+      - topic:コールバック
+  - path: "nfr/test_single_instance_timeout.py"
+    name: "前の常駐サービスの終わりを待つ時間の非機能要件テスト"
+    description: "前の常駐サービスの終わりを待つ時間（single_instance_timeout）を検証する非機能要件テストを受け持ち、単一インスタンスの待ち時間を変えるときに参照する。"
+    tags:
+      - topic:testing
+      - topic:非機能要件
+      - topic:タイムアウト
+      - topic:排他ロック
+  - path: "nfr/test_transcription_parity.py"
+    name: "刷新の前後の起こした文字の一致の特性テスト"
+    description: "刷新の前後で起こした文字が一致すること（transcription_parity）を検証する非機能要件テストを受け持ち、文字起こしの構成を変えるときに参照する。"
+    tags:
+      - topic:testing
+      - topic:非機能要件
+      - topic:文字起こし
+  - path: "nfr/test_web_body_limit.py"
+    name: "ブラウザの本文の上限の非機能要件テスト"
+    description: "ブラウザの本文の上限（web_body_limit）を検証する非機能要件テストを受け持ち、ブラウザの本文の上限を変えるときに参照する。"
+    tags:
+      - topic:testing
+      - topic:非機能要件
+      - topic:上限
+      - topic:ブラウザ
+  - path: "nfr/test_web_finished_jobs_kept.py"
+    name: "終わったジョブを持つ件数の非機能要件テスト"
+    description: "終わったジョブを持つ件数（web_finished_jobs_kept）を検証する非機能要件テストを受け持ち、ブラウザのジョブの持ち方を変えるときに参照する。"
+    tags:
+      - topic:testing
+      - topic:非機能要件
+      - topic:ジョブ
+      - topic:ブラウザ
+  - path: "nfr/test_web_queue_limit.py"
+    name: "ブラウザの音声の待ちの上限の非機能要件テスト"
+    description: "ブラウザの音声の待ちの上限（web_queue_limit）を検証する非機能要件テストを受け持ち、ブラウザの音声のキューの上限を変えるときに参照する。"
+    tags:
+      - topic:testing
+      - topic:非機能要件
+      - topic:上限
+      - topic:キュー
+      - topic:ブラウザ
+  - path: "nfr/test_web_response_time.py"
+    name: "ブラウザの要求の応答時間の非機能要件テスト"
+    description: "ブラウザの要求の応答時間（web_response_time）を検証する非機能要件テストを受け持ち、ブラウザ向けの API の応答に効く処理を変えるときに参照する。"
+    tags:
+      - topic:testing
+      - topic:非機能要件
+      - topic:待ち時間
+      - topic:ブラウザ
+  - path: "nfr/test_worker_recovery_time.py"
+    name: "文字起こしワーカーの立て直しの時間の非機能要件テスト"
+    description: "文字起こしワーカーの立て直しの時間（worker_recovery_time）を検証する非機能要件テストを受け持ち、文字起こしワーカーの立て直しを変えるときに参照する。"
+    tags:
+      - topic:testing
+      - topic:非機能要件
+      - topic:ワーカー
+  - path: "nfr/test_worker_stop_timeout.py"
+    name: "文字起こしワーカーの終わりを待つ時間の非機能要件テスト"
+    description: "文字起こしワーカーの終わりを待つ時間（worker_stop_timeout）を検証する非機能要件テストを受け持ち、文字起こしワーカーの停止を変えるときに参照する。"
+    tags:
+      - topic:testing
+      - topic:非機能要件
+      - topic:ワーカー
+      - topic:タイムアウト
+  - path: "support/feed_mic.py"
+    name: "PipeWire の FIFO へ音声を流す補助"
+    description: "WAV の PCM を PipeWire の FIFO へ実時間の速さで書き込む処理を受け持ち、実機のテストのマイクの入力を変えるときに参照する。"
+    tags:
+      - topic:testing
+      - topic:マイク
+      - topic:linux
+  - path: "support/fixtures.py"
+    name: "実機のテストの共通のフィクスチャ"
+    description: "コールバック先の受信先・OpenAI API の代わりのエンドポイント・本物の常駐サービスの起動などの実機のテストのフィクスチャを受け持ち、実機のテストの前提を変えるときに参照する。"
+    tags:
+      - topic:testing
+      - topic:コールバック
+      - tool:openai
+  - path: "support/inprocess.py"
+    name: "常駐アプリを pytest のプロセスの中で動かす補助"
+    description: "常駐アプリを pytest のプロセスの中で配線し、録音の入力を WAV に差し替えて動かす非機能要件テストの補助を受け持ち、非機能要件テストの組み立てを変えるときに参照する。"
+    tags:
+      - topic:testing
+      - topic:非機能要件
+  - path: "support/instances.py"
+    name: "常駐サービスの入れ替えをログから観測する補助"
+    description: "続けて起動した常駐サービスの入れ替えをログから観測する実機の非機能要件テストの補助を受け持ち、単一インスタンスの観測を変えるときに参照する。"
+    tags:
+      - topic:testing
+      - topic:非機能要件
+      - topic:ログ
+      - topic:排他ロック
+  - path: "support/light_session.py"
+    name: "文字起こしのエンジンを使わない録音セッションの組み立て"
+    description: "GPU を使わない非機能要件テストのための、文字起こしのエンジンを使わない SessionManager の組み立てを受け持ち、軽い非機能要件テストの組み立てを変えるときに参照する。"
+    tags:
+      - topic:testing
+      - topic:非機能要件
+      - topic:録音セッション
+  - path: "support/processes.py"
+    name: "実機のテストのプロセスの補助"
+    description: "実機の非機能要件テストが使うプロセスの一覧と終了の補助を受け持ち、実機のテストのプロセスの扱いを変えるときに参照する。"
+    tags:
+      - topic:testing
+      - topic:プロセス
+  - path: "support/real_service.py"
+    name: "本物の常駐サービスの起動と API の呼び出しの補助"
+    description: "実機の非機能要件テストが使う本物の常駐サービスの起動と API の呼び出しを受け持ち、実機のテストの常駐サービスの扱いを変えるときに参照する。"
+    tags:
+      - topic:testing
+      - topic:api
+      - action:起動
+  - path: "support/settings.py"
+    name: "結合テスト・非機能要件テストの設定の組み立て"
+    description: "config/defaults.yaml を読んで結合テスト・非機能要件テストの設定を組み立てる関数を受け持ち、テストの設定の組み立てを変えるときに参照する。"
+    tags:
+      - topic:testing
+      - topic:設定
+  - path: "support/web_body.py"
+    name: "大きさを指定した multipart の本文を作る補助"
+    description: "`POST /web/transcriptions` に送信する大きさを指定した multipart の本文を作る補助を受け持ち、ブラウザの本文の上限のテストを変えるときに参照する。"
+    tags:
+      - topic:testing
+      - topic:multipart
+      - topic:上限
+  - path: "support/whisper_fixtures.py"
+    name: "固めた文字起こしの設定と録音の読み込み"
+    description: "実機の非機能要件テストが使う固めた文字起こしの設定と録音・用語集の読み込みを受け持ち、固めた入力を変えるときに参照する。"
+    tags:
+      - topic:testing
+      - tool:faster-whisper
+      - topic:非機能要件
+  - path: "unit/conftest.py"
+    name: "単体テストの共通のフィクスチャ"
+    description: "単体テストの共通のフィクスチャを受け持ち、単体テストの共通の前提を変えるときに参照する。"
+    tags:
+      - topic:testing
+      - topic:単体テスト
+  - path: "unit/log_helpers.py"
+    name: "ログの JSON Lines を読む補助"
+    description: "ログのフォルダの JSON Lines を読むテスト用の補助を受け持ち、ログを確かめるテストを変えるときに参照する。"
+    tags:
+      - topic:testing
+      - topic:単体テスト
+      - topic:ログ
+  - path: "unit/voice_paste/conftest.py"
+    name: "常駐アプリの単体テストの共通のフィクスチャ"
+    description: "単一インスタンスの排他などを差し替える常駐アプリの単体テストの共通のフィクスチャを受け持ち、常駐アプリの単体テストの前提を変えるときに参照する。"
+    tags:
+      - topic:testing
+      - topic:単体テスト
+      - topic:排他ロック
+  - path: "unit/voice_paste/features/outputs/helpers.py"
+    name: "出力先の単体テストの偽物と組み立て"
+    description: "出力先の配線に渡す関数を Mock にする出力先の単体テストの偽物を受け持ち、出力先の単体テストの部品を変えるときに参照する。"
+    tags:
+      - topic:testing
+      - topic:単体テスト
+      - topic:出力先
+  - path: "unit/voice_paste/features/recording/helpers.py"
+    name: "録音の単体テストの偽物と音の組み立て"
+    description: "話し声の判定の偽物と音の組み立てを持つ録音の単体テストの補助を受け持ち、録音の単体テストの部品を変えるときに参照する。"
+    tags:
+      - topic:testing
+      - topic:単体テスト
+      - topic:録音
+      - topic:話し声
+  - path: "unit/voice_paste/features/session/helpers.py"
+    name: "録音セッションの単体テストの偽物と組み立て"
+    description: "SessionDeps の Mock と進められる時計を持つ録音セッションの単体テストの補助を受け持ち、録音セッションの単体テストの部品を変えるときに参照する。"
+    tags:
+      - topic:testing
+      - topic:単体テスト
+      - topic:録音セッション
+  - path: "unit/voice_paste/integrations/display/test_adapter.py"
+    name: "Windows の画面の消灯の抑止の単体テスト"
+    description: "電源要求の関数の呼び出しを記録する偽物で、Windows の消灯の抑止と解除を検証する単体テストを受け持ち、Windows での消灯の抑止を変えるときに参照する。"
+    tags:
+      - topic:testing
+      - topic:単体テスト
+      - topic:消灯
+      - topic:windows
+    related:
+      - to: src/voice_paste/integrations/display/adapter.py
+        type: tests
+  - path: "unit/voice_paste/integrations/display/test_adapter_linux.py"
+    name: "Linux の画面の消灯の抑止の単体テスト"
+    description: "gnome-session-inhibit の子プロセスの起動と終了で、Linux の消灯の抑止と解除を検証する単体テストを受け持ち、Linux での消灯の抑止を変えるときに参照する。"
+    tags:
+      - topic:testing
+      - topic:単体テスト
+      - topic:消灯
+      - topic:linux
+    related:
+      - to: src/voice_paste/integrations/display/adapter_linux.py
+        type: tests
+  - path: "unit/voice_paste/runtime/helpers.py"
+    name: "単一インスタンスの単体テストの補助"
+    description: "単一インスタンスの単体テスト用の Win32 の道具と、別のスレッドで排他を取る補助を受け持ち、単一インスタンスの単体テストの部品を変えるときに参照する。"
+    tags:
+      - topic:testing
+      - topic:単体テスト
+      - topic:排他ロック
+      - topic:スレッド
+  - path: "unit/voice_paste/server/helpers.py"
+    name: "API サーバーの単体テストの組み立て"
+    description: "守りを通る要求のヘッダーと、録音セッションとブラウザの音声のキューを Mock にした app の組み立てを受け持ち、API サーバーの単体テストの部品を変えるときに参照する。"
+    tags:
+      - topic:testing
+      - topic:単体テスト
+      - topic:サーバー
+  - path: "unit/voice_paste/settings_helpers.py"
+    name: "単体テストの設定の組み立て"
+    description: "config/defaults.yaml を読んで単体テストの設定を組み立てる関数を受け持ち、単体テストの設定の組み立てを変えるときに参照する。"
+    tags:
+      - topic:testing
+      - topic:単体テスト
+      - topic:設定
+  - path: "unit/voice_paste/ui/helpers.py"
+    name: "画面の単体テストの偽物と組み立て"
+    description: "UiDeps の Mock と進められる時計を持つ画面の単体テストの補助を受け持ち、画面の単体テストの部品を変えるときに参照する。"
+    tags:
+      - topic:testing
+      - topic:単体テスト
+      - topic:画面
+  - path: "unit/voice_paste/ui/windows/test_settings_shortcuts.py"
+    name: "設定画面のショートカットの一覧の単体テスト"
+    description: "設定画面のショートカットの一覧の行の追加・集め方・変更の数を検証する単体テストを受け持ち、プリセットのショートカットの編集を変えるときに参照する。"
+    tags:
+      - topic:testing
+      - topic:単体テスト
+      - topic:ショートカット
+      - topic:プリセット
+    related:
+      - to: src/voice_paste/ui/windows/settings_shortcuts.py
+        type: tests
+checkpoint:
+  commit: a337524283d022492ef369c013e475ab36fa1550
+  reviewed: []

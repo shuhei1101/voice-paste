@@ -1,0 +1,72 @@
+docs:
+  - page: dev-docs.yaml
+    new: false
+    change: documents[] を推奨の範囲（**/*）に合わせる。直下の files.yml の行 files_repo と docs/files.yml の行 files_docs を追加し（files_root を置き換える）、files_mock の exclude を外し、files_guide の exclude から目次の 3 ページ（はじめに.md・使い方.md・リファレンス.md）を外す（"*.yaml" と README.md を残す）。除外は docs/pr/**・uv.lock・package-lock.json・docs/_theme/assets/vendor/**・docs/_theme/search.json。1 行目のスキーマを project-index v0.1.0 にする
+    status: done
+    updated_by: planner
+    updated_at: '2026-11-17T11:48:51.469484+00:00'
+  - page: tests/files.yml
+    new: false
+    change: 対象外のテストのファイルの行を加え、既存の行のメタデータを今の付け方で見直す
+    status: done
+    updated_by: planner
+    updated_at: '2026-11-17T11:48:51.469484+00:00'
+  - page: docs/mock/files.yml
+    new: false
+    change: 対象外のモックのファイルの行を加え、既存の行のメタデータを今の付け方で見直す
+    status: done
+    updated_by: planner
+    updated_at: '2026-11-17T11:48:51.469484+00:00'
+  - page: src/files.yml
+    new: false
+    change: 対象外のファイルの行を加え、既存の行のメタデータを今の付け方で見直す
+    status: done
+    updated_by: planner
+    updated_at: '2026-11-17T11:48:51.469484+00:00'
+  - page: haas_server/src/files.yml
+    new: false
+    change: haas_server/__init__.py の行を加え、確認の時点を記録する（既存の行の説明は今の中身と合っている）
+    status: done
+    updated_by: planner
+    updated_at: '2026-11-17T11:48:51.469484+00:00'
+  - page: docs/_root/files.yml
+    new: false
+    change: docs/files.yml へ移して削除する
+    status: done
+    updated_by: planner
+    updated_at: '2026-11-17T11:48:51.469484+00:00'
+  - page: docs/guide/files.yml
+    new: false
+    change: 目次の 3 ページ（はじめに.md・使い方.md・リファレンス.md）の行を同じ名前の category で加え、確認の時点を記録する（既存の行の説明は今の中身と合っている）
+    status: done
+    updated_by: planner
+    updated_at: '2026-11-17T11:48:51.469484+00:00'
+  - page: docs/files.yml
+    new: true
+    change: docs/ の直下のページ・各フォルダの README.md・画面の設定（_config.yml・_theme/）の行を持つ
+    status: done
+    updated_by: planner
+    updated_at: '2026-11-17T11:49:02.479796+00:00'
+  - page: files.yml
+    new: true
+    change: リポジトリの直下のファイル・.github/・config/・content/・schemas/・haas_server/ の直下のファイルの行を持つ
+    status: done
+    updated_by: planner
+    updated_at: '2026-11-17T11:49:02.479796+00:00'
+scope_out:
+  - item: PR の資料（docs/pr/）を検索の対象に入れる
+    reason: 作業 PR ごとの一時の資料で、設計書の検索の妨げになる。参考の shuhei1101/project-index#132 と同じ判断で、レビューで入れないと確定した
+    plan: none
+  - item: ロックファイル（uv.lock・haas_server/uv.lock・package-lock.json）を検索の対象に入れる
+    reason: 依存の解決の結果をツールが書き出すファイルで、description を付けても検索で引く場面が無い。依存は pyproject.toml・package.json の行で引く
+    plan: none
+  - item: 同梱の minify 済みのライブラリ（docs/_theme/assets/vendor/**）を検索の対象に入れる
+    reason: 外部のライブラリ（mermaid）を minify したまま同梱したファイルで、このリポジトリで変えることが無く、検索で引く場面が無い
+    plan: none
+  - item: 公開ドキュメントの検索の索引（docs/_theme/search.json）を検索の対象に入れる
+    reason: 公開ドキュメントのページから生成する索引で、中身は元のページの行で引ける
+    plan: none
+  - item: docs/guide/README.md を検索の対象に入れる
+    reason: 行 files_guide は metadata に category を持ち、分類を持たない README.md を入れると check_project が metadata の列の欠けに数える。中身は分類ごとの目次（はじめに.md・使い方.md・リファレンス.md）の行で引ける
+    plan: none
+use_cases: []

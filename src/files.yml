@@ -575,7 +575,7 @@ files:
       - to: MOD-18
         type: implements
   - path: voice_paste/server/web_page.py
-    description: "外の端末の画面の HTML と JS・CSS の配信を受け持ち、画面の配信の経路やキャッシュの扱いを変えるときに参照する。"
+    description: "外の端末の画面の HTML と JS・CSS の配信と JS の Content-Type の固定を受け持ち、画面の配信の経路や Content-Type・キャッシュの扱いを変えるときに参照する。"
     tags:
       - topic:画面
       - topic:ブラウザ
@@ -793,3 +793,282 @@ files:
     related:
       - to: MOD-35
         type: implements
+  - path: "voice_paste/__init__.py"
+    name: "常駐アプリのパッケージの入口"
+    description: "常駐アプリのパッケージの入口を受け持ち、パッケージの構成を確かめるときに参照する。"
+    tags:
+      - topic:パッケージ
+  - path: "voice_paste/__main__.py"
+    name: "常駐アプリのモジュールとしての起動"
+    description: "`python -m voice_paste` から main を呼ぶ処理を受け持ち、モジュールとしての起動のしかたを変えるときに参照する。"
+    tags:
+      - action:起動
+  - path: "voice_paste/features/__init__.py"
+    name: "機能のパッケージの入口"
+    description: "録音セッション・録音・文字起こし・補正・出力先・履歴の機能のパッケージの入口を受け持ち、録音セッション・録音・文字起こし・補正・出力先・履歴の機能のモジュールの置き場所を確かめるときに参照する。"
+    tags:
+      - topic:パッケージ
+  - path: "voice_paste/features/correction/__init__.py"
+    name: "補正の機能のパッケージの入口"
+    description: "用語集による文字の補正の機能のパッケージの入口を受け持ち、用語集による文字の補正の機能のモジュールの置き場所を確かめるときに参照する。"
+    tags:
+      - topic:パッケージ
+      - topic:補正
+      - topic:用語集
+  - path: "voice_paste/features/history/__init__.py"
+    name: "履歴の機能のパッケージの入口"
+    description: "録音と起こした文字の履歴の機能のパッケージの入口を受け持ち、録音と起こした文字の履歴の機能のモジュールの置き場所を確かめるときに参照する。"
+    tags:
+      - topic:パッケージ
+      - topic:履歴
+  - path: "voice_paste/features/outputs/__init__.py"
+    name: "出力先の機能のパッケージの入口"
+    description: "出力先の機能のパッケージの入口を受け持ち、出力先の機能のモジュールの置き場所を確かめるときに参照する。"
+    tags:
+      - topic:パッケージ
+      - topic:出力先
+  - path: "voice_paste/features/outputs/browser/__init__.py"
+    name: "ブラウザ添付のプリセットのパッケージの入口"
+    description: "ブラウザ添付のプリセットの種類のパッケージの入口を受け持ち、ブラウザ添付のプリセットの種類のモジュールの置き場所を確かめるときに参照する。"
+    tags:
+      - topic:パッケージ
+      - topic:プリセット
+      - topic:ブラウザ
+  - path: "voice_paste/features/outputs/callback/__init__.py"
+    name: "呼び出し元へ返す出力先のパッケージの入口"
+    description: "呼び出し元へ返す出力先のパッケージの入口を受け持ち、呼び出し元へ返す出力先のモジュールの置き場所を確かめるときに参照する。"
+    tags:
+      - topic:パッケージ
+      - topic:出力先
+      - topic:コールバック
+  - path: "voice_paste/features/outputs/copy_only/__init__.py"
+    name: "コピーのみの出力先のパッケージの入口"
+    description: "コピーのみの出力先のパッケージの入口を受け持ち、コピーのみの出力先のモジュールの置き場所を確かめるときに参照する。"
+    tags:
+      - topic:パッケージ
+      - topic:出力先
+      - topic:クリップボード
+  - path: "voice_paste/features/outputs/endpoint/__init__.py"
+    name: "エンドポイントへ送信するプリセットのパッケージの入口"
+    description: "エンドポイントへ送信するプリセットの種類のパッケージの入口を受け持ち、エンドポイントへ送信するプリセットの種類のモジュールの置き場所を確かめるときに参照する。"
+    tags:
+      - topic:パッケージ
+      - topic:プリセット
+      - topic:エンドポイント
+  - path: "voice_paste/features/outputs/paste_and_send/__init__.py"
+    name: "貼り付けて送信する出力先のパッケージの入口"
+    description: "貼り付けて送信する出力先のパッケージの入口を受け持ち、貼り付けて送信する出力先のモジュールの置き場所を確かめるときに参照する。"
+    tags:
+      - topic:パッケージ
+      - topic:出力先
+      - topic:貼り付け
+  - path: "voice_paste/features/outputs/paste_only/__init__.py"
+    name: "貼り付けのみの出力先のパッケージの入口"
+    description: "貼り付けのみの出力先のパッケージの入口を受け持ち、貼り付けのみの出力先のモジュールの置き場所を確かめるときに参照する。"
+    tags:
+      - topic:パッケージ
+      - topic:出力先
+      - topic:貼り付け
+  - path: "voice_paste/features/recording/__init__.py"
+    name: "録音の機能のパッケージの入口"
+    description: "マイクの録音の機能のパッケージの入口を受け持ち、マイクの録音の機能のモジュールの置き場所を確かめるときに参照する。"
+    tags:
+      - topic:パッケージ
+      - topic:録音
+  - path: "voice_paste/features/session/__init__.py"
+    name: "録音セッションの機能のパッケージの入口"
+    description: "録音から出力先へ届けるまでの録音セッションの機能のパッケージの入口を受け持ち、録音から出力先へ届けるまでの録音セッションの機能のモジュールの置き場所を確かめるときに参照する。"
+    tags:
+      - topic:パッケージ
+      - topic:録音セッション
+  - path: "voice_paste/features/transcription/__init__.py"
+    name: "文字起こしの機能のパッケージの入口"
+    description: "文字起こしの機能のパッケージの入口を受け持ち、文字起こしの機能のモジュールの置き場所を確かめるときに参照する。"
+    tags:
+      - topic:パッケージ
+      - topic:文字起こし
+  - path: "voice_paste/features/web_transcription/__init__.py"
+    name: "外の端末の文字起こしの機能のパッケージの入口"
+    description: "外の端末のブラウザから受けた音声をジョブに積んで起こす機能のパッケージの入口を受け持ち、外の端末のブラウザから受けた音声をジョブに積んで起こす機能のモジュールの置き場所を確かめるときに参照する。"
+    tags:
+      - topic:パッケージ
+      - topic:ブラウザ
+      - topic:ジョブ
+  - path: "voice_paste/integrations/__init__.py"
+    name: "外部との連携のパッケージの入口"
+    description: "外部のシステム・ライブラリとの連携のパッケージの入口を受け持ち、外部のシステム・ライブラリとの連携のモジュールの置き場所を確かめるときに参照する。"
+    tags:
+      - topic:パッケージ
+      - topic:外部連携
+  - path: "voice_paste/integrations/audio/__init__.py"
+    name: "音声の形式の読み取りのパッケージの入口"
+    description: "受けた音声の形式の読み取りのパッケージの入口を受け持ち、受けた音声の形式の読み取りのモジュールの置き場所を確かめるときに参照する。"
+    tags:
+      - topic:パッケージ
+      - topic:音声
+      - tool:av
+  - path: "voice_paste/integrations/browser/__init__.py"
+    name: "ブラウザのアダプタのパッケージの入口"
+    description: "ブラウザ添付のプリセットの画面を開くブラウザのアダプタのパッケージの入口を受け持ち、ブラウザ添付のプリセットの画面を開くブラウザのアダプタのモジュールの置き場所を確かめるときに参照する。"
+    tags:
+      - topic:パッケージ
+      - topic:ブラウザ
+      - tool:edge
+  - path: "voice_paste/integrations/display/adapter.py"
+    name: "Windows の画面の消灯の抑止"
+    description: "Windows の電源要求の API で録音の間の画面の消灯とスリープを抑止する処理を受け持ち、Windows での消灯の抑止を変えるときに参照する。"
+    tags:
+      - topic:消灯
+      - topic:windows
+      - tool:windows-power-request
+      - action:抑制
+    related:
+      - to: MOD-102
+        type: implements
+  - path: "voice_paste/integrations/display/adapter_linux.py"
+    name: "Linux の画面の消灯の抑止"
+    description: "GNOME のセッションで gnome-session-inhibit の子プロセスにより録音の間の消灯を抑止する処理を受け持ち、Linux での消灯の抑止を変えるときに参照する。"
+    tags:
+      - topic:消灯
+      - topic:linux
+      - tool:gnome-session-inhibit
+      - topic:子プロセス
+      - action:抑制
+    related:
+      - to: MOD-103
+        type: implements
+  - path: "voice_paste/integrations/haas/__init__.py"
+    name: "Haas の文字起こしのサーバーのアダプタのパッケージの入口"
+    description: "WSL の中の Haas の文字起こしのサーバーを起動・停止し録音を送信するアダプタのパッケージの入口を受け持ち、WSL の中の Haas の文字起こしのサーバーを起動・停止し録音を送信するアダプタのモジュールの置き場所を確かめるときに参照する。"
+    tags:
+      - topic:パッケージ
+      - tool:haas-asr
+      - tool:wsl
+  - path: "voice_paste/integrations/http/__init__.py"
+    name: "HTTP の送信のパッケージの入口"
+    description: "HTTP の POSTのパッケージの入口を受け持ち、HTTP の POSTのモジュールの置き場所を確かめるときに参照する。"
+    tags:
+      - topic:パッケージ
+      - topic:http
+      - tool:httpx
+  - path: "voice_paste/integrations/keyboard/__init__.py"
+    name: "クリップボードとキーボードのアダプタのパッケージの入口"
+    description: "クリップボードとキーボードのアダプタのパッケージの入口を受け持ち、クリップボードとキーボードのアダプタのモジュールの置き場所を確かめるときに参照する。"
+    tags:
+      - topic:パッケージ
+      - topic:クリップボード
+      - topic:キーボード
+  - path: "voice_paste/integrations/openai/__init__.py"
+    name: "OpenAI の文字起こしのパッケージの入口"
+    description: "OpenAI API の文字起こしと API キーの読み込みのパッケージの入口を受け持ち、OpenAI API の文字起こしと API キーの読み込みのモジュールの置き場所を確かめるときに参照する。"
+    tags:
+      - topic:パッケージ
+      - tool:openai
+  - path: "voice_paste/integrations/vad/__init__.py"
+    name: "話し声の判定のパッケージの入口"
+    description: "Silero VAD による話し声の判定のパッケージの入口を受け持ち、Silero VAD による話し声の判定のモジュールの置き場所を確かめるときに参照する。"
+    tags:
+      - topic:パッケージ
+      - topic:話し声
+      - tool:silero-vad
+  - path: "voice_paste/integrations/vad/assets/LICENSE.silero-vad"
+    name: "Silero VAD のライセンス"
+    description: "同梱する Silero VAD のモデルの MIT ライセンスの条文を受け持ち、同梱するモデルのライセンスを確かめるときに参照する。"
+    tags:
+      - tool:silero-vad
+      - topic:ライセンス
+  - path: "voice_paste/integrations/whisper/__init__.py"
+    name: "ローカルの Whisper のパッケージの入口"
+    description: "ローカルの Whisper の窓口と文字起こしワーカーのパッケージの入口を受け持ち、ローカルの Whisper の窓口と文字起こしワーカーのモジュールの置き場所を確かめるときに参照する。"
+    tags:
+      - topic:パッケージ
+      - topic:ワーカー
+      - tool:faster-whisper
+  - path: "voice_paste/runtime/__init__.py"
+    name: "実行環境のパッケージの入口"
+    description: "単一インスタンスなどプロセスの実行環境のパッケージの入口を受け持ち、単一インスタンスなどプロセスの実行環境のモジュールの置き場所を確かめるときに参照する。"
+    tags:
+      - topic:パッケージ
+      - topic:プロセス
+  - path: "voice_paste/server/__init__.py"
+    name: "API サーバーのパッケージの入口"
+    description: "API サーバーのパッケージの入口を受け持ち、API サーバーのモジュールの置き場所を確かめるときに参照する。"
+    tags:
+      - topic:パッケージ
+      - topic:サーバー
+      - topic:api
+  - path: "voice_paste/server/web/assets/app.js"
+    name: "外の端末の文字起こしの画面のスクリプト（生成物）"
+    description: "app.ts から tsc で生成した、外の端末の文字起こしの画面の録音・送信・結果の取得の処理を受け持ち、配信するスクリプトの中身を確かめるときに参照する。"
+    tags:
+      - topic:ブラウザ
+      - topic:画面
+      - topic:録音
+      - action:送信
+  - path: "voice_paste/server/web/assets/app.ts"
+    name: "外の端末の文字起こしの画面のスクリプト"
+    description: "外の端末のブラウザで録音かファイルを常駐アプリへ送信し、結果を取りに行って端末に残す処理を受け持ち、外の端末の画面の振る舞いを変えるときに参照する。"
+    tags:
+      - topic:ブラウザ
+      - topic:画面
+      - topic:録音
+      - action:送信
+      - tool:typescript
+      - tool:indexeddb
+      - tool:localstorage
+  - path: "voice_paste/server/web/assets/style.css"
+    name: "外の端末の文字起こしの画面のスタイル"
+    description: "外の端末の文字起こしの画面のトークンと部品の見た目を受け持ち、外の端末の画面の見た目を変えるときに参照する。"
+    tags:
+      - topic:ブラウザ
+      - topic:画面
+      - topic:スタイル
+      - topic:デザイントークン
+  - path: "voice_paste/server/web/index.html"
+    name: "外の端末の文字起こしの画面"
+    description: "外の端末のブラウザで開く文字起こしの画面の要素の構成を受け持ち、外の端末の画面の要素を変えるときに参照する。"
+    tags:
+      - topic:ブラウザ
+      - topic:画面
+  - path: "voice_paste/shared/__init__.py"
+    name: "共通のパッケージの入口"
+    description: "どの層からも使う設定・ログ・例外・置き場所のパスのパッケージの入口を受け持ち、どの層からも使う設定・ログ・例外・置き場所のパスのモジュールの置き場所を確かめるときに参照する。"
+    tags:
+      - topic:パッケージ
+      - topic:共通
+  - path: "voice_paste/ui/__init__.py"
+    name: "画面のパッケージの入口"
+    description: "トレイ・録音の画面・設定の画面のパッケージの入口を受け持ち、トレイ・録音の画面・設定の画面のモジュールの置き場所を確かめるときに参照する。"
+    tags:
+      - topic:パッケージ
+      - topic:画面
+  - path: "voice_paste/ui/windows/__init__.py"
+    name: "窓のパッケージの入口"
+    description: "録音の画面・文字起こし中の表示・ダイアログ・設定画面の窓のパッケージの入口を受け持ち、録音の画面・文字起こし中の表示・ダイアログ・設定画面の窓のモジュールの置き場所を確かめるときに参照する。"
+    tags:
+      - topic:パッケージ
+      - topic:ウィンドウ
+  - path: "voice_paste/ui/windows/settings_shortcuts.py"
+    name: "設定画面のショートカットの一覧"
+    description: "設定画面のショートカットのまとまりに置く、用語集のプリセットを切り替えるショートカットの一覧を受け持ち、プリセットのショートカットの編集を変えるときに参照する。"
+    tags:
+      - topic:画面
+      - topic:設定
+      - topic:ショートカット
+      - topic:プリセット
+      - topic:用語集
+      - tool:pyside6
+    related:
+      - to: MOD-104
+        type: implements
+  - path: "voice_paste/ui/windows/window_parts.py"
+    name: "録音の画面と文字起こし中の表示の部品"
+    description: "見出しの行・つかむマーカー・ホットキーを出すボタンの部品を受け持ち、録音の画面や文字起こし中の表示の部品を変えるときに参照する。"
+    tags:
+      - topic:画面
+      - topic:部品
+      - topic:ホットキー
+      - tool:pyside6
+checkpoint:
+  commit: a337524283d022492ef369c013e475ab36fa1550
+  reviewed: []

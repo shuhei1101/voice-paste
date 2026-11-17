@@ -45,3 +45,29 @@ files:
   - topic:エンドポイント
   - action:録音
   - topic:http
+- path: はじめに.md
+  name: はじめにの目次
+  visibility: public
+  category: はじめに
+  description: はじめにの分類のページの一覧を受け持ち、公開ドキュメントのサイトではじめにのタブを開いたときに参照する。
+  tags:
+  - topic:目次
+- path: 使い方.md
+  name: 使い方の目次
+  visibility: public
+  category: 使い方
+  description: 使い方の分類のページの一覧を受け持ち、公開ドキュメントのサイトで使い方のタブを開いたときに参照する。
+  tags:
+  - topic:目次
+  - topic:使い方
+- path: リファレンス.md
+  name: リファレンスの目次
+  visibility: public
+  category: リファレンス
+  description: リファレンスの分類のページの一覧を受け持ち、公開ドキュメントのサイトでリファレンスのタブを開いたときに参照する。
+  tags:
+  - topic:目次
+  - topic:リファレンス
+checkpoint:
+  commit: 14694b9b7dc71531adc33f58e4cda0aa3a824bd4
+  reviewed: []

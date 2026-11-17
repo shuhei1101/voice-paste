@@ -31,3 +31,13 @@ files:
         type: implements
       - to: ER-2
         type: implements
+  - path: "haas_server/__init__.py"
+    name: "Haas の文字起こしのサーバーのパッケージの入口"
+    description: "WSL の中で Haas-ja-v1.0 のモデルを持ち音声を文字に起こすサーバーのパッケージの入口を受け持ち、サーバーのモジュールの置き場所を確かめるときに参照する。"
+    tags:
+      - topic:パッケージ
+      - topic:サーバー
+      - tool:haas-asr
+checkpoint:
+  commit: a337524283d022492ef369c013e475ab36fa1550
+  reviewed: []

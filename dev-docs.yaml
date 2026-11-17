@@ -1,4 +1,4 @@
-# yaml-language-server: $schema=https://raw.githubusercontent.com/shuhei1101/dev-docs/v0.0.0/schemas/dev-docs.schema.json
+# yaml-language-server: $schema=https://raw.githubusercontent.com/shuhei1101/project-index/v0.1.0/schemas/project-index.schema.json
 version: "3"
 name: voice-input
 worktrees: [".claude/worktrees/*"]
@@ -219,14 +219,24 @@ documents:
       ref: design-schemas/v8.3.0
     metadata:
       description: summary
-  - id: files_root
-    title: docs の直下の Markdown
-    paths: ["docs/_root/files.yml"]
-    exclude: ["*.yaml", README.md]
+  - id: files_repo
+    title: リポジトリの直下の設定・スクリプトと、CI・設定の雛形・リソース
+    paths: ["files.yml"]
+    exclude: [.git, uv.lock, package-lock.json]
     schema:
       source: knowledge
       path: schemas/knowledge-files.schema.yaml
-      ref: design-schemas/v8.3.0
+      ref: design-schemas/v9.2.0
+    records: files
+    body_file: path
+  - id: files_docs
+    title: docs の目次・画面の設定と直下のページ
+    paths: ["docs/files.yml"]
+    exclude: ["docs/pr/**", "docs/_theme/assets/vendor/**", "docs/_theme/search.json"]
+    schema:
+      source: knowledge
+      path: schemas/knowledge-files.schema.yaml
+      ref: design-schemas/v9.2.0
     records: files
     body_file: path
     metadata:
@@ -234,7 +244,7 @@ documents:
   - id: files_guide
     title: 公開ドキュメントの Markdown
     paths: ["docs/guide/files.yml"]
-    exclude: ["*.yaml", README.md, はじめに.md, 使い方.md, リファレンス.md]
+    exclude: ["*.yaml", README.md]
     schema:
       source: knowledge
       path: schemas/knowledge-files.schema.yaml
@@ -245,9 +255,8 @@ documents:
       visibility: visibility
       category: category
   - id: files_mock
-    title: モックの Markdown
+    title: モック
     paths: ["docs/mock/files.yml"]
-    exclude: ["*.html", "*.js", "*.css"]
     schema:
       source: knowledge
       path: schemas/knowledge-files.schema.yaml
@@ -454,7 +463,7 @@ nav:
             - page: screen/SCR-8
             - page: screen/SCR-6
             - page: screen/SCR-4
-            - page: files_root/docs/design-policy.md
+            - page: files_docs/docs/design-policy.md
             - auto: {document: screen}
         - group: データ
           items:

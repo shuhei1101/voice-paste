@@ -222,7 +222,7 @@ documents:
   - id: files_root
     title: docs の直下の Markdown
     paths: ["docs/_root/files.yml"]
-    exclude: ["*.yaml", "*.yml", README.md]
+    exclude: ["*.yaml", README.md]
     schema:
       source: knowledge
       path: schemas/knowledge-files.schema.yaml
@@ -234,7 +234,7 @@ documents:
   - id: files_guide
     title: 公開ドキュメントの Markdown
     paths: ["docs/guide/files.yml"]
-    exclude: ["*.yaml", "*.yml", README.md, はじめに.md, 使い方.md, リファレンス.md]
+    exclude: ["*.yaml", README.md, はじめに.md, 使い方.md, リファレンス.md]
     schema:
       source: knowledge
       path: schemas/knowledge-files.schema.yaml
@@ -281,3 +281,79 @@ documents:
       ref: design-schemas/v8.3.0
     records: files
     body_file: path
+nav:
+  tabs:
+    - title: はじめに
+      items:
+        - auto:
+            document: files_guide
+            filter: {field: category, op: eq, values: [はじめに]}
+    - title: 使い方
+      items:
+        - auto:
+            document: files_guide
+            filter: {field: category, op: eq, values: [使い方]}
+    - title: 設計書
+      items:
+        - group: アーキテクチャ図
+          items:
+            - auto: {document: architecture}
+        - group: 非機能要件
+          items:
+            - auto: {document: nonfunctional}
+        - group: シナリオ
+          items:
+            - auto: {document: scenario}
+        - group: インターフェース定義
+          items:
+            - auto: {document: interface}
+        - group: モジュール構成
+          items:
+            - auto: {document: module}
+        - group: 画面設計
+          items:
+            - auto: {document: screen}
+            - page: files_root/docs/design-policy.md
+        - group: データ
+          items:
+            - auto: {document: data}
+        - group: ER 図
+          items:
+            - auto: {document: er}
+        - group: 設定
+          items:
+            - auto: {document: config}
+        - group: 外部API
+          items:
+            - auto: {document: api}
+        - group: 外部ライブラリ
+          items:
+            - auto: {document: library}
+        - group: フォルダ構成
+          items:
+            - auto: {document: layout}
+        - group: 開発コマンド
+          items:
+            - auto: {document: dev_command}
+        - group: テスト実行方法
+          items:
+            - auto: {document: test_procedure}
+    - title: コード
+      items:
+        - group: 常駐アプリ
+          items:
+            - auto: {document: files_src}
+        - group: Haas の文字起こしのサーバー
+          items:
+            - auto: {document: files_haas_server}
+        - group: テスト
+          items:
+            - auto: {document: files_tests}
+    - title: リファレンス
+      items:
+        - auto:
+            document: files_guide
+            filter: {field: category, op: eq, values: [リファレンス]}
+    - title: 用語集
+      items:
+        - auto: {document: glossary}

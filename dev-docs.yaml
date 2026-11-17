@@ -244,7 +244,7 @@ documents:
   - id: files_guide
     title: 公開ドキュメントの Markdown
     paths: ["docs/guide/files.yml"]
-    exclude: ["*.yaml", README.md, はじめに.md, 使い方.md, リファレンス.md]
+    exclude: ["*.yaml"]
     schema:
       source: knowledge
       path: schemas/knowledge-files.schema.yaml

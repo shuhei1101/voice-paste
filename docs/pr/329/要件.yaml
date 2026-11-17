@@ -1,0 +1,7 @@
+use_cases: []
+docs:
+  - page: dev-docs.yaml
+    new: false
+    change: 'files_guide の schema.ref を knowledge-files スキーマに category を加えたタグへ上げ、nav のはじめに・使い方・リファレンスのタブを page の並びから auto（document: files_guide、filter に category）へ書き換える'
+    status: todo
+scope_out: []

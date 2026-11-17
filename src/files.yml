@@ -1070,5 +1070,5 @@ files:
       - topic:ホットキー
       - tool:pyside6
 checkpoint:
-  commit: 017d6ed91a2f044da6faa1b839b32da28ec952ee
+  commit: a337524283d022492ef369c013e475ab36fa1550
   reviewed: []

@@ -18,4 +18,4 @@ scope_out:
     plan: shuhei1101/dev-docs#226
   - item: はじめに・使い方・リファレンスのタブを category の auto.filter で並べ、docs/guide/files.yml に追加した文書が nav を書き換えずに出るようにする（knowledge の knowledge-files スキーマに category を追加する）
     reason: category は knowledge のスキーマに無い項目で、このリポジトリの配信の設定では使えない。この PR は page で並べる
-    plan: to_file
+    plan: '#328'

@@ -65,8 +65,10 @@ tasks:
     updated_by: planner
     updated_at: '2026-11-17T09:33:28.295829+00:00'
   - process: ドキュメント修正
-    status: todo
+    status: done
     note: テスト実行方法（TP-1）の TL-1・TL-2 の run_runner に、run を参照できるまで待つ処理を入れる
+    updated_by: planner
+    updated_at: '2026-11-17T09:49:22.159238+00:00'
   - process: 単体テスト作成
     status: skipped
     reason: 単体テストの対象になるコードを追加・変更しない

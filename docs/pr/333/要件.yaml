@@ -1,7 +1,7 @@
 docs:
   - page: dev-docs.yaml
     new: false
-    change: documents[] を推奨の範囲（**/*）に合わせる。直下の files.yml の行 files_repo と docs/files.yml の行 files_docs を追加し（files_root を置き換える）、files_mock の exclude を外す。除外は docs/pr/**・uv.lock・package-lock.json・docs/_theme/assets/vendor/**・docs/_theme/search.json。1 行目のスキーマを project-index v0.1.0 にする
+    change: documents[] を推奨の範囲（**/*）に合わせる。直下の files.yml の行 files_repo と docs/files.yml の行 files_docs を追加し（files_root を置き換える）、files_mock の exclude を外し、files_guide の exclude から目次の 3 ページ（はじめに.md・使い方.md・リファレンス.md）を外す（"*.yaml" と README.md を残す）。除外は docs/pr/**・uv.lock・package-lock.json・docs/_theme/assets/vendor/**・docs/_theme/search.json。1 行目のスキーマを project-index v0.1.0 にする
     status: done
     updated_by: planner
     updated_at: '2026-11-17T11:48:51.469484+00:00'
@@ -25,7 +25,7 @@ docs:
     updated_at: '2026-11-17T11:48:51.469484+00:00'
   - page: haas_server/src/files.yml
     new: false
-    change: 既存の行のメタデータを今の付け方で見直す
+    change: haas_server/__init__.py の行を加え、確認の時点を記録する（既存の行の説明は今の中身と合っている）
     status: done
     updated_by: planner
     updated_at: '2026-11-17T11:48:51.469484+00:00'
@@ -37,7 +37,7 @@ docs:
     updated_at: '2026-11-17T11:48:51.469484+00:00'
   - page: docs/guide/files.yml
     new: false
-    change: 確認の時点を記録する（既存の行の説明は今の中身と合っている）
+    change: 目次の 3 ページ（はじめに.md・使い方.md・リファレンス.md）の行を同じ名前の category で加え、確認の時点を記録する（既存の行の説明は今の中身と合っている）
     status: done
     updated_by: planner
     updated_at: '2026-11-17T11:48:51.469484+00:00'

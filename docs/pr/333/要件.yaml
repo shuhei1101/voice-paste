@@ -55,6 +55,18 @@ docs:
     updated_at: '2026-11-17T11:49:02.479796+00:00'
 scope_out:
   - item: PR の資料（docs/pr/）を検索の対象に入れる
-    reason: 参考の shuhei1101/project-index#132 でも対象に入れておらず、作業 PR ごとの一時の資料で設計書の検索の妨げになる。入れるかはレビューで確定する
+    reason: 作業 PR ごとの一時の資料で、設計書の検索の妨げになる。参考の shuhei1101/project-index#132 と同じ判断で、レビューで入れないと確定した
+    plan: none
+  - item: ロックファイル（uv.lock・haas_server/uv.lock・package-lock.json）を検索の対象に入れる
+    reason: 依存の解決の結果をツールが書き出すファイルで、description を付けても検索で引く場面が無い。依存は pyproject.toml・package.json の行で引く
+    plan: none
+  - item: 同梱の minify 済みのライブラリ（docs/_theme/assets/vendor/**）を検索の対象に入れる
+    reason: 外部のライブラリ（mermaid）を minify したまま同梱したファイルで、このリポジトリで変えることが無く、検索で引く場面が無い
+    plan: none
+  - item: 公開ドキュメントの検索の索引（docs/_theme/search.json）を検索の対象に入れる
+    reason: 公開ドキュメントのページから生成する索引で、中身は元のページの行で引ける
+    plan: none
+  - item: docs/guide/README.md を検索の対象に入れる
+    reason: 行 files_guide は metadata に category を持ち、分類を持たない README.md を入れると check_project が metadata の列の欠けに数える。中身は分類ごとの目次（はじめに.md・使い方.md・リファレンス.md）の行で引ける
     plan: none
 use_cases: []

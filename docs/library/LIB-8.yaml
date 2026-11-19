@@ -30,7 +30,9 @@ catalogs:
         purpose: 同梱の Silero VAD のモデル。常駐アプリは同じファイルを `src/voice_paste/integrations/vad/assets/` に同梱して開く
         description: 'faster-whisper を `local-whisper` の extra へ移したため（PR [#204 文字起こしのエンジンに OpenAI API を追加し、faster-whisper・nvidia-* を入れなくても使えるようにする](https://github.com/shuhei1101/voice-paste/issues/204)）、常駐アプリは faster-whisper のパッケージからは開かず、faster-whisper 1.2.1 のこのファイルを `src/voice_paste/integrations/vad/assets/silero_vad_v6.onnx` へコピーして同梱する（MIT。ライセンスの表記を添える）。入力は input（(1, 576) の float32）・h・c（(1, 1, 128)）、出力は確率・h・c（PoC [#80 PoC: 録音を止めずに Silero VAD で区切り、区間ごとの文字起こしが追いつくかを確かめる](https://github.com/shuhei1101/voice-paste/issues/80) で確認した構造）。faster-whisper のバージョンを上げるときは、同梱したファイルと入出力が変わっていないかを確認する。'
         refs:
-          - LIB-15#
+          - to: LIB-15
+            type: references
+            when: "『onnxruntime』の使い方と制約を確認するとき。"
         status: planned
 lead: CTranslate2 で Whisper のモデルを動かし、音声を文字に起こすライブラリ。
 purl: pkg:pypi/faster-whisper
@@ -65,7 +67,9 @@ issues:
         recommended: true
     upstream_issue: https://github.com/SYSTRAN/faster-whisper/issues/1589
     refs:
-      - LIB-4#
+      - to: LIB-4
+        type: references
+        when: "『av』の使い方と制約を確認するとき。"
   - title: 話していない定型句が文末に入る
     summary: 無音・雑音の区間に、話していない「ご視聴ありがとうございました」などの定型句が起こした文字に入る
     occurred_on: '2026-10-22'
@@ -87,7 +91,10 @@ issues:
       - method: '`word_timestamps=True` と `hallucination_silence_threshold`（1.0 / 2.0 秒）を `transcribe` へ引き渡す'
         result: 履歴の録音で起こし比べた結果、定型句が出なくなったのは 8 件中 2 件で、どの組み合わせも同じ。定型句の出ない 20 件では話した区間が欠けた（文字の変化率は最大 `word_timestamps` のみ 13.0%・しきい値 1.0 秒 66.7%・2.0 秒 25.2%）。しきい値を入れた組み合わせでは、基準に無い定型句が 1 件出た。引き渡さない。出た定型句は、文頭・文末から削除する文言の一覧（既定に「ありがとうございました」を含む）で扱う
     refs:
-      - SC-9#scenarios[正常シナリオ（文頭・文末の決まった文言を消す）]
+      - to: SC-9
+        item: "scenarios[正常シナリオ（文頭・文末の決まった文言を消す）]"
+        type: references
+        when: "『録音を文字に起こす』のシナリオ「正常シナリオ（文頭・文末の決まった文言を消す）」の流れと突き合わせるとき。"
 tags:
   - name: tool:faster-whisper
     main: true

@@ -88,7 +88,9 @@ screen: src/voice_paste/server/web/index.html
 mock: docs/mock/pages/web-confirm-dialog/171/a-standard/
 lead: 外の端末の文字起こしの画面で、結果の削除と、文字起こし前の音声を新しい録音で置換することを確認するモーダル。
 refs:
-  - SC-4#
+  - to: SC-4
+    type: references
+    when: "『ブラウザで結果を受け取る』の流れと突き合わせるとき。"
 tags:
   - name: topic:モーダル
     main: true

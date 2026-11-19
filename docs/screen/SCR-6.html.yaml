@@ -51,8 +51,14 @@ elements:
     label: 録音 最大 30 分・ファイル 100 MB 未満
     visible_when: 録音中でないとき
     refs:
-      - NFR-1#requirements[画面の録音の上限時間]
-      - NFR-1#requirements[ブラウザの本文の上限]
+      - to: NFR-1
+        item: "requirements[画面の録音の上限時間]"
+        type: requires
+        when: "『非機能要件』の要件「画面の録音の上限時間」の決定値を確認するとき。"
+      - to: NFR-1
+        item: "requirements[ブラウザの本文の上限]"
+        type: requires
+        when: "『非機能要件』の要件「ブラウザの本文の上限」の決定値を確認するとき。"
   - name: 録音中の状態
     id: recording_state
     kind: label
@@ -324,7 +330,10 @@ elements:
     initial_value: 端末（localStorage voice-paste.keep_screen_on）に覚えた値。無いときはオン。対応しないブラウザではオフ
     action: 変えたら、その値を端末（localStorage voice-paste.keep_screen_on）に覚える
     refs:
-      - ER-1#tables[localStorage voice-paste.keep_screen_on]
+      - to: ER-1
+        item: "tables[localStorage voice-paste.keep_screen_on]"
+        type: references
+        when: "『ER 図: ブラウザの端末のデータ』のテーブル「localStorage voice-paste.keep_screen_on」の列と制約を確認するとき。"
     status: planned
   - name: 画面を暗くしない機能に対応しないことの補足
     id: keep_screen_unsupported
@@ -367,8 +376,12 @@ screen: src/voice_paste/server/web/index.html
 mock: docs/mock/pages/web-transcription/180/a-follow-settings/
 lead: 外の端末のブラウザで開く 1 枚（`GET /web/`）。上に音声送信の区画、下に結果の一覧を 1 カラムで並べる。
 refs:
-  - SC-3#
-  - SC-4#
+  - to: SC-3
+    type: references
+    when: "『ブラウザから音声を送信する』の流れと突き合わせるとき。"
+  - to: SC-4
+    type: references
+    when: "『ブラウザで結果を受け取る』の流れと突き合わせるとき。"
 tags:
   - name: topic:画面
     main: true

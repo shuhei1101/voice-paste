@@ -48,7 +48,9 @@ functions:
         expected: どちらも AudioUnreadableError が送出される
         exception: PyAV で開けないか、音声のストリームが無い
     refs:
-      - LIB-4#
+      - to: LIB-4
+        type: requires
+        when: "『av』の使い方と制約を確認するとき。"
     status: planned
 lead: 受けた音声を PyAV で開いて形式・秒数・大きさを読み込む処理を受け持ち、受け付ける音声の確認を変えるときに参照する。
 tags:

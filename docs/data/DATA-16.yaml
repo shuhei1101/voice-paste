@@ -9,7 +9,10 @@ fields:
     type: string
     description: logging の 1 行。[ERROR] はスタックトレースつき
 refs:
-  - ER-2#tables[~/.local/state/voice-paste/haas_server.log]
+  - to: ER-2
+    item: "tables[~/.local/state/voice-paste/haas_server.log]"
+    type: references
+    when: "『ER 図: 常駐アプリのファイル』のテーブル「~/.local/state/voice-paste/haas_server.log」の列と制約を確認するとき。"
 tags:
   - name: topic:ログ
     main: true

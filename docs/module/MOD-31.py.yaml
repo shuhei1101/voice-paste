@@ -31,7 +31,9 @@ enums:
         title: 失敗
         description: 文字起こしのエンジンを準備できなかった起動。次の起動まで続く
     refs:
-      - SCR-1#
+      - to: SCR-1
+        type: requires
+        when: "『トレイ』の表示と振る舞いを確認するとき。"
     status: implemented
   - name: RecordingWindowState
     title: 録音の画面の状態
@@ -56,7 +58,10 @@ enums:
         title: 録音していない
         description: 待機中・文字起こし中・準備に失敗した起動
     refs:
-      - SCR-1#elements[録音の画面を表示]
+      - to: SCR-1
+        item: "elements[録音の画面を表示]"
+        type: requires
+        when: "『トレイ』の要素「録音の画面を表示」の表示と振る舞いを確認するとき。"
     status: implemented
 classes:
   - name: Tray
@@ -324,7 +329,10 @@ classes:
             expected: 見出し「コピーしました」、本文「任意の場所に貼り付けてください。この通知を押すと、もう一度コピーします。」、MessageIcon.Information で呼ばれる
         status: planned
         refs:
-          - SCR-2#notes
+          - to: SCR-2
+            item: "notes"
+            type: requires
+            when: "『トレイの通知』の補足を確認するとき。"
       - name: show_glossary_preset_switched
         title: 用語集のプリセットの切り替えの通知
         summary: 切り替えの見出しと本文（プリセットの名前を入れる）で、情報のアイコンの Windows の通知を出す。_copied_text を空にし、通知を押しても何もしない
@@ -348,7 +356,10 @@ classes:
             expected: 見出し「用語集のプリセットを切り替えました」、本文「次の録音から「会議」で補正します。」、MessageIcon.Information で呼ばれ、押しても recopy_requested が emit されない
         status: planned
         refs:
-          - SCR-2#notes
+          - to: SCR-2
+            item: "notes"
+            type: requires
+            when: "『トレイの通知』の補足を確認するとき。"
       - name: _on_message_clicked
         title: 通知の押下
         summary: messageClicked のスロット。最後に出した通知の種類で、もう一度コピーするか、ログフォルダを開くか、何もしないかを出し分ける
@@ -407,8 +418,12 @@ classes:
             mock: QSystemTrayIcon.show（呼ばれた時点のヒントとアイコンの画像の有無を記録する）
             expected: 'show が 1 回呼ばれ、その時点のヒントが空でアイコンの画像が付いている。作り終えた後のヒントが voice-paste: 準備中'
     refs:
-      - SCR-1#
-      - SCR-2#
+      - to: SCR-1
+        type: requires
+        when: "『トレイ』の表示と振る舞いを確認するとき。"
+      - to: SCR-2
+        type: requires
+        when: "『トレイの通知』の表示と振る舞いを確認するとき。"
     status: implemented
 aliases:
   - Tray

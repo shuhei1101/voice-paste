@@ -95,8 +95,12 @@ data_models:
             mock: なし
             expected: 'model_dump() が {session_id: s1, result: transcribed, text: テスト, error: None}'
     refs:
-      - IF-3#
-      - IF-7#
+      - to: IF-3
+        type: requires
+        when: "『呼び出し元へ返す』の入出力とフローと突き合わせるとき。"
+      - to: IF-7
+        type: requires
+        when: "『設定のエンドポイントへ送信する』の入出力とフローと突き合わせるとき。"
     status: implemented
   - name: OutputDeps
     title: 出力先の配線に渡すもの
@@ -177,7 +181,9 @@ data_models:
             mock: なし
             expected: segment_number・segment_count が None
     refs:
-      - IF-3#
+      - to: IF-3
+        type: requires
+        when: "『呼び出し元へ返す』の入出力とフローと突き合わせるとき。"
     status: planned
 function_types:
   - name: OutputFn

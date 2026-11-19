@@ -9,7 +9,10 @@ fields:
     type: string
     description: 空のファイル。flock の対象にするだけ
 refs:
-  - ER-2#tables[%LOCALAPPDATA%\voice-paste\instance.lock]
+  - to: ER-2
+    item: "tables[%LOCALAPPDATA%\\voice-paste\\instance.lock]"
+    type: references
+    when: "『ER 図: 常駐アプリのファイル』のテーブル「%LOCALAPPDATA%\\voice-paste\\instance.lock」の列と制約を確認するとき。"
 tags:
   - name: topic:排他ロック
     main: true

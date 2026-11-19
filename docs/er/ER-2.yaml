@@ -178,7 +178,10 @@ tables:
         example: '1'
     status: implemented
     refs:
-      - CFG-1#settings[glossaries[].path]
+      - to: CFG-1
+        item: "settings[glossaries[].path]"
+        type: references
+        when: "『設定: 常駐アプリ』の設定「glossaries[].path」の既定値と意味を確認するとき。"
   - name: '%LOCALAPPDATA%\voice-paste\ui\{ハッシュ}.svg'
     title: 開くマーカーの画像
     source: DATA-12#
@@ -254,7 +257,10 @@ tables:
         type: なし
         description: 空のファイル。flock の対象にするだけ
     refs:
-      - MOD-88#functions[acquire_single_instance_linux]
+      - to: MOD-88
+        item: "functions[acquire_single_instance_linux]"
+        type: references
+        when: "『常駐アプリ / 起動と配線 / single_instance_linux.py』の関数「acquire_single_instance_linux」を呼ぶ・変えるときに、引数と戻り値を確認するとき。"
     status: planned
   - name: ~/.local/state/voice-paste/haas_server.log
     title: Haas の文字起こしのサーバーのログ
@@ -273,7 +279,10 @@ tables:
     retention: 世代を超えた分を削除する
     deletion: RotatingFileHandler が古い世代を削除する。常駐アプリの保持期間の削除の対象にしない
     refs:
-      - MOD-101#functions[main]
+      - to: MOD-101
+        item: "functions[main]"
+        type: references
+        when: "『Haas の文字起こしのサーバー / サーバー / main.py』の関数「main」を呼ぶ・変えるときに、引数と戻り値を確認するとき。"
     status: planned
 tags:
   - name: topic:ファイル

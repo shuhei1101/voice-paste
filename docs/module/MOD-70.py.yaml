@@ -192,7 +192,9 @@ classes:
             mock: evdev.UInput・time.sleep
             expected: UInput.close が 1 回だけ呼ばれ、send_enter は DeliveryError を送出する
     refs:
-      - LIB-6#
+      - to: LIB-6
+        type: requires
+        when: "『evdev』の使い方と制約を確認するとき。"
     status: planned
 constants:
   - name: DEVICE_READY_SEC

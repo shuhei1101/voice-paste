@@ -10,8 +10,14 @@ elements:
     visible_when: ホットキー・トレイから始めた録音セッションが transcribing か delivering の間（`recording.hide_window` がオフのとき）。API から始めた録音では出さない
     source: UiBridge.notified（state_changed）
     refs:
-      - CFG-1#settings[recording.hide_window]
-      - CFG-1#settings[ui.theme]
+      - to: CFG-1
+        item: "settings[recording.hide_window]"
+        type: references
+        when: "『設定: 常駐アプリ』の設定「recording.hide_window」の既定値と意味を確認するとき。"
+      - to: CFG-1
+        item: "settings[ui.theme]"
+        type: references
+        when: "『設定: 常駐アプリ』の設定「ui.theme」の既定値と意味を確認するとき。"
   - name: 状態の表示
     id: state_label
     kind: label
@@ -55,7 +61,10 @@ elements:
     visible_when: 常時
     action: ドラッグで窓を動かし、放した位置に配置する
     refs:
-      - SCR-10#elements[見出しの行]
+      - to: SCR-10
+        item: "elements[見出しの行]"
+        type: references
+        when: "『録音の画面』の要素「見出しの行」の表示と振る舞いを確認するとき。"
     status: planned
   - name: 出力先の見出し
     id: output_heading
@@ -78,10 +87,22 @@ elements:
     target: 届ける出力先の差し替え（押したボタンの出力先の ID。入り口はモジュール構成『録音セッション』）
     action: 今の出力先のマーカーと貼り付けの案内を切り替えた先に変える
     refs:
-      - CFG-1#settings[outputs[].enabled]
-      - CFG-1#settings[outputs[].hotkey]
-      - CFG-1#settings[ui.transcribing_show_hotkeys]
-      - SCR-10#elements[出力先の確定のボタン]
+      - to: CFG-1
+        item: "settings[outputs[].enabled]"
+        type: references
+        when: "『設定: 常駐アプリ』の設定「outputs[].enabled」の既定値と意味を確認するとき。"
+      - to: CFG-1
+        item: "settings[outputs[].hotkey]"
+        type: references
+        when: "『設定: 常駐アプリ』の設定「outputs[].hotkey」の既定値と意味を確認するとき。"
+      - to: CFG-1
+        item: "settings[ui.transcribing_show_hotkeys]"
+        type: references
+        when: "『設定: 常駐アプリ』の設定「ui.transcribing_show_hotkeys」の既定値と意味を確認するとき。"
+      - to: SCR-10
+        item: "elements[出力先の確定のボタン]"
+        type: references
+        when: "『録音の画面』の要素「出力先の確定のボタン」の表示と振る舞いを確認するとき。"
     status: planned
   - name: プリセットの名前
     id: preset_label
@@ -93,13 +114,18 @@ elements:
     visible_when: カスタムプリセットで確定した録音のとき
     source: Session.output_preset.title
     refs:
-      - CFG-1#settings[presets[].title]
+      - to: CFG-1
+        item: "settings[presets[].title]"
+        type: references
+        when: "『設定: 常駐アプリ』の設定「presets[].title」の既定値と意味を確認するとき。"
     status: planned
 screen: src/voice_paste/ui/windows/transcribing_indicator.py
 mock: docs/mock/pages/transcribing-indicator/108/c-both/
 lead: 確定から届けるまで、録音の画面と同じ位置に出る小さな表示。文字起こしの経過と残りの時間、今の出力先を出し、固定の出力先への切り替えを受ける。
 refs:
-  - SC-9#
+  - to: SC-9
+    type: references
+    when: "『録音を文字に起こす』の流れと突き合わせるとき。"
 notes:
   閉じるとき: 届けた・結果が空のときは閉じてトレイだけに戻る。文字起こしに失敗・届けられないときは閉じてトレイの通知で通知する
   出力先の切り替え: |-

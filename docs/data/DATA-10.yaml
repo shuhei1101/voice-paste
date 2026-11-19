@@ -9,7 +9,10 @@ fields:
     type: string
     description: スタックトレースや起動の手順の行
 refs:
-  - ER-2#tables[%LOCALAPPDATA%\voice-paste\log\worker_crash.log ほか]
+  - to: ER-2
+    item: "tables[%LOCALAPPDATA%\\voice-paste\\log\\worker_crash.log ほか]"
+    type: references
+    when: "『ER 図: 常駐アプリのファイル』のテーブル「%LOCALAPPDATA%\\voice-paste\\log\\worker_crash.log ほか」の列と制約を確認するとき。"
 tags:
   - name: topic:ログ
     main: true

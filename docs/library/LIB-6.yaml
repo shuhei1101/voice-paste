@@ -45,7 +45,9 @@ limitations:
   - item: 動く OS
     content: Linux だけ。Windows の wheel は無い
 refs:
-  - LIB-20#
+  - to: LIB-20
+    type: references
+    when: "『pyperclip』の使い方と制約を確認するとき。"
 aliases:
   - python-evdev
 tags:

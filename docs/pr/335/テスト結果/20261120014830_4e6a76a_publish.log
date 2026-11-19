@@ -1,0 +1,28 @@
+$ cd /home/shuhei2441/repo/ai-monitor/.claude/worktrees/develop  # ai-monitor develop 0e8192db1
+$ PYTHONPATH=src uv run python -m ai_monitor.design_docs publish --root /home/shuhei2441/repo/voice-paste/.claude/worktrees/fix-dev-docs-align-design-schema-revision
+docs/_theme/_data/nav.project.yml
+docs/guide/はじめに.mark.md
+docs/guide/使い方.mark.md
+docs/guide/リファレンス.mark.md
+docs/guide/はじめに.md
+docs/guide/使い方.md
+docs/guide/リファレンス.md
+docs/_config.yml
+docs/architecture/README.mark.md
+docs/config/README.mark.md
+docs/data/README.mark.md
+docs/dev-command/README.mark.md
+docs/er/README.mark.md
+docs/external-api/README.mark.md
+docs/glossary/README.mark.md
+docs/guide/README.mark.md
+docs/README.mark.md
+docs/interface/README.mark.md
+docs/layout/README.mark.md
+docs/library/README.mark.md
+docs/module/README.mark.md
+docs/nonfunctional/README.mark.md
+docs/scenario/README.mark.md
+docs/screen/README.mark.md
+docs/test-procedure/README.mark.md
+exit=0

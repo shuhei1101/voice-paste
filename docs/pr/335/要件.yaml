@@ -1,14 +1,17 @@
 docs:
   - page: dev-docs.yaml
     new: false
-    change: documents[].schema の ref を全ての行で design-schemas/v9.2.0 へ統一する
+    change: documents[].schema の ref を全ての行で design-schemas/v9.2.0 へ統一し、glossary の行の schema を knowledge の design-schemas/v9.2.0 の schemas/design/glossary.schema.yaml へ向ける
     status: done
     updated_by: planner
     updated_at: '2026-11-19T16:48:35.838927+00:00'
 scope_out:
   - item: knowledge の design-schemas/v9.2.0 より後の版（v9.2.1〜v9.5.0）への追従
-    reason: 受付の判断で統一する先を v9.2.0 に確定しており、それより後の版のスキーマの変更への追従は要望に含まれない。追従するかはレビューで確定する
+    reason: 受付の判断で統一する先を v9.2.0 に確定しており、それより後の版のスキーマの変更への追従は要望に含まれない
     plan: to_file
   - item: design_docs publish が書き出す目次の README.md の README.mark.md への置き換えと、_config.yml・nav.project.yml・docs/guide の書き出しの差分
     reason: publish の終了の状態を確かめるために流した ai-monitor の develop の生成の変更で、要望（リビジョンの統一）に含まれない。生成物は作業ブランチへ入れずに戻した
     plan: none
+  - item: 使わなくなったリポジトリの中の schemas/glossary.schema.yaml の削除
+    reason: glossary の行を knowledge のスキーマへ向けたためどの行からも指されなくなったが、削除してもしなくても要望（リビジョンの統一と publish の終了の状態）は変わらない。削除するかはレビューで確定する
+    plan: to_file

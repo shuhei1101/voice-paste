@@ -70,8 +70,10 @@ tasks:
     updated_by: planner
     updated_at: '2026-11-19T17:25:37.123188+00:00'
   - process: ドキュメント修正
-    status: todo
+    status: done
     note: dev-docs.yaml の documents[].schema.ref を全て design-schemas/v9.5.0 へ上げ、design_docs validate が違反を返した設計書だけを追従させる。validate と publish が終了の状態 0 で終わることを確かめる
+    updated_by: planner
+    updated_at: '2026-11-19T17:27:54.590575+00:00'
   - process: 単体テスト作成
     status: skipped
     reason: コードを変えない

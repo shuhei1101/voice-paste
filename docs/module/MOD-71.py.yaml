@@ -108,8 +108,12 @@ functions:
     notes:
       契約テスト: pycaw はバージョンで API が変わるため `==` で固定し、この関数と restore_volume の疎通テストを Windows の実機で回す契約テストにする（品質シナリオ 7。依存のバージョンを上げたら回す）。
     refs:
-      - LIB-17#
-      - LIB-5#
+      - to: LIB-17
+        type: requires
+        when: "『pycaw』の使い方と制約を確認するとき。"
+      - to: LIB-5
+        type: requires
+        when: "『comtypes』の使い方と制約を確認するとき。"
     status: implemented
   - name: restore_volume
     title: 音量を戻す
@@ -215,7 +219,9 @@ functions:
       type: IAudioEndpointVolume
       description: 既定の再生デバイスの音量のインターフェース（呼ぶスレッドで COM を初期化しておく）
     refs:
-      - LIB-17#
+      - to: LIB-17
+        type: requires
+        when: "『pycaw』の使い方と制約を確認するとき。"
     status: implemented
   - name: _cancel_fade
     title: 進行中のフェードを打ち切る

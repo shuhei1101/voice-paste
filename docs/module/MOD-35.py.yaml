@@ -155,7 +155,9 @@ classes:
             expected: 選んだボタンごとに、丸いマーカーの範囲が名前のラベルの文字の範囲（QFontMetrics で求めた文字の幅をラベルの配置でボタンの座標へ移したもの）とも、ホットキーのラベルの範囲とも交わらない
         status: planned
     refs:
-      - SCR-7#
+      - to: SCR-7
+        type: requires
+        when: "『文字起こし中の表示』の表示と振る舞いを確認するとき。"
     status: implemented
     properties:
       - name: output_selected

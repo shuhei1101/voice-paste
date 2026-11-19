@@ -1175,8 +1175,14 @@ gitignore:
   - pattern: .claude/worktrees/
     reason: Claude Code の作業ブランチの worktree
 refs:
-  - ARCH-1#subsystems
-  - CMD-1#categories
+  - to: ARCH-1
+    item: "subsystems"
+    type: references
+    when: "『アーキテクチャ図』のサブシステムの役割と境界を確認するとき。"
+  - to: CMD-1
+    item: "categories"
+    type: references
+    when: "『開発コマンド』の分類の前提とコマンドを確認するとき。"
 notes:
   目次と行のファイル: |-
     `docs/{種類}/`（設計書と公開ドキュメントの種類のフォルダ）の `index.yaml` と、そこから生成する `README.md` は、エントリに記載しない。

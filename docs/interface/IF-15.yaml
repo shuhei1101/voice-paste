@@ -173,12 +173,26 @@ flows:
       - 実行の結論が `failure`
       - step「層の全件を回す」の結論が `skipped`
 refs:
-  - TP-1#layers[単体テスト（バック）]
-  - TP-1#layers[結合テスト（バック）]
-  - LIB-34#
-  - LIB-35#
-  - LIB-36#
-  - LIB-38#
+  - to: TP-1
+    item: "layers[単体テスト（バック）]"
+    type: references
+    when: "『テスト実行方法』のテストの層「単体テスト（バック）」の前提とコマンドを確認するとき。"
+  - to: TP-1
+    item: "layers[結合テスト（バック）]"
+    type: references
+    when: "『テスト実行方法』のテストの層「結合テスト（バック）」の前提とコマンドを確認するとき。"
+  - to: LIB-34
+    type: requires
+    when: "『actions/checkout』の使い方と制約を確認するとき。"
+  - to: LIB-35
+    type: requires
+    when: "『astral-sh/setup-uv』の使い方と制約を確認するとき。"
+  - to: LIB-36
+    type: requires
+    when: "『actions/upload-artifact』の使い方と制約を確認するとき。"
+  - to: LIB-38
+    type: requires
+    when: "『pytest-timeout』の使い方と制約を確認するとき。"
 notes:
   step ごとの中身: |-
     | step | 中身 |

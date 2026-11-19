@@ -11,11 +11,26 @@ elements:
     action: 確定・取り消し・× で閉じ、前面を貼り付け先へ戻す。「隠す」でその回だけ隠し、前面を貼り付け先へ戻す。隠した窓は、トレイのアイコンの左クリック・トレイの「録音の画面を表示」・録音開始のホットキー（同じホットキーの出力先が無いとき）で、隠す前の位置にフォーカスを取らずに戻す
     source: UiBridge.notified（state_changed）
     refs:
-      - CFG-1#settings[ui.topmost]
-      - CFG-1#settings[ui.position]
-      - CFG-1#settings[ui.follow_cursor]
-      - CFG-1#settings[recording.hide_window]
-      - CFG-1#settings[ui.theme]
+      - to: CFG-1
+        item: "settings[ui.topmost]"
+        type: references
+        when: "『設定: 常駐アプリ』の設定「ui.topmost」の既定値と意味を確認するとき。"
+      - to: CFG-1
+        item: "settings[ui.position]"
+        type: references
+        when: "『設定: 常駐アプリ』の設定「ui.position」の既定値と意味を確認するとき。"
+      - to: CFG-1
+        item: "settings[ui.follow_cursor]"
+        type: references
+        when: "『設定: 常駐アプリ』の設定「ui.follow_cursor」の既定値と意味を確認するとき。"
+      - to: CFG-1
+        item: "settings[recording.hide_window]"
+        type: references
+        when: "『設定: 常駐アプリ』の設定「recording.hide_window」の既定値と意味を確認するとき。"
+      - to: CFG-1
+        item: "settings[ui.theme]"
+        type: references
+        when: "『設定: 常駐アプリ』の設定「ui.theme」の既定値と意味を確認するとき。"
   - name: 状態の表示
     id: state_label
     kind: label
@@ -46,7 +61,10 @@ elements:
     visible_when: 常時
     source: UiDeps.level（Recorder.level。`ui.wave_gain` を掛けて高さを決める）
     refs:
-      - CFG-1#settings[ui.wave_gain]
+      - to: CFG-1
+        item: "settings[ui.wave_gain]"
+        type: references
+        when: "『設定: 常駐アプリ』の設定「ui.wave_gain」の既定値と意味を確認するとき。"
   - name: 一時停止のボタン
     id: pause_button
     kind: button
@@ -56,7 +74,10 @@ elements:
     visible_when: 状態が recording のとき
     action_ref: MOD-24#classes[SessionManager].methods[pause]
     refs:
-      - CFG-1#settings[ui.show_hotkeys]
+      - to: CFG-1
+        item: "settings[ui.show_hotkeys]"
+        type: references
+        when: "『設定: 常駐アプリ』の設定「ui.show_hotkeys」の既定値と意味を確認するとき。"
   - name: 再開のボタン
     id: resume_button
     kind: button
@@ -66,7 +87,10 @@ elements:
     visible_when: 状態が paused のとき
     action_ref: MOD-24#classes[SessionManager].methods[resume]
     refs:
-      - CFG-1#settings[ui.show_hotkeys]
+      - to: CFG-1
+        item: "settings[ui.show_hotkeys]"
+        type: references
+        when: "『設定: 常駐アプリ』の設定「ui.show_hotkeys」の既定値と意味を確認するとき。"
   - name: 取り消しのボタン
     id: cancel_button
     kind: button
@@ -77,7 +101,10 @@ elements:
     action: 窓を閉じる
     action_ref: MOD-24#classes[SessionManager].methods[cancel]
     refs:
-      - CFG-1#settings[ui.show_hotkeys]
+      - to: CFG-1
+        item: "settings[ui.show_hotkeys]"
+        type: references
+        when: "『設定: 常駐アプリ』の設定「ui.show_hotkeys」の既定値と意味を確認するとき。"
   - name: 出力先の確定のボタン
     id: output_button_{output_id}
     kind: button
@@ -90,10 +117,21 @@ elements:
     action: 窓を閉じる
     action_ref: MOD-24#classes[SessionManager].methods[complete]
     refs:
-      - CFG-1#settings[outputs[].enabled]
-      - CFG-1#settings[outputs[].hotkey]
-      - SCR-7#
-      - CFG-1#settings[ui.show_hotkeys]
+      - to: CFG-1
+        item: "settings[outputs[].enabled]"
+        type: references
+        when: "『設定: 常駐アプリ』の設定「outputs[」のenabled]の既定値と意味を確認するとき。"
+      - to: CFG-1
+        item: "settings[outputs[].hotkey]"
+        type: references
+        when: "『設定: 常駐アプリ』の設定「outputs[」のhotkey]の既定値と意味を確認するとき。"
+      - to: SCR-7
+        type: references
+        when: "『文字起こし中の表示』の表示と振る舞いを確認するとき。"
+      - to: CFG-1
+        item: "settings[ui.show_hotkeys]"
+        type: references
+        when: "『設定: 常駐アプリ』の設定「ui.show_hotkeys」の既定値と意味を確認するとき。"
   - name: カスタムプリセットの見出し
     id: presets_heading
     kind: label
@@ -113,11 +151,25 @@ elements:
     action: 窓を閉じる
     action_ref: MOD-24#classes[SessionManager].methods[complete]
     refs:
-      - CFG-1#settings[presets[].title]
-      - CFG-1#settings[presets[].hotkey]
-      - CFG-1#settings[presets[].enabled]
-      - SCR-7#
-      - CFG-1#settings[ui.show_hotkeys]
+      - to: CFG-1
+        item: "settings[presets[].title]"
+        type: references
+        when: "『設定: 常駐アプリ』の設定「presets[」のtitle]の既定値と意味を確認するとき。"
+      - to: CFG-1
+        item: "settings[presets[].hotkey]"
+        type: references
+        when: "『設定: 常駐アプリ』の設定「presets[」のhotkey]の既定値と意味を確認するとき。"
+      - to: CFG-1
+        item: "settings[presets[].enabled]"
+        type: references
+        when: "『設定: 常駐アプリ』の設定「presets[」のenabled]の既定値と意味を確認するとき。"
+      - to: SCR-7
+        type: references
+        when: "『文字起こし中の表示』の表示と振る舞いを確認するとき。"
+      - to: CFG-1
+        item: "settings[ui.show_hotkeys]"
+        type: references
+        when: "『設定: 常駐アプリ』の設定「ui.show_hotkeys」の既定値と意味を確認するとき。"
   - name: 見出しの行
     id: head_row
     kind: drag_handle
@@ -134,8 +186,13 @@ elements:
     visible_when: 常時
     action: 窓を隠し、前面を貼り付け先へ戻す
     refs:
-      - CFG-1#settings[hotkeys.start]
-      - SCR-1#
+      - to: CFG-1
+        item: "settings[hotkeys.start]"
+        type: references
+        when: "『設定: 常駐アプリ』の設定「hotkeys.start」の既定値と意味を確認するとき。"
+      - to: SCR-1
+        type: references
+        when: "『トレイ』の表示と振る舞いを確認するとき。"
   - name: 閉じるのボタン
     id: close_button
     kind: button
@@ -146,13 +203,21 @@ elements:
     action: 窓を閉じる
     action_ref: MOD-24#classes[SessionManager].methods[cancel]
     refs:
-      - CFG-1#settings[hotkeys.cancel]
+      - to: CFG-1
+        item: "settings[hotkeys.cancel]"
+        type: references
+        when: "『設定: 常駐アプリ』の設定「hotkeys.cancel」の既定値と意味を確認するとき。"
 screen: src/voice_paste/ui/windows/recording_window.py
 mock: docs/mock/pages/recording-window/94/a-cool-gray/
 lead: ホットキー・トレイから始めた録音の間だけ出る小さな窓。状態・経過時間・波形と、一時停止・取り消し・確定の操作を並べる。
 refs:
-  - SC-8#
-  - MOD-32#classes[UiBridge]
+  - to: SC-8
+    type: references
+    when: "『録音する』の流れと突き合わせるとき。"
+  - to: MOD-32
+    item: "classes[UiBridge]"
+    type: references
+    when: "『常駐アプリ / ホットキーと画面 / bridge.py』のクラス「UiBridge」のメソッドと属性を確認するとき。"
 notes:
   ホットキー: ボタンと同じ操作は、どこにフォーカスがあってもホットキーで行える（`HotkeyListener`）。窓のキーボードの操作は持たず、窓を押してフォーカスを取った後に Tab で移ったときだけフォーカスの枠線を出す
   ボタンのホットキーの出し方: 一時停止・再開・取り消し・出力先の確定・カスタムプリセットのボタンは、名前を 1 行目に、同じ操作のホットキーを 2 行目に出す。ホットキーは `format_hotkey` で整えた全体を省略せず、枠で囲んだ等幅のキー（キーキャップ風）で出す。ボタンの大きさは中の名前とホットキーが要る大きさから決め、幅は名前とホットキーの長い方にする。窓は既定の幅（360px）より狭くせず、ボタンが要る幅まで広げる。プリセットの列は列ごとにいちばん広いボタンの幅に統一する。ホットキーが空のボタンは名前だけを出す。`ui.show_hotkeys` がオフのときは、全てのボタンをホットキーが空のボタンと同じく名前だけで出す（ホットキーでの操作はそのまま有効になる）

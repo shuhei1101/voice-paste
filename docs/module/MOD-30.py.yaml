@@ -566,9 +566,15 @@ classes:
             mock: UiDeps の全関数・Tray
             expected: Tray.show_failure(delivery_failed, クリップボードへ書き込めませんでした) が呼ばれ、ERROR のログが 1 行出て、例外が外へ出ない
     refs:
-      - SCR-10#
-      - SCR-7#
-      - SCR-1#
+      - to: SCR-10
+        type: requires
+        when: "『録音の画面』の表示と振る舞いを確認するとき。"
+      - to: SCR-7
+        type: requires
+        when: "『文字起こし中の表示』の表示と振る舞いを確認するとき。"
+      - to: SCR-1
+        type: requires
+        when: "『トレイ』の表示と振る舞いを確認するとき。"
     status: implemented
 aliases:
   - UiController

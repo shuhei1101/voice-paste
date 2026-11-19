@@ -42,7 +42,9 @@ functions:
         mock: sounddevice.InputStream
         expected: samplerate=16000・channels=1・dtype='int16' で作られて start が呼ばれ、on_frames に同じ値のコピーが渡る
     refs:
-      - LIB-27#
+      - to: LIB-27
+        type: requires
+        when: "『sounddevice』の使い方と制約を確認するとき。"
     status: implemented
 lead: 既定の入力デバイスを 16 kHz・モノラルで開く処理を受け持ち、マイクの入力の形式を変えるときに参照する。
 tags:

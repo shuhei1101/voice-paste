@@ -86,7 +86,10 @@ functions:
         mock: なし
         expected: それぞれ True と False
     refs:
-      - CFG-1#settings[ui.theme]
+      - to: CFG-1
+        item: "settings[ui.theme]"
+        type: references
+        when: "『設定: 常駐アプリ』の設定「ui.theme」の既定値と意味を確認するとき。"
     status: implemented
   - name: apply_theme
     title: 明暗の適用
@@ -156,7 +159,10 @@ functions:
         mock: is_dark_theme（False）
         expected: 1 回目の後に `_indicator_style` が IndicatorStyle のインスタンスになり、2 回目の後も同じインスタンスのまま（app.setStyle は 1 回だけ呼ばれる）。fixture は終わりに `_indicator_style` を None に戻し、アプリのスタイルを元に戻す
     refs:
-      - CFG-1#settings[ui.theme]
+      - to: CFG-1
+        item: "settings[ui.theme]"
+        type: references
+        when: "『設定: 常駐アプリ』の設定「ui.theme」の既定値と意味を確認するとき。"
     status: implemented
   - name: theme_color
     title: 今の明暗の色

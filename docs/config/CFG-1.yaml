@@ -446,7 +446,9 @@ settings:
     allowed: http か https
     status: implemented
     refs:
-      - IF-7#
+      - to: IF-7
+        type: requires
+        when: "『設定のエンドポイントへ送信する』の入出力とフローと突き合わせるとき。"
   - key: presets[].hotkey
     title: カスタムプリセットで確定するホットキー
     file: settings.yaml
@@ -482,7 +484,9 @@ settings:
     reload: immediate
     status: implemented
     refs:
-      - IF-7#
+      - to: IF-7
+        type: requires
+        when: "『設定のエンドポイントへ送信する』の入出力とフローと突き合わせるとき。"
   - key: preset_options.browser.open_delay_sec
     title: ブラウザで開いてから貼り付けるまでの秒数
     file: settings.yaml
@@ -502,8 +506,13 @@ settings:
     allowed: 0.5〜10
     status: implemented
     refs:
-      - NFR-1#requirements[エンドポイントへ送信するときのタイムアウト]
-      - IF-7#
+      - to: NFR-1
+        item: "requirements[エンドポイントへ送信するときのタイムアウト]"
+        type: requires
+        when: "『非機能要件』の要件「エンドポイントへ送信するときのタイムアウト」の決定値を確認するとき。"
+      - to: IF-7
+        type: requires
+        when: "『設定のエンドポイントへ送信する』の入出力とフローと突き合わせるとき。"
   - key: api.continuous.min_silence_sec
     title: 連続録音を区切る無音の長さ
     file: settings.yaml
@@ -514,7 +523,9 @@ settings:
     allowed: 0.5〜10
     reason: 'PoC（[#80 PoC: 録音を止めずに Silero VAD で区切り、区間ごとの文字起こしが追いつくかを確かめる](https://github.com/shuhei1101/voice-paste/issues/80)）で 2.0 秒のとき、間 2.1 秒の文は区切り、間 1.0 秒の文は区切らないことを確認した'
     refs:
-      - IF-10#
+      - to: IF-10
+        type: requires
+        when: "『録音を開始する』の入出力とフローと突き合わせるとき。"
     status: planned
   - key: api.continuous.session_limit_sec
     title: 連続録音の録音セッションの上限時間
@@ -525,7 +536,10 @@ settings:
     reload: restart
     allowed: 60〜86400
     refs:
-      - NFR-1#requirements[連続録音の録音セッションの上限時間]
+      - to: NFR-1
+        item: "requirements[連続録音の録音セッションの上限時間]"
+        type: requires
+        when: "『非機能要件』の要件「連続録音の録音セッションの上限時間」の決定値を確認するとき。"
     status: planned
   - key: outputs[].enter_modifiers
     title: Enter と一緒に押す修飾キー
@@ -580,7 +594,10 @@ settings:
     reload: immediate
     status: deprecated
     refs:
-      - CFG-1#settings[glossary_presets[].name]
+      - to: CFG-1
+        item: "settings[glossary_presets[].name]"
+        type: references
+        when: "『設定: 常駐アプリ』の設定「glossary_presets[」のname]の既定値と意味を確認するとき。"
   - key: hint_presets[].name
     title: 表記のヒントのプリセットの名前
     file: settings.yaml
@@ -599,7 +616,9 @@ settings:
     allowed: 1 つの単語は空にできず、読点（、）・句点（。）・改行を含められない。有効なプリセットの単語をつないだ長さは UTF-8 で 222 バイト以下
     status: implemented
     refs:
-      - LIB-8#
+      - to: LIB-8
+        type: references
+        when: "『faster-whisper』の使い方と制約を確認するとき。"
   - key: hint_presets[].enabled
     title: 表記のヒントのプリセットが有効か
     file: settings.yaml
@@ -627,8 +646,13 @@ settings:
     reload: immediate
     allowed: 1 文字以上（前後の空白を除いて）。`*` だけの文言は入れられない（文頭・文末の行を丸ごと削除するため）
     refs:
-      - SC-9#scenarios[正常シナリオ（文頭・文末の決まった文言を消す）]
-      - LIB-8#
+      - to: SC-9
+        item: "scenarios[正常シナリオ（文頭・文末の決まった文言を消す）]"
+        type: references
+        when: "『録音を文字に起こす』のシナリオ「正常シナリオ（文頭・文末の決まった文言を消す）」の流れと突き合わせるとき。"
+      - to: LIB-8
+        type: references
+        when: "『faster-whisper』の使い方と制約を確認するとき。"
     status: implemented
   - key: edge_phrases[].position
     title: 文言を当てる位置
@@ -649,8 +673,12 @@ settings:
     reload: restart
     status: planned
     refs:
-      - IF-11#
-      - IF-6#
+      - to: IF-11
+        type: requires
+        when: "『音声を受け付ける』の入出力とフローと突き合わせるとき。"
+      - to: IF-6
+        type: requires
+        when: "『画面を配信する』の入出力とフローと突き合わせるとき。"
   - key: glossary_presets[].name
     title: 用語集のプリセットの名前
     file: settings.yaml
@@ -660,7 +688,10 @@ settings:
     allowed: 1 文字以上（前後の空白を除いて）。ほかの用語集のプリセットと同じ名前にできない（大文字と小文字は区別する）
     status: planned
     refs:
-      - IF-10#request[glossary_preset]
+      - to: IF-10
+        item: "request[glossary_preset]"
+        type: requires
+        when: "『録音を開始する』の要求「glossary_preset」と突き合わせるとき。"
   - key: glossary_presets[].glossaries
     title: 用語集のプリセットで使う用語集
     file: settings.yaml

@@ -15,7 +15,10 @@ fields:
     description: '今回の起動のトークン。`Authorization: Bearer {トークン}` で付ける'
     required: true
 refs:
-  - ER-2#tables[%LOCALAPPDATA%\voice-paste\api_token]
+  - to: ER-2
+    item: "tables[%LOCALAPPDATA%\\voice-paste\\api_token]"
+    type: references
+    when: "『ER 図: 常駐アプリのファイル』のテーブル「%LOCALAPPDATA%\\voice-paste\\api_token」の列と制約を確認するとき。"
 tags:
   - name: topic:トークン
     main: true

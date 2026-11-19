@@ -220,7 +220,9 @@ classes:
             expected: hint_presets[0] が B、hint_presets[1] が A、hint_presets[2] が（"", [], True）の値で、hint_presets.order が True。続けて add_preset を呼ぶと hint_presets[3] が増える
         status: implemented
     refs:
-      - SCR-9#
+      - to: SCR-9
+        type: requires
+        when: "『設定画面』の表示と振る舞いを確認するとき。"
     status: implemented
 aliases:
   - HintPresetPanel

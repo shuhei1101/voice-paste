@@ -60,8 +60,14 @@ license: Modified BSD（open-jtalk・libhtsengine1・open-jtalk-mecab-naist-jdic
 official_url: https://open-jtalk.sourceforge.net/
 install: Linux で非機能要件テストを実行する環境だけに、sudo を使用せずユーザーの配下（`~/.local/opt/open-jtalk`）へ入れる。コマンドは開発コマンドの『環境構築（クローン直後）』の手順 3。パッケージを入れずに `dpkg -x` で展開するため、`open_jtalk` が読み込む `libHTSEngine.so.1` は展開した `usr/lib/x86_64-linux-gnu` を `LD_LIBRARY_PATH` で引き渡す。配置先は環境変数 `VOICE_PASTE_OPEN_JTALK_HOME` で替えられる
 refs:
-  - TP-1#layers[非機能要件テスト]
-  - CMD-1#categories[環境構築（クローン直後）]
+  - to: TP-1
+    item: "layers[非機能要件テスト]"
+    type: references
+    when: "『テスト実行方法』のテストの層「非機能要件テスト」の前提とコマンドを確認するとき。"
+  - to: CMD-1
+    item: "categories[環境構築（クローン直後）]"
+    type: references
+    when: "『開発コマンド』の分類「環境構築（クローン直後）」の前提とコマンドを確認するとき。"
 tags:
   - name: tool:open-jtalk
     main: true

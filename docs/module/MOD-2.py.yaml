@@ -19,7 +19,9 @@ functions:
       1. `YAML(typ="rt")` を作り、`preserve_quotes = True`・`indent(mapping=2, sequence=4, offset=2)`・`width` を十分大きな値にする
       2. 文字列の representer を、YAML 1.1 で文字列でなくなる値（yes・no・on・off・y・n と大文字の表記・null・`~`・数・`*` で始まる値）を単引用符で囲むものに替える
     refs:
-      - LIB-25#
+      - to: LIB-25
+        type: requires
+        when: "『ruamel.yaml』の使い方と制約を確認するとき。"
     status: planned
   - name: read_yaml_document
     title: YAML の文書の読み込み
@@ -161,7 +163,9 @@ functions:
         mock: なし
         expected: 書き出した行に b と「# 録音の開始」がある
     refs:
-      - LIB-25#
+      - to: LIB-25
+        type: requires
+        when: "『ruamel.yaml』の使い方と制約を確認するとき。"
     status: planned
   - name: delete_key
     title: キーの削除
@@ -210,7 +214,9 @@ functions:
         mock: なし
         expected: 文書が空のまま
     refs:
-      - LIB-25#
+      - to: LIB-25
+        type: requires
+        when: "『ruamel.yaml』の使い方と制約を確認するとき。"
     status: planned
   - name: merge_layers
     title: レイヤーの重ね合わせ

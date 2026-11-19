@@ -391,7 +391,9 @@ classes:
           description: なし
         unit_tests: []
     refs:
-      - SCR-9#
+      - to: SCR-9
+        type: requires
+        when: "『設定画面』の表示と振る舞いを確認するとき。"
     status: implemented
     notes:
       読めない用語集: |-
@@ -428,7 +430,9 @@ functions:
         mock: なし
         expected: '[] が返る'
     refs:
-      - SCR-9#
+      - to: SCR-9
+        type: requires
+        when: "『設定画面』の表示と振る舞いを確認するとき。"
     status: implemented
 aliases:
   - GlossaryPanel

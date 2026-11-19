@@ -186,8 +186,12 @@ functions:
         mock: post・sleep・jitter
         expected: post に segment_number=3・segment_count=None を含む中身が 1 回渡る
     refs:
-      - LIB-9#
-      - IF-3#
+      - to: LIB-9
+        type: requires
+        when: "『httpx』の使い方と制約を確認するとき。"
+      - to: IF-3
+        type: requires
+        when: "『呼び出し元へ返す』の入出力とフローと突き合わせるとき。"
     status: implemented
   - name: inject_callback
     title: 呼び出し元へ返すの注入

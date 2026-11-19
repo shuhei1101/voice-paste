@@ -13,7 +13,7 @@ documents:
     schema:
       source: knowledge
       path: schemas/design/data.schema.yaml
-      ref: design-schemas/v9.2.0
+      ref: design-schemas/v9.5.0
     writable: true
     metadata:
       name: title
@@ -28,7 +28,7 @@ documents:
     schema:
       source: knowledge
       path: schemas/design/architecture.schema.yaml
-      ref: design-schemas/v9.2.0
+      ref: design-schemas/v9.5.0
     metadata:
       name: title
       description: lead
@@ -42,7 +42,7 @@ documents:
     schema:
       source: knowledge
       path: schemas/design/nonfunctional.schema.yaml
-      ref: design-schemas/v9.2.0
+      ref: design-schemas/v9.5.0
     metadata:
       name: title
       description: lead
@@ -56,7 +56,7 @@ documents:
     schema:
       source: knowledge
       path: schemas/design/scenario.schema.yaml
-      ref: design-schemas/v9.2.0
+      ref: design-schemas/v9.5.0
     metadata:
       name: title
       description: lead
@@ -70,7 +70,7 @@ documents:
     schema:
       source: knowledge
       path: schemas/design/interface.schema.yaml
-      ref: design-schemas/v9.2.0
+      ref: design-schemas/v9.5.0
     metadata:
       name: title
       description: lead
@@ -84,7 +84,7 @@ documents:
     schema:
       source: knowledge
       path: schemas/design/module.schema.yaml
-      ref: design-schemas/v9.2.0
+      ref: design-schemas/v9.5.0
     metadata:
       name: title
       description: lead
@@ -98,7 +98,7 @@ documents:
     schema:
       source: knowledge
       path: schemas/design/screen.schema.yaml
-      ref: design-schemas/v9.2.0
+      ref: design-schemas/v9.5.0
     metadata:
       name: title
       description: lead
@@ -112,7 +112,7 @@ documents:
     schema:
       source: knowledge
       path: schemas/design/er.schema.yaml
-      ref: design-schemas/v9.2.0
+      ref: design-schemas/v9.5.0
     metadata:
       name: title
       description: lead
@@ -126,7 +126,7 @@ documents:
     schema:
       source: knowledge
       path: schemas/design/config.schema.yaml
-      ref: design-schemas/v9.2.0
+      ref: design-schemas/v9.5.0
     metadata:
       name: title
       description: lead
@@ -140,7 +140,7 @@ documents:
     schema:
       source: knowledge
       path: schemas/design/external_api.schema.yaml
-      ref: design-schemas/v9.2.0
+      ref: design-schemas/v9.5.0
     metadata:
       name: title
       description: lead
@@ -154,7 +154,7 @@ documents:
     schema:
       source: knowledge
       path: schemas/design/library.schema.yaml
-      ref: design-schemas/v9.2.0
+      ref: design-schemas/v9.5.0
     metadata:
       name: title
       description: lead
@@ -168,7 +168,7 @@ documents:
     schema:
       source: knowledge
       path: schemas/design/test_procedure.schema.yaml
-      ref: design-schemas/v9.2.0
+      ref: design-schemas/v9.5.0
     metadata:
       name: title
       description: lead
@@ -182,7 +182,7 @@ documents:
     schema:
       source: knowledge
       path: schemas/design/dev_command.schema.yaml
-      ref: design-schemas/v9.2.0
+      ref: design-schemas/v9.5.0
     metadata:
       name: title
       description: lead
@@ -196,7 +196,7 @@ documents:
     schema:
       source: knowledge
       path: schemas/design/layout.schema.yaml
-      ref: design-schemas/v9.2.0
+      ref: design-schemas/v9.5.0
     metadata:
       name: title
       description: lead
@@ -210,7 +210,7 @@ documents:
     schema:
       source: knowledge
       path: schemas/design/glossary.schema.yaml
-      ref: design-schemas/v9.2.0
+      ref: design-schemas/v9.5.0
     records: terms
     alias_type: term
   - id: index
@@ -219,7 +219,7 @@ documents:
     schema:
       source: knowledge
       path: schemas/design/index.schema.yaml
-      ref: design-schemas/v9.2.0
+      ref: design-schemas/v9.5.0
     metadata:
       description: summary
   - id: files_repo
@@ -229,7 +229,7 @@ documents:
     schema:
       source: knowledge
       path: schemas/knowledge-files.schema.yaml
-      ref: design-schemas/v9.2.0
+      ref: design-schemas/v9.5.0
     records: files
     body_file: path
   - id: files_docs
@@ -239,7 +239,7 @@ documents:
     schema:
       source: knowledge
       path: schemas/knowledge-files.schema.yaml
-      ref: design-schemas/v9.2.0
+      ref: design-schemas/v9.5.0
     records: files
     body_file: path
     metadata:
@@ -251,7 +251,7 @@ documents:
     schema:
       source: knowledge
       path: schemas/knowledge-files.schema.yaml
-      ref: design-schemas/v9.2.0
+      ref: design-schemas/v9.5.0
     records: files
     body_file: path
     metadata:
@@ -263,7 +263,7 @@ documents:
     schema:
       source: knowledge
       path: schemas/knowledge-files.schema.yaml
-      ref: design-schemas/v9.2.0
+      ref: design-schemas/v9.5.0
     records: files
     body_file: path
   - id: files_src
@@ -272,7 +272,7 @@ documents:
     schema:
       source: knowledge
       path: schemas/knowledge-files.schema.yaml
-      ref: design-schemas/v9.2.0
+      ref: design-schemas/v9.5.0
     records: files
     body_file: path
   - id: files_haas_server
@@ -281,7 +281,7 @@ documents:
     schema:
       source: knowledge
       path: schemas/knowledge-files.schema.yaml
-      ref: design-schemas/v9.2.0
+      ref: design-schemas/v9.5.0
     records: files
     body_file: path
   - id: files_tests
@@ -290,7 +290,7 @@ documents:
     schema:
       source: knowledge
       path: schemas/knowledge-files.schema.yaml
-      ref: design-schemas/v9.2.0
+      ref: design-schemas/v9.5.0
     records: files
     body_file: path
 nav:

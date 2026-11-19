@@ -1,0 +1,1 @@
+# dev-docs.yaml の documents[].schema を knowledge の design-schemas/v9.5.0 へ上げる

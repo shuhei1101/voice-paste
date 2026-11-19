@@ -7,10 +7,7 @@ constants:
     summary: サーバーを起動してから応答するまで待つ秒数
     value: '60.0'
     refs:
-      - to: NFR-1
-        item: "requirements[Haasのサーバーの起動の待ち時間]"
-        type: requires
-        when: "『非機能要件』の「Haasのサーバーの起動の待ち時間」の決定値を確認するとき。"
+      - NFR-1#requirements[Haasのサーバーの起動の待ち時間]
     status: planned
   - name: HAAS_HEALTH_INTERVAL_SEC
     title: Haas のサーバーの応答の確認の間隔
@@ -19,10 +16,7 @@ constants:
     summary: 起動を待つ間に GET /health を送信する間隔
     value: '0.5'
     refs:
-      - to: NFR-1
-        item: "requirements[Haasのサーバーの起動の待ち時間]"
-        type: requires
-        when: "『非機能要件』の「Haasのサーバーの起動の待ち時間」の決定値を確認するとき。"
+      - NFR-1#requirements[Haasのサーバーの起動の待ち時間]
     status: planned
   - name: HAAS_SERVER_DIR
     title: Haas のサーバーのフォルダ
@@ -196,18 +190,10 @@ classes:
              - httpx.HTTPError・200 以外・JSON でない場合、None を返却する
         status: planned
     refs:
-      - to: SC-5
-        type: references
-        when: "『常駐アプリを起動する』の流れと突き合わせるとき。"
-      - to: SC-2
-        type: references
-        when: "『トレイから操作する』の流れと突き合わせるとき。"
-      - to: IF-13
-        type: requires
-        when: "『準備できたかを返す』の入出力とフローと突き合わせるとき。"
-      - to: IF-14
-        type: requires
-        when: "『停止する』の入出力とフローと突き合わせるとき。"
+      - SC-5#
+      - SC-2#
+      - IF-13#
+      - IF-14#
     status: planned
 id: MOD-96
 visibility: internal

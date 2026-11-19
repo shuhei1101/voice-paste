@@ -129,9 +129,7 @@ classes:
             mock: call_next
             expected: call_next が呼ばれる
     refs:
-      - to: LIB-7
-        type: references
-        when: "『fastapi』の使い方と制約を確認するとき。"
+      - LIB-7#
     status: implemented
 aliases:
   - RequestGuardMiddleware

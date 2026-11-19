@@ -92,9 +92,7 @@ functions:
         expected: DeliveryError が送出され、paste・send_enter が呼ばれない
         exception: 画面を開けない
     refs:
-      - to: LIB-2
-        type: references
-        when: "『Microsoft Edge』の使い方と制約を確認するとき。"
+      - LIB-2#
     status: implemented
 lead: ブラウザ添付のプリセットの URL を Edge のアプリの画面で開いて貼り付ける処理を受け持ち、ブラウザ添付のプリセットの動きを変えるときに参照する。
 tags:

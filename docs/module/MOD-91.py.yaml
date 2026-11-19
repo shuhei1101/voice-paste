@@ -230,13 +230,8 @@ classes:
           3. cut を前の区切りにし、_audio から cut より前を捨てる
              - `[INFO]` 区間を区切った（理由・長さ）
     refs:
-      - to: NFR-1
-        item: "requirements[区間の最大の長さ]"
-        type: requires
-        when: "『非機能要件』の「区間の最大の長さ」の決定値を確認するとき。"
-      - to: LIB-11
-        type: references
-        when: "『numpy』の使い方と制約を確認するとき。"
+      - NFR-1#requirements[区間の最大の長さ]
+      - LIB-11#
     status: planned
 constants:
   - name: VAD_WINDOW
@@ -281,10 +276,7 @@ constants:
     summary: 無音が来ないままこの長さ（秒）に達したら区切る。非機能要件の区間の最大の長さの決定値
     value: '20.0'
     refs:
-      - to: NFR-1
-        item: "requirements[区間の最大の長さ]"
-        type: requires
-        when: "『非機能要件』の「区間の最大の長さ」の決定値を確認するとき。"
+      - NFR-1#requirements[区間の最大の長さ]
     status: planned
   - name: INT16_SCALE
     title: int16 を float にする除数

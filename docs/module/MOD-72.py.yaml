@@ -53,9 +53,7 @@ functions:
       - name: DeliveryError
         condition: ほかのアプリがクリップボードを開いたままで書き込めない
     refs:
-      - to: LIB-20
-        type: references
-        when: "『pyperclip』の使い方と制約を確認するとき。"
+      - LIB-20#
     status: implemented
     unit_tests:
       - name: test_copy_to_clipboard
@@ -101,9 +99,7 @@ functions:
       4. 修飾キーを順に押し、主キーを押して離し、修飾キーを逆順に離す
          - `[INFO]` 貼り付けのキーを送信した（paste_key）
     refs:
-      - to: LIB-19
-        type: references
-        when: "『pynput』の使い方と制約を確認するとき。"
+      - LIB-19#
     status: implemented
     unit_tests:
       - name: test_send_paste
@@ -158,9 +154,7 @@ functions:
          - 押している途中で例外が起きても、押した修飾キーは離してから送出する（押されたままにしない）
          - `[INFO]` Enter を送信した（修飾キー: {揃えた修飾キー。無ければ「なし」}）
     refs:
-      - to: LIB-19
-        type: references
-        when: "『pynput』の使い方と制約を確認するとき。"
+      - LIB-19#
     status: implemented
     unit_tests:
       - name: test_send_enter
@@ -239,9 +233,7 @@ functions:
       description: なし
     process: 1. `pyperclip.set_clipboard("xclip")` を呼ぶ
     refs:
-      - to: LIB-20
-        type: references
-        when: "『pyperclip』の使い方と制約を確認するとき。"
+      - LIB-20#
     unit_tests:
       - name: test_use_xclip_clipboard
         case: 正常

@@ -202,10 +202,7 @@ classes:
           type: None
           description: なし
     refs:
-      - to: SCR-9
-        item: "elements[ショートカットの一覧]"
-        type: references
-        when: "『設定画面』の「ショートカットの一覧」の表示と振る舞いを確認するとき。"
+      - SCR-9#elements[ショートカットの一覧]
     status: planned
 constants:
   - name: SHORTCUT_DEFAULT_HOTKEYS
@@ -215,9 +212,7 @@ constants:
     summary: OS の種類 → 追加した行のキーの初期値（pynput の書式）。Windows は <ctrl>+<alt>+s、Linux は <cmd>+<alt>+g（GNOME は Super+Alt+S を画面の読み上げの切り替えに割り当てている）
     value: '{OsKind.WINDOWS: "<ctrl>+<alt>+s", OsKind.LINUX: "<cmd>+<alt>+g"}'
     refs:
-      - to: SC-6
-        type: references
-        when: "『設定を変える』の流れと突き合わせるとき。"
+      - SC-6#
     status: planned
 aliases:
   - ShortcutPanel

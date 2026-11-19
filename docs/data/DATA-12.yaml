@@ -9,10 +9,7 @@ fields:
     type: string
     description: text_muted の色の線で描いた V 字の SVG
 refs:
-  - to: ER-2
-    item: "tables[%LOCALAPPDATA%\\voice-paste\\ui\\{ハッシュ}.svg]"
-    type: references
-    when: "『ER 図: 常駐アプリのファイル』の「%LOCALAPPDATA%\\voice-paste\\ui\\{ハッシュ}.svg」の列と制約を確認するとき。"
+  - ER-2#tables[%LOCALAPPDATA%\voice-paste\ui\{ハッシュ}.svg]
 tags:
   - name: topic:画像
     main: true

@@ -39,9 +39,7 @@ functions:
       - name: DeliveryError
         condition: Edge も既定のブラウザも起動できない
     refs:
-      - to: LIB-2
-        type: references
-        when: "『Microsoft Edge』の使い方と制約を確認するとき。"
+      - LIB-2#
     status: implemented
     unit_tests:
       - name: test_open_app_window

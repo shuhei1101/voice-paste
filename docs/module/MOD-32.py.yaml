@@ -26,9 +26,7 @@ classes:
         type: Signal(str)
         description: コピーの完了と起こした文字
     refs:
-      - to: LIB-21
-        type: references
-        when: "『pyside6-essentials』の使い方と制約を確認するとき。"
+      - LIB-21#
     status: implemented
     description: メインスレッドで作り、受け手は `Qt.ConnectionType.QueuedConnection` でつなぐ（PoC で 100/100 がメインスレッドのスロットで動いた）。
 functions:
@@ -149,10 +147,7 @@ functions:
         expected: 受け手に "テストの文字" が届き、INFO のログが 1 行出て、ログに "テストの文字" が含まれない
     status: planned
     refs:
-      - to: SCR-2
-        item: "elements[もう一度コピー]"
-        type: references
-        when: "『トレイの通知』の「もう一度コピー」の表示と振る舞いを確認するとき。"
+      - SCR-2#elements[もう一度コピー]
   - name: request_glossary_preset_switch
     title: 用語集のプリセットの切り替えの依頼
     container: ui/bridge.py
@@ -186,10 +181,7 @@ functions:
         mock: なし（glossary_preset_switch_requested に受け手をつなぐ）
         expected: 受け手に "会議" が届き、INFO のログが 1 行出る
     refs:
-      - to: SCR-2
-        item: "notes"
-        type: references
-        when: "『トレイの通知』の「notes」の表示と振る舞いを確認するとき。"
+      - SCR-2#notes
     status: planned
 aliases:
   - UiBridge

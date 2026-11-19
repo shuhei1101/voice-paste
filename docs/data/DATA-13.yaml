@@ -13,10 +13,7 @@ fields:
     type: array
     description: 録れた形式のままの音声（WAV へ変えない）
 refs:
-  - to: ER-2
-    item: "tables[%LOCALAPPDATA%\\voice-paste\\history\\{YYYYMMDD}\\{YYYYMMDDHHMMSS}_web_{job_id}.{webm|ogg|mp4|mp3|wav}]"
-    type: references
-    when: "『ER 図: 常駐アプリのファイル』の「%LOCALAPPDATA%\\voice-paste\\history\\{YYYYMMDD}\\{YYYYMMDDHHMMSS}_web_{job_id}.{webm|ogg|mp4|mp3|wav}」の列と制約を確認するとき。"
+  - ER-2#tables[%LOCALAPPDATA%\voice-paste\history\{YYYYMMDD}\{YYYYMMDDHHMMSS}_web_{job_id}.{webm|ogg|mp4|mp3|wav}]
 tags:
   - name: topic:履歴
     main: true

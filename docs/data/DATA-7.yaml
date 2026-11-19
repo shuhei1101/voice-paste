@@ -17,10 +17,7 @@ fields:
     type: array
     description: 16 ビット整数の音
 refs:
-  - to: ER-2
-    item: "tables[%LOCALAPPDATA%\\voice-paste\\tmp\\{session_id}.wav]"
-    type: references
-    when: "『ER 図: 常駐アプリのファイル』の「%LOCALAPPDATA%\\voice-paste\\tmp\\{session_id}.wav」の列と制約を確認するとき。"
+  - ER-2#tables[%LOCALAPPDATA%\voice-paste\tmp\{session_id}.wav]
 tags:
   - name: topic:一時ファイル
     main: true

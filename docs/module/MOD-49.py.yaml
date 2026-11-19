@@ -51,9 +51,7 @@ data_models:
         type: Path
         description: '`%APPDATA%\voice-paste\secrets\openai_api_key`（Linux は `~/.config/voice-paste/secrets/openai_api_key`。`{data_dir}\secrets\openai_api_key`）。settings.yaml と同じフォルダの下。ユーザーが配置し、常駐アプリは読み込むだけで作らない'
     refs:
-      - to: LIB-16
-        type: references
-        when: "『platformdirs』の使い方と制約を確認するとき。"
+      - LIB-16#
     status: implemented
 constants:
   - name: APP_NAME
@@ -139,9 +137,7 @@ functions:
         mock: platformdirs の user_config_dir・user_data_dir（それぞれ一時フォルダの config・local を返却する）
         expected: settings_file が config/settings.yaml、legacy_settings_file が config/settings.toml、local_settings_file が {REPO_ROOT}/settings.local.yaml、openai_api_key_file が config/secrets/openai_api_key、それ以外が local の下。user_config_dir に roaming=True が渡る
     refs:
-      - to: LIB-16
-        type: references
-        when: "『platformdirs』の使い方と制約を確認するとき。"
+      - LIB-16#
     status: implemented
 lead: アプリの名前・リポジトリの直下・設定のファイル名とデータの配置先を受け持ち、ファイルの配置先や名前を変えるときに参照する。
 tags:

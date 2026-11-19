@@ -120,10 +120,7 @@ notes:
     }
     ```
 refs:
-  - to: IF-3
-    item: "notes.送信する内容"
-    type: requires
-    when: "『呼び出し元へ返す』の「notes.送信する内容」と入出力・フローを突き合わせるとき。"
+  - IF-3#notes.送信する内容
 test_file: tests/integration/test_deliver_to_endpoint.py
 tags:
   - name: topic:エンドポイント

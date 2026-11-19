@@ -70,9 +70,7 @@ functions:
         expected: DeliveryError が送出され、元の OSError が連鎖している
         exception: 見つかったブラウザを起動できない
     refs:
-      - to: LIB-2
-        type: references
-        when: "『Microsoft Edge』の使い方と制約を確認するとき。"
+      - LIB-2#
     status: planned
 lead: Linux で URL を Chromium 系のブラウザのアプリのウィンドウで開く処理を受け持ち、Linux で開くブラウザを変えるときに参照する。
 tags:

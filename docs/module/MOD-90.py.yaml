@@ -490,9 +490,7 @@ classes:
             expected: RuntimeError が送出される
             exception: 連続録音していない（呼び出し順の誤り）
     refs:
-      - to: LIB-11
-        type: references
-        when: "『numpy』の使い方と制約を確認するとき。"
+      - LIB-11#
     status: implemented
 constants:
   - name: SEGMENT_THREAD_NAME

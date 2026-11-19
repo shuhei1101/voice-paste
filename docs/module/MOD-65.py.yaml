@@ -76,13 +76,8 @@ functions:
         expected: DeliveryError が送出され、post が 1 回だけ呼ばれる
         exception: タイムアウト・接続できない
     refs:
-      - to: IF-7
-        type: requires
-        when: "『設定のエンドポイントへ送信する』の入出力とフローと突き合わせるとき。"
-      - to: NFR-1
-        item: "requirements[エンドポイントへ送信するときのタイムアウト]"
-        type: requires
-        when: "『非機能要件』の「エンドポイントへ送信するときのタイムアウト」の決定値を確認するとき。"
+      - IF-7#
+      - NFR-1#requirements[エンドポイントへ送信するときのタイムアウト]
     status: implemented
 lead: エンドポイントへ送信のプリセットの URL へ結果を 1 回 POST する処理を受け持ち、エンドポイントへの送信の動きを変えるときに参照する。
 tags:

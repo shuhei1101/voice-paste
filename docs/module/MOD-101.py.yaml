@@ -9,10 +9,7 @@ constants:
     summary: 起動の引数にモデルが無いときに Hugging Face Hub から取得するモデル
     value: '"third-intelligence/Haas-ja-v1.0"'
     refs:
-      - to: IF-13
-        item: "constraints[起動の引数]"
-        type: requires
-        when: "『準備できたかを返す』の「起動の引数」と入出力・フローを突き合わせるとき。"
+      - IF-13#constraints[起動の引数]
     status: planned
   - name: DEFAULT_DTYPE
     title: 既定の計算の精度
@@ -35,9 +32,7 @@ constants:
     summary: 起動の引数で受ける計算の精度。`auto` はそのまま、ほかは同じ名前の torch の型にして load_model に引き渡す（load_model は `auto` 以外の文字列を受けない）
     value: ("auto", "bfloat16", "float16", "float32")
     refs:
-      - to: LIB-30
-        type: references
-        when: "『haas_asr』の使い方と制約を確認するとき。"
+      - LIB-30#
     status: planned
 functions:
   - name: parse_args
@@ -156,15 +151,9 @@ functions:
         expected: 終了コード 1。ログのファイルに [ERROR] と例外の文がある
         exception: モデルを読み込めない
 refs:
-  - to: SC-5
-    type: references
-    when: "『常駐アプリを起動する』の流れと突き合わせるとき。"
-  - to: LIB-30
-    type: references
-    when: "『haas_asr』の使い方と制約を確認するとき。"
-  - to: LIB-31
-    type: references
-    when: "『NeMo』の使い方と制約を確認するとき。"
+  - SC-5#
+  - LIB-30#
+  - LIB-31#
 id: MOD-101
 visibility: internal
 data_models:
@@ -189,10 +178,7 @@ data_models:
         type: str
         description: 装置（cuda・cuda:{番号}・cpu）
     refs:
-      - to: IF-13
-        item: "constraints[起動の引数]"
-        type: requires
-        when: "『準備できたかを返す』の「起動の引数」と入出力・フローを突き合わせるとき。"
+      - IF-13#constraints[起動の引数]
     status: planned
 notes:
   起動スクリプト: '`haas_server/start.sh` は受けた引数を全て（`"$@"`）`python -m haas_server.main` へ引き渡す。'

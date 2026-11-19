@@ -533,10 +533,7 @@ requirements:
     measurement: Windows の実機で、pynput の GlobalHotKeys を始めてから stop し、join が戻るまでの時間を 100 回測る
     overflow: 上限を過ぎたら WARNING のログを書き込み、スレッドを手放して進む
     refs:
-      - to: MOD-33
-        item: "constants[HOTKEY_STOP_TIMEOUT_SEC]"
-        type: references
-        when: "『常駐アプリ / ホットキーと画面 / hotkey.py』の「HOTKEY_STOP_TIMEOUT_SEC」を呼ぶ・変えるときに、引数と戻り値を確認するとき。"
+      - MOD-33#constants[HOTKEY_STOP_TIMEOUT_SEC]
     status: planned
   - id: NFR-27
     name: OpenAIの文字起こしのタイムアウトと再送
@@ -572,9 +569,7 @@ requirements:
         measurement: 要求の回数と _uniform に渡った上限
         expected: 要求は 3 回で、_uniform の上限は 0.5・1.0、EngineError が送出される
     refs:
-      - to: API-2
-        type: references
-        when: "『OpenAI』の仕様と制約を確認するとき。"
+      - API-2#
     status: planned
     test_file: tests/nfr/test_openai_transcription_retry.py
   - id: NFR-28
@@ -595,9 +590,7 @@ requirements:
         measurement: httpx.MockTransport に届いた要求の数
         expected: 26,204,569 バイトは 1 回届き、届いた要求の本文が 26,214,400 バイト以下。26,204,570 バイトは届かず EngineError
     refs:
-      - to: API-2
-        type: references
-        when: "『OpenAI』の仕様と制約を確認するとき。"
+      - API-2#
     status: planned
     breakdown:
       - part: 外部の上限
@@ -620,9 +613,7 @@ requirements:
     value: 既定のモデルは gpt-transcribe。常駐アプリは料金の上限を持たない
     rationale: 文字起こし 1 回の料金は音声の長さで決まり、利用者が契約する OpenAI のアカウントにかかる。上限は利用者が OpenAI の管理画面の利用の上限で持つ（超えると 429 が返り、再送しても失敗したら文字起こしの失敗になる）。送信し直すごとに課金されうるため、再送は一時的な失敗だけにする
     refs:
-      - to: API-2
-        type: references
-        when: "『OpenAI』の仕様と制約を確認するとき。"
+      - API-2#
     status: planned
   - id: NFR-30
     name: Haasの動作環境
@@ -648,9 +639,7 @@ requirements:
     measurement: 実装の後に、Windows の再起動の直後に常駐アプリを起動し、HaasServer.ensure_started が書き込む `[INFO]` のかかった秒を読み込む。60 秒に近ければ値を見直す
     overflow: 待ち時間までに応答が無ければ、終了までローカルの Whisper で起こし、トレイとログで通知する
     refs:
-      - to: SC-5
-        type: references
-        when: "『常駐アプリを起動する』の流れと突き合わせるとき。"
+      - SC-5#
     status: planned
   - id: NFR-32
     name: Haasの文字起こしのタイムアウト
@@ -664,9 +653,7 @@ requirements:
     measurement: 単体テストで httpx.MockTransport にタイムアウトを返却させ、EngineError になることを確認する。実測は外部疎通テストで記録する
     overflow: EngineError にして、文字起こしの失敗として扱う（録音は履歴に残る。ローカルの Whisper へは切り戻さない）
     refs:
-      - to: IF-12
-        type: requires
-        when: "『音声を文字に起こす』の入出力とフローと突き合わせるとき。"
+      - IF-12#
     status: planned
 lead: 外部の制約から逆算した上限・待ち時間・タイムアウトと再送の決定値を受け持ち、これらの値を決める・確かめるときに参照する。
 tags:

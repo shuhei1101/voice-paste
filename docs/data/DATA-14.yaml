@@ -9,10 +9,7 @@ fields:
     type: array
     description: 受けた本文の audio の中身そのまま
 refs:
-  - to: ER-2
-    item: "tables[%LOCALAPPDATA%\\voice-paste\\tmp\\web\\{job_id}.{webm|ogg|mp4|mp3|wav}]"
-    type: references
-    when: "『ER 図: 常駐アプリのファイル』の「%LOCALAPPDATA%\\voice-paste\\tmp\\web\\{job_id}.{webm|ogg|mp4|mp3|wav}」の列と制約を確認するとき。"
+  - ER-2#tables[%LOCALAPPDATA%\voice-paste\tmp\web\{job_id}.{webm|ogg|mp4|mp3|wav}]
 tags:
   - name: topic:一時ファイル
     main: true

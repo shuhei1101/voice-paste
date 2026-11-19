@@ -37,9 +37,7 @@ license: GPL-2.0-or-later（常駐アプリに同梱せず、子プロセスで�
 official_url: https://manpages.ubuntu.com/manpages/noble/man1/gnome-session-inhibit.1.html
 install: Ubuntu 24.04 の GNOME のデスクトップには gnome-session-bin として入っている。無い環境では起動できず、常駐アプリは画面の消灯を抑止せずに録音を続ける
 refs:
-  - to: SC-8
-    type: references
-    when: "『録音する』の流れと突き合わせるとき。"
+  - SC-8#
 tags:
   - name: tool:gnome-session-inhibit
     main: true

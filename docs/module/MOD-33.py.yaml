@@ -143,9 +143,7 @@ classes:
           type: None
           description: なし
     refs:
-      - to: LIB-19
-        type: references
-        when: "『pynput』の使い方と制約を確認するとき。"
+      - LIB-19#
     status: implemented
 constants:
   - name: HOTKEY_STOP_TIMEOUT_SEC
@@ -190,9 +188,7 @@ functions:
         expected: HotkeyError が送出され、メッセージに <ctrl>+<nokey> が出る
         exception: 読み込めないホットキーがある
     refs:
-      - to: LIB-19
-        type: references
-        when: "『pynput』の使い方と制約を確認するとき。"
+      - LIB-19#
     status: implemented
 aliases:
   - HotkeyListener

@@ -85,13 +85,8 @@ classes:
             mock: 次の ASGI アプリ
             expected: 次のアプリが呼ばれる
     refs:
-      - to: IF-11
-        type: requires
-        when: "『音声を受け付ける』の入出力とフローと突き合わせるとき。"
-      - to: NFR-1
-        item: "requirements[ブラウザの本文の上限]"
-        type: requires
-        when: "『非機能要件』の「ブラウザの本文の上限」の決定値を確認するとき。"
+      - IF-11#
+      - NFR-1#requirements[ブラウザの本文の上限]
     status: planned
 constants:
   - name: WEB_BODY_LIMIT_BYTES

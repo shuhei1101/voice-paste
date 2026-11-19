@@ -46,9 +46,7 @@ license: MIT（常駐アプリに同梱せず、D-Bus で呼ぶだけ）
 official_url: https://extensions.gnome.org/extension/5592/focused-window-d-bus/
 install: ユーザーが GNOME の拡張のページ（公式 URL）か「拡張機能マネージャー」で入れて有効にする。対応する GNOME Shell のバージョンは公式 URL のページで確認する。呼び出しに使用する `gdbus` は Ubuntu の `libglib2.0-bin` に入っている
 refs:
-  - to: SC-7
-    type: references
-    when: "『起こした文字を届ける』の流れと突き合わせるとき。"
+  - SC-7#
 tags:
   - name: tool:focused-window-d-bus
     main: true

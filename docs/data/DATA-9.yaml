@@ -25,10 +25,7 @@ fields:
     type: string
     description: 例外のスタックトレース（例外があるときだけ）
 refs:
-  - to: ER-2
-    item: "tables[%LOCALAPPDATA%\\voice-paste\\log\\{YYYY-MM-DD}.log]"
-    type: references
-    when: "『ER 図: 常駐アプリのファイル』の「%LOCALAPPDATA%\\voice-paste\\log\\{YYYY-MM-DD}.log」の列と制約を確認するとき。"
+  - ER-2#tables[%LOCALAPPDATA%\voice-paste\log\{YYYY-MM-DD}.log]
 tags:
   - name: topic:ログ
     main: true

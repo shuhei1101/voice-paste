@@ -48,13 +48,8 @@ screen: src/voice_paste/ui/tray.py
 mock: docs/mock/pages/tray-notification/37/a-notification/
 lead: 裏の処理で起きた失敗と、「コピーのみ」のコピーの完了と、ショートカットでの用語集のプリセットの切り替えを Windows の通知で通知する。通知は数秒で畳まれ、通知センターには残らない。畳まれた後は、失敗の理由をトレイのメニューの「ログフォルダを開く」から確認する。
 refs:
-  - to: MOD-32
-    item: "functions[notify]"
-    type: references
-    when: "『常駐アプリ / ホットキーと画面 / bridge.py』の「notify」を呼ぶ・変えるときに、引数と戻り値を確認するとき。"
-  - to: SC-5
-    type: references
-    when: "『常駐アプリを起動する』の流れと突き合わせるとき。"
+  - MOD-32#functions[notify]
+  - SC-5#
 notes:
   知らせの種類ごとの文言: |-
     | 通知 | 見出し | 本文 |

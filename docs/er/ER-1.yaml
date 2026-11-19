@@ -129,10 +129,7 @@ tables:
         description: 選んだ用語集のプリセットの名前（用語集のプリセットの一覧を返却する の presets の名前）。「設定に従う」は空文字。JSON ではなく文字列のまま配置する
         example: 会議
     refs:
-      - to: SCR-6
-        item: "elements[用語集のプリセットの選択欄]"
-        type: references
-        when: "『外の端末の文字起こしの画面』の「用語集のプリセットの選択欄」の表示と振る舞いを確認するとき。"
+      - SCR-6#elements[用語集のプリセットの選択欄]
     status: planned
   - name: localStorage voice-paste.keep_screen_on
     title: 録音中に画面を暗くしないか
@@ -153,15 +150,10 @@ tables:
         description: オンは `1`、オフは `0`。JSON ではなく文字列のまま配置する。キーが無いときはオンとして扱う
         example: '1'
     refs:
-      - to: SCR-6
-        item: "elements[画面を暗くしないかのチェック]"
-        type: references
-        when: "『外の端末の文字起こしの画面』の「画面を暗くしないかのチェック」の表示と振る舞いを確認するとき。"
+      - SCR-6#elements[画面を暗くしないかのチェック]
     status: planned
 refs:
-  - to: SCR-6
-    type: references
-    when: "『外の端末の文字起こしの画面』の表示と振る舞いを確認するとき。"
+  - SCR-6#
 tags:
   - name: topic:ブラウザ
     main: true

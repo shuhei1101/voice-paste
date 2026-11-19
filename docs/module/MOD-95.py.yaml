@@ -82,9 +82,7 @@ functions:
         mock: load_model
         expected: モデルの transcribe が hotwords=None で呼ばれる
     refs:
-      - to: LIB-8
-        type: references
-        when: "『faster-whisper』の使い方と制約を確認するとき。"
+      - LIB-8#
     status: implemented
 lead: モデルを読み込み、標準入力で受けた録音を 1 件ずつ文字に起こす文字起こしワーカーの本体を受け持ち、ローカルの文字起こしの処理を変えるときに参照する。
 tags:

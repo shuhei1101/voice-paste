@@ -120,13 +120,8 @@ classes:
             mock: なし
             expected: 包んだスタイルの pixelMetric の値と同じ
     refs:
-      - to: SCR-9
-        item: "notes.マーカーの見え方"
-        type: references
-        when: "『設定画面』の「notes.マーカーの見え方」の表示と振る舞いを確認するとき。"
-      - to: LIB-21
-        type: references
-        when: "『pyside6-essentials』の使い方と制約を確認するとき。"
+      - SCR-9#notes.マーカーの見え方
+      - LIB-21#
     status: implemented
 aliases:
   - IndicatorStyle

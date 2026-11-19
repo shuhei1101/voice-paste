@@ -40,10 +40,7 @@ fields:
     type: string
     description: 受け付けられたときの job_id。送信前・送信失敗は null
 refs:
-  - to: ER-1
-    item: "tables[IndexedDB voice-paste / kept_audio（キー latest）]"
-    type: references
-    when: "『ER 図: ブラウザの端末のデータ』の「IndexedDB voice-paste / kept_audio（キー latest）」の列と制約を確認するとき。"
+  - ER-1#tables[IndexedDB voice-paste / kept_audio（キー latest）]
 tags:
   - name: topic:音声
     main: true

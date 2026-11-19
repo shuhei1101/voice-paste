@@ -11,10 +11,7 @@ fields:
     required: true
     example: 会議
 refs:
-  - to: ER-1
-    item: "tables[localStorage voice-paste.glossary_preset]"
-    type: references
-    when: "『ER 図: ブラウザの端末のデータ』の「localStorage voice-paste.glossary_preset」の列と制約を確認するとき。"
+  - ER-1#tables[localStorage voice-paste.glossary_preset]
 tags:
   - name: topic:プリセット
     main: true

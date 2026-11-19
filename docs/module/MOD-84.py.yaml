@@ -315,9 +315,7 @@ constants:
       - key: device
         value: 装置
     refs:
-      - to: SCR-2
-        type: references
-        when: "『トレイの通知』の表示と振る舞いを確認するとき。"
+      - SCR-2#
     status: planned
 functions:
   - name: build_handlers
@@ -850,9 +848,7 @@ functions:
         mock: session_manager・start_local_session・show_recording_window
         expected: switch_output("paste_and_send") が 1 回呼ばれ、start_local_session・complete が呼ばれない
     refs:
-      - to: SC-8
-        type: references
-        when: "『録音する』の流れと突き合わせるとき。"
+      - SC-8#
     status: implemented
   - name: apply_settings
     title: 設定の保存と反映
@@ -941,9 +937,7 @@ functions:
         mock: save_glossary（OSError を送出する）・check_hotkeys（何もしない）
         expected: OSError。settings.yaml が変わらず、SettingsStore が前の設定のまま
     refs:
-      - to: SC-6
-        type: references
-        when: "『設定を変える』の流れと突き合わせるとき。"
+      - SC-6#
     status: implemented
   - name: switch_glossary_preset
     title: 用語集のプリセットの切り替え
@@ -1006,9 +1000,7 @@ functions:
         mock: check_hotkeys
         expected: store.latest() と settings.yaml の recording.volume_percent が 30 で、active_glossary_preset が 会議
     refs:
-      - to: SC-8
-        type: references
-        when: "『録音する』の流れと突き合わせるとき。"
+      - SC-8#
     status: planned
   - name: build_ui_deps
     title: 画面の配線
@@ -1126,9 +1118,7 @@ functions:
         mock: なし（一時フォルダ）
         expected: 返った設定の hotkeys.start が B。settings.local.yaml が変わっていない
     refs:
-      - to: SC-6
-        type: references
-        when: "『設定を変える』の流れと突き合わせるとき。"
+      - SC-6#
     status: planned
   - name: purge_old_files
     title: 古いログと履歴の削除
@@ -1234,10 +1224,7 @@ functions:
         mock: post_json
         expected: endpoint の handler を呼ぶと post_json の timeout_sec に 5.0 が渡る
     refs:
-      - to: MOD-58
-        item: "constants[PRESET_KINDS]"
-        type: references
-        when: "『常駐アプリ / 出力先 / registry.py』の「PRESET_KINDS」を呼ぶ・変えるときに、引数と戻り値を確認するとき。"
+      - MOD-58#constants[PRESET_KINDS]
     status: implemented
   - name: select_platform_adapters
     title: OS ごとの実装の選択

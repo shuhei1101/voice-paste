@@ -225,20 +225,10 @@ classes:
             expected: '{"language": "ja", "prompt": "voice-paste、Whisper"} が返り、languages[]・keywords[] が無い'
         status: planned
     refs:
-      - to: API-2
-        type: references
-        when: "『OpenAI』の仕様と制約を確認するとき。"
-      - to: LIB-9
-        type: references
-        when: "『httpx』の使い方と制約を確認するとき。"
-      - to: NFR-1
-        item: "requirements[OpenAIの文字起こしのタイムアウトと再送]"
-        type: requires
-        when: "『非機能要件』の「OpenAIの文字起こしのタイムアウトと再送」の決定値を確認するとき。"
-      - to: NFR-1
-        item: "requirements[OpenAIへ送信する音声の上限]"
-        type: requires
-        when: "『非機能要件』の「OpenAIへ送信する音声の上限」の決定値を確認するとき。"
+      - API-2#
+      - LIB-9#
+      - NFR-1#requirements[OpenAIの文字起こしのタイムアウトと再送]
+      - NFR-1#requirements[OpenAIへ送信する音声の上限]
     status: planned
 constants:
   - name: OPENAI_MAX_RETRIES

@@ -80,10 +80,7 @@ data_models:
         default: 'True'
         description: 補正に使用するか（CSV の列 `使う`。`0` がオフ）
     refs:
-      - to: ER-2
-        item: "tables[%APPDATA%\\voice-paste\\glossaries\\glossary_{n}.csv]"
-        type: references
-        when: "『ER 図: 常駐アプリのファイル』の「%APPDATA%\\voice-paste\\glossaries\\glossary_{n}.csv」の列と制約を確認するとき。"
+      - ER-2#tables[%APPDATA%\voice-paste\glossaries\glossary_{n}.csv]
     status: implemented
   - name: AudioProbe
     title: 音声の形式
@@ -138,10 +135,7 @@ enums:
         title: Shift
         description: Shift キー
     refs:
-      - to: CFG-1
-        item: "settings[outputs[].enter_modifiers]"
-        type: references
-        when: "『設定: 常駐アプリ』の「outputs[」の既定値と意味を確認するとき。"
+      - CFG-1#settings[outputs[].enter_modifiers]
     status: planned
 function_types:
   - name: ProgressFn

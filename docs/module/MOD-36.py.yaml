@@ -410,9 +410,7 @@ classes:
             expected: engine_in_use_openai だけが出ていて、出しているタブが「ローカルの Whisper」のまま
         status: planned
     refs:
-      - to: SCR-9
-        type: references
-        when: "『設定画面』の表示と振る舞いを確認するとき。"
+      - SCR-9#
     status: implemented
     notes:
       用語集のまとまり: |-
@@ -475,9 +473,7 @@ constants:
       - key: haas
         value: '`transcription.haas.distribution`・`transcription.haas.port`・`transcription.haas.model`・`transcription.haas.dtype`・`transcription.haas.device`・`transcription.haas.alpha`・`transcription.haas.guard`・`transcription.haas.short_audio_limit_sec`・`transcription.haas.chunk_sec`・`transcription.haas.search_sec`・`transcription.haas.window_sec`・`transcription.haas.separator`・`transcription.haas.batch_size`'
     refs:
-      - to: SCR-9
-        type: references
-        when: "『設定画面』の表示と振る舞いを確認するとき。"
+      - SCR-9#
     status: planned
   - name: ENGINE_KEY
     title: 文字起こしのエンジンの設定のキー
@@ -509,9 +505,7 @@ functions:
       type: bool
       description: 捨てて閉じるなら True
     refs:
-      - to: SCR-5
-        type: references
-        when: "『変えた値を捨てる確認』の表示と振る舞いを確認するとき。"
+      - SCR-5#
     status: implemented
   - name: confirm_reset
     title: 既定に戻す確認
@@ -530,9 +524,7 @@ functions:
       type: bool
       description: 戻すなら True
     refs:
-      - to: SCR-8
-        type: references
-        when: "『既定に戻す確認』の表示と振る舞いを確認するとき。"
+      - SCR-8#
     status: implemented
   - name: group_menu_width
     title: まとまりのメニューの幅
@@ -556,10 +548,7 @@ functions:
          - 縦のスクロールバーが出ている（verticalScrollBar().maximum() が 0 より大きい）場合、その幅（verticalScrollBar().sizeHint().width()）も加える
       3. 2 と GROUP_MENU_MIN_WIDTH_PX の大きい方を返却する
     refs:
-      - to: SCR-9
-        item: "elements[まとまりのメニュー]"
-        type: references
-        when: "『設定画面』の「まとまりのメニュー」の表示と振る舞いを確認するとき。"
+      - SCR-9#elements[まとまりのメニュー]
     status: planned
     notes:
       使い方: SettingsWindow は、まとまりのメニューに項目を入れた後に setFixedWidth(group_menu_width(menu)) で幅を決め、verticalScrollBar().rangeChanged を受けて同じ式で決め直す（窓の高さで縦のスクロールバーが出る・消えるのに合わせる）。setHorizontalScrollBarPolicy(ScrollBarAlwaysOff) で横のスクロールバーを出さない
@@ -785,9 +774,7 @@ functions:
         mock: なし
         expected: 16 文字以内で入れてください。（失敗の場所は transcription.haas.separator）
     refs:
-      - to: SCR-9
-        type: references
-        when: "『設定画面』の表示と振る舞いを確認するとき。"
+      - SCR-9#
     status: implemented
 aliases:
   - SettingsWindow

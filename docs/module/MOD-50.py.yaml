@@ -92,12 +92,8 @@ data_models:
         default: '[]'
         description: 用語集のプリセットを切り替えるショートカットの一覧。並びが設定画面の一覧の並びになる。キーは find_hotkey_overlaps で重なりを確かめ、preset が用語集のプリセットの一覧（resolve_glossary_presets の名前）に無い行は `model_validator(mode="after")` が `PydanticCustomError`（type `glossary_preset_missing`、場所 `glossary_preset_hotkeys[{n}].preset`）で断る
     refs:
-      - to: LIB-18
-        type: references
-        when: "『pydantic』の使い方と制約を確認するとき。"
-      - to: CFG-1
-        type: references
-        when: "『設定: 常駐アプリ』の設定の既定値と意味を確認するとき。"
+      - LIB-18#
+      - CFG-1#
     status: implemented
   - name: TranscriptionSettings
     title: 文字起こしの設定
@@ -426,10 +422,7 @@ data_models:
         default: 'True'
         description: 貼り付けた後に Enter まで送信するか
     refs:
-      - to: CFG-1
-        item: "settings[presets[].kind]"
-        type: references
-        when: "『設定: 常駐アプリ』の「presets[」の既定値と意味を確認するとき。"
+      - CFG-1#settings[presets[].kind]
     status: implemented
   - name: EndpointPreset
     title: エンドポイントへ送信のプリセット
@@ -463,10 +456,7 @@ data_models:
         default: '""'
         description: 空でなければ `Authorization` ヘッダーにそのまま入れる値（秘密。repr に出さない）
     refs:
-      - to: CFG-1
-        item: "settings[presets[].authorization]"
-        type: references
-        when: "『設定: 常駐アプリ』の「presets[」の既定値と意味を確認するとき。"
+      - CFG-1#settings[presets[].authorization]
     status: implemented
   - name: PresetOptions
     title: プリセットの種類のオプション
@@ -496,10 +486,7 @@ data_models:
         default: '3.0'
         description: 画面を開いてから貼り付けるまで待つ秒数（0 以上）
     refs:
-      - to: CFG-1
-        item: "settings[preset_options.browser.open_delay_sec]"
-        type: references
-        when: "『設定: 常駐アプリ』の「preset_options.browser.open_delay_sec」の既定値と意味を確認するとき。"
+      - CFG-1#settings[preset_options.browser.open_delay_sec]
     status: implemented
   - name: EndpointPresetOptions
     title: エンドポイントへ送信のオプション
@@ -514,14 +501,8 @@ data_models:
         default: '1.5'
         description: 送信するときのタイムアウトの秒数（`ge=0.5, le=10`。既定・範囲は非機能要件）
     refs:
-      - to: CFG-1
-        item: "settings[preset_options.endpoint.timeout_sec]"
-        type: references
-        when: "『設定: 常駐アプリ』の「preset_options.endpoint.timeout_sec」の既定値と意味を確認するとき。"
-      - to: NFR-1
-        item: "requirements[エンドポイントへ送信するときのタイムアウト]"
-        type: requires
-        when: "『非機能要件』の「エンドポイントへ送信するときのタイムアウト」の決定値を確認するとき。"
+      - CFG-1#settings[preset_options.endpoint.timeout_sec]
+      - NFR-1#requirements[エンドポイントへ送信するときのタイムアウト]
     status: implemented
   - name: OutputSettingsBase
     title: 出力先の設定の共通の親
@@ -560,14 +541,8 @@ data_models:
         default: '14400'
         description: 連続録音を、完了が来ないまま開始からこの秒数で打ち切る（60〜86400）
     refs:
-      - to: CFG-1
-        item: "settings[api.continuous.min_silence_sec]"
-        type: references
-        when: "『設定: 常駐アプリ』の「api.continuous.min_silence_sec」の既定値と意味を確認するとき。"
-      - to: CFG-1
-        item: "settings[api.continuous.session_limit_sec]"
-        type: references
-        when: "『設定: 常駐アプリ』の「api.continuous.session_limit_sec」の既定値と意味を確認するとき。"
+      - CFG-1#settings[api.continuous.min_silence_sec]
+      - CFG-1#settings[api.continuous.session_limit_sec]
     status: planned
   - name: GlossarySettings
     title: 用語集の設定
@@ -584,14 +559,8 @@ data_models:
         type: Path
         description: その用語集の CSV の場所。settings.yaml のフォルダからの相対パスか、絶対パス
     refs:
-      - to: CFG-1
-        item: "settings[glossaries[].name]"
-        type: references
-        when: "『設定: 常駐アプリ』の「glossaries[」の既定値と意味を確認するとき。"
-      - to: CFG-1
-        item: "settings[glossaries[].path]"
-        type: references
-        when: "『設定: 常駐アプリ』の「glossaries[」の既定値と意味を確認するとき。"
+      - CFG-1#settings[glossaries[].name]
+      - CFG-1#settings[glossaries[].path]
     status: implemented
   - name: HintPresetSettings
     title: 表記のヒントのプリセットの設定
@@ -618,22 +587,10 @@ data_models:
         default: '[]'
         description: words と同じ並びの読み（各読みの前後の空白を除く）。空の一覧か words と同じ長さ。空文字は読みが無い単語
     refs:
-      - to: CFG-1
-        item: "settings[hint_presets[].name]"
-        type: references
-        when: "『設定: 常駐アプリ』の「hint_presets[」の既定値と意味を確認するとき。"
-      - to: CFG-1
-        item: "settings[hint_presets[].words]"
-        type: references
-        when: "『設定: 常駐アプリ』の「hint_presets[」の既定値と意味を確認するとき。"
-      - to: CFG-1
-        item: "settings[hint_presets[].enabled]"
-        type: references
-        when: "『設定: 常駐アプリ』の「hint_presets[」の既定値と意味を確認するとき。"
-      - to: CFG-1
-        item: "settings[hint_presets[].readings]"
-        type: references
-        when: "『設定: 常駐アプリ』の「hint_presets[」の既定値と意味を確認するとき。"
+      - CFG-1#settings[hint_presets[].name]
+      - CFG-1#settings[hint_presets[].words]
+      - CFG-1#settings[hint_presets[].enabled]
+      - CFG-1#settings[hint_presets[].readings]
     status: implemented
   - name: HintWordSource
     title: 手がかりの語の出所
@@ -697,14 +654,8 @@ data_models:
             mock: なし
             expected: ValidationError。失敗の type が EDGE_PHRASE_WILDCARD_ONLY_ERROR_TYPE、場所が ("edge_phrases", 1, "text")
     refs:
-      - to: CFG-1
-        item: "settings[edge_phrases[].text]"
-        type: references
-        when: "『設定: 常駐アプリ』の「edge_phrases[」の既定値と意味を確認するとき。"
-      - to: CFG-1
-        item: "settings[edge_phrases[].position]"
-        type: references
-        when: "『設定: 常駐アプリ』の「edge_phrases[」の既定値と意味を確認するとき。"
+      - CFG-1#settings[edge_phrases[].text]
+      - CFG-1#settings[edge_phrases[].position]
     status: implemented
   - name: GlossaryPresetSettings
     title: 用語集のプリセットの設定
@@ -722,14 +673,8 @@ data_models:
         default: '[]'
         description: 補正に使用する用語集の名前（`glossaries[].name`）の並び。補正はこの順に適用する。同じ名前を 2 回並べると検証に通さない（`field_validator`）。一覧に無い名前は検証では断らず、resolve_glossary_presets が除外する
     refs:
-      - to: CFG-1
-        item: "settings[glossary_presets[].name]"
-        type: references
-        when: "『設定: 常駐アプリ』の「glossary_presets[」の既定値と意味を確認するとき。"
-      - to: CFG-1
-        item: "settings[glossary_presets[].glossaries]"
-        type: references
-        when: "『設定: 常駐アプリ』の「glossary_presets[」の既定値と意味を確認するとき。"
+      - CFG-1#settings[glossary_presets[].name]
+      - CFG-1#settings[glossary_presets[].glossaries]
     status: planned
   - name: GlossaryPresetHotkeySettings
     title: 用語集のプリセットを切り替えるショートカットの設定
@@ -746,14 +691,8 @@ data_models:
         type: str
         description: 切り替える用語集のプリセットの名前（`glossary_presets[].name`）
     refs:
-      - to: CFG-1
-        item: "settings[glossary_preset_hotkeys[].hotkey]"
-        type: references
-        when: "『設定: 常駐アプリ』の「glossary_preset_hotkeys[」の既定値と意味を確認するとき。"
-      - to: CFG-1
-        item: "settings[glossary_preset_hotkeys[].preset]"
-        type: references
-        when: "『設定: 常駐アプリ』の「glossary_preset_hotkeys[」の既定値と意味を確認するとき。"
+      - CFG-1#settings[glossary_preset_hotkeys[].hotkey]
+      - CFG-1#settings[glossary_preset_hotkeys[].preset]
     status: planned
   - name: OpenAISettings
     title: OpenAI API の設定
@@ -842,58 +781,19 @@ data_models:
         default: "''"
         description: 区切って起こした文字をつなぐ文字
     refs:
-      - to: CFG-1
-        item: "settings[transcription.haas.distribution]"
-        type: references
-        when: "『設定: 常駐アプリ』の「transcription.haas.distribution」の既定値と意味を確認するとき。"
-      - to: CFG-1
-        item: "settings[transcription.haas.port]"
-        type: references
-        when: "『設定: 常駐アプリ』の「transcription.haas.port」の既定値と意味を確認するとき。"
-      - to: CFG-1
-        item: "settings[transcription.haas.model]"
-        type: references
-        when: "『設定: 常駐アプリ』の「transcription.haas.model」の既定値と意味を確認するとき。"
-      - to: CFG-1
-        item: "settings[transcription.haas.dtype]"
-        type: references
-        when: "『設定: 常駐アプリ』の「transcription.haas.dtype」の既定値と意味を確認するとき。"
-      - to: CFG-1
-        item: "settings[transcription.haas.device]"
-        type: references
-        when: "『設定: 常駐アプリ』の「transcription.haas.device」の既定値と意味を確認するとき。"
-      - to: CFG-1
-        item: "settings[transcription.haas.short_audio_limit_sec]"
-        type: references
-        when: "『設定: 常駐アプリ』の「transcription.haas.short_audio_limit_sec」の既定値と意味を確認するとき。"
-      - to: CFG-1
-        item: "settings[transcription.haas.batch_size]"
-        type: references
-        when: "『設定: 常駐アプリ』の「transcription.haas.batch_size」の既定値と意味を確認するとき。"
-      - to: CFG-1
-        item: "settings[transcription.haas.alpha]"
-        type: references
-        when: "『設定: 常駐アプリ』の「transcription.haas.alpha」の既定値と意味を確認するとき。"
-      - to: CFG-1
-        item: "settings[transcription.haas.guard]"
-        type: references
-        when: "『設定: 常駐アプリ』の「transcription.haas.guard」の既定値と意味を確認するとき。"
-      - to: CFG-1
-        item: "settings[transcription.haas.chunk_sec]"
-        type: references
-        when: "『設定: 常駐アプリ』の「transcription.haas.chunk_sec」の既定値と意味を確認するとき。"
-      - to: CFG-1
-        item: "settings[transcription.haas.search_sec]"
-        type: references
-        when: "『設定: 常駐アプリ』の「transcription.haas.search_sec」の既定値と意味を確認するとき。"
-      - to: CFG-1
-        item: "settings[transcription.haas.window_sec]"
-        type: references
-        when: "『設定: 常駐アプリ』の「transcription.haas.window_sec」の既定値と意味を確認するとき。"
-      - to: CFG-1
-        item: "settings[transcription.haas.separator]"
-        type: references
-        when: "『設定: 常駐アプリ』の「transcription.haas.separator」の既定値と意味を確認するとき。"
+      - CFG-1#settings[transcription.haas.distribution]
+      - CFG-1#settings[transcription.haas.port]
+      - CFG-1#settings[transcription.haas.model]
+      - CFG-1#settings[transcription.haas.dtype]
+      - CFG-1#settings[transcription.haas.device]
+      - CFG-1#settings[transcription.haas.short_audio_limit_sec]
+      - CFG-1#settings[transcription.haas.batch_size]
+      - CFG-1#settings[transcription.haas.alpha]
+      - CFG-1#settings[transcription.haas.guard]
+      - CFG-1#settings[transcription.haas.chunk_sec]
+      - CFG-1#settings[transcription.haas.search_sec]
+      - CFG-1#settings[transcription.haas.window_sec]
+      - CFG-1#settings[transcription.haas.separator]
     status: planned
   - name: HintVocabularyWord
     title: 表記のヒントの表記と読み
@@ -927,10 +827,7 @@ enums:
         title: エンドポイントへ送信
         description: EndpointPreset
     refs:
-      - to: CFG-1
-        item: "settings[presets[].kind]"
-        type: references
-        when: "『設定: 常駐アプリ』の「presets[」の既定値と意味を確認するとき。"
+      - CFG-1#settings[presets[].kind]
     status: implemented
 constants:
   - name: HINT_MAX_BYTES
@@ -1041,10 +938,7 @@ constants:
     summary: transcription.haas.device に許す形式（cuda・cuda:{番号}・cpu）
     value: r"\A(cuda(:\d+)?|cpu)\Z"
     refs:
-      - to: IF-13
-        item: "constraints[起動の引数]"
-        type: requires
-        when: "『準備できたかを返す』の「起動の引数」と入出力・フローを突き合わせるとき。"
+      - IF-13#constraints[起動の引数]
     status: planned
   - name: HAAS_SEPARATOR_MAX_LENGTH
     title: Haas の区切りをつなぐ文字の長さの上限
@@ -1053,10 +947,7 @@ constants:
     summary: transcription.haas.separator の文字数の上限
     value: '16'
     refs:
-      - to: IF-12
-        item: "request[separator]"
-        type: requires
-        when: "『音声を文字に起こす』の「separator」と入出力・フローを突き合わせるとき。"
+      - IF-12#request[separator]
     status: planned
   - name: HAAS_DTYPE_LABELS
     title: Haas の計算の精度の名前
@@ -1073,9 +964,7 @@ constants:
       - key: float32
         value: float32
     refs:
-      - to: SCR-9
-        type: references
-        when: "『設定画面』の表示と振る舞いを確認するとき。"
+      - SCR-9#
     status: planned
 functions:
   - name: load_settings
@@ -1230,9 +1119,7 @@ functions:
         mock: なし（一時フォルダ）
         expected: ui.show_hotkeys が False、ui.transcribing_show_hotkeys が既定値の True
     refs:
-      - to: LIB-25
-        type: references
-        when: "『ruamel.yaml』の使い方と制約を確認するとき。"
+      - LIB-25#
     status: planned
   - name: load_default_settings
     title: 既定の設定の読み込み
@@ -1445,9 +1332,7 @@ functions:
         mock: なし（一時フォルダ）
         expected: settings_file に hotkeys.start = C が書き込まれ、local_settings_file が書き込む前と同じ
     refs:
-      - to: LIB-25
-        type: references
-        when: "『ruamel.yaml』の使い方と制約を確認するとき。"
+      - LIB-25#
     status: planned
   - name: has_restart_change
     title: 再起動が要る変更の有無
@@ -1583,9 +1468,7 @@ functions:
         mock: なし（一時フォルダ）
         expected: settings_file に ui.show_hotkeys だけが false で書き込まれ、load_settings の ui.transcribing_show_hotkeys が True
     refs:
-      - to: LIB-28
-        type: references
-        when: "『tomlkit』の使い方と制約を確認するとき。"
+      - LIB-28#
     status: planned
   - name: inherit_transcribing_show_hotkeys
     title: 文字起こし中の表示のホットキーの引き継ぎ
@@ -1647,9 +1530,7 @@ functions:
       2. 値を小文字にして、先に並んだものと同じものを集める
          - `hotkeys.start` と「貼り付けて送信」の `hotkey` が同じ組は重なりにしない（録音中に押すとその出力先で確定する既定）
     refs:
-      - to: SCR-9
-        type: references
-        when: "『設定画面』の表示と振る舞いを確認するとき。"
+      - SCR-9#
     status: implemented
     notes:
       補足: Settings に `model_validator(mode="after")` を追加し、この関数が返却した重なりごとに `PydanticCustomError` を集めた ValidationError を送出する（場所は重なったキー、理由は「{先のキー}と同じホットキー」）。設定画面は list_validation_failures で欄ごとのエラーにする
@@ -1850,9 +1731,7 @@ functions:
         mock: なし
         expected: ValidationError。失敗の場所が glossaries[0].name
     refs:
-      - to: SCR-9
-        type: references
-        when: "『設定画面』の表示と振る舞いを確認するとき。"
+      - SCR-9#
     status: implemented
   - name: join_hint_words
     title: 表記のヒントの語のつなぎ
@@ -1989,10 +1868,7 @@ functions:
         mock: なし
         expected: 検証を通り、device が cuda:1
     refs:
-      - to: CFG-1
-        item: "settings[hint_presets[].words]"
-        type: references
-        when: "『設定: 常駐アプリ』の「hint_presets[」の既定値と意味を確認するとき。"
+      - CFG-1#settings[hint_presets[].words]
     status: implemented
   - name: find_hint_preset_name_overlaps
     title: 表記のヒントのプリセットの名前の重なりの検出
@@ -2033,9 +1909,7 @@ functions:
         mock: なし
         expected: ValidationError。失敗の場所が hint_presets[0].name
     refs:
-      - to: SCR-9
-        type: references
-        when: "『設定画面』の表示と振る舞いを確認するとき。"
+      - SCR-9#
     status: implemented
   - name: find_glossary_preset_name_overlaps
     title: 用語集のプリセットの名前の重なりの検出
@@ -2082,9 +1956,7 @@ functions:
         mock: なし
         expected: ValidationError。失敗の場所が glossary_presets[0].glossaries
     refs:
-      - to: SCR-9
-        type: references
-        when: "『設定画面』の表示と振る舞いを確認するとき。"
+      - SCR-9#
     status: planned
   - name: os_default
     title: OS ごとの既定値

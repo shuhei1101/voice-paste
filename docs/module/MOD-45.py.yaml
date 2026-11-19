@@ -13,9 +13,7 @@ functions:
       type: None
       description: なし（モーダルを open で開いてすぐ戻る。exec でメインスレッドを止めない）
     refs:
-      - to: SCR-3
-        type: references
-        when: "『処理中のダイアログ』の表示と振る舞いを確認するとき。"
+      - SCR-3#
     status: implemented
     args:
       - name: reason

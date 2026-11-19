@@ -11,10 +11,7 @@ fields:
     required: true
     example: '1'
 refs:
-  - to: ER-1
-    item: "tables[localStorage voice-paste.keep_screen_on]"
-    type: references
-    when: "『ER 図: ブラウザの端末のデータ』の「localStorage voice-paste.keep_screen_on」の列と制約を確認するとき。"
+  - ER-1#tables[localStorage voice-paste.keep_screen_on]
 tags:
   - name: topic:消灯
     main: true

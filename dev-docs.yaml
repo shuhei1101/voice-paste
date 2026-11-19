@@ -207,7 +207,10 @@ documents:
     title: 用語集
     paths: ["docs/glossary/*.yaml"]
     exclude: [index.yaml]
-    schema: schemas/glossary.schema.yaml
+    schema:
+      source: knowledge
+      path: schemas/design/glossary.schema.yaml
+      ref: design-schemas/v9.2.0
     records: terms
     alias_type: term
   - id: index

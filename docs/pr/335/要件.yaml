@@ -1,0 +1,9 @@
+docs:
+  - page: dev-docs.yaml
+    new: false
+    change: documents[].schema の ref を全ての行で design-schemas/v9.2.0 へ統一する
+    status: todo
+scope_out:
+  - item: knowledge の design-schemas/v9.2.0 より後の版（v9.2.1〜v9.5.0）への追従
+    reason: 受付の判断で統一する先を v9.2.0 に確定しており、それより後の版のスキーマの変更への追従は要望に含まれない。追従するかはレビューで確定する
+    plan: to_file

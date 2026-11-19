@@ -1,0 +1,1 @@
+# dev-docs.yaml の documents[].schema を design-schemas/v9.2.0 へ揃え、design_docs publish を通す

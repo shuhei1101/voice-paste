@@ -22,7 +22,9 @@ data_models:
         default: None
         description: 補正に使用する用語集のプリセットの名前（省略時は設定で選んでいるプリセット）。一覧にあるかは route が glossary_preset_exists で確認する
     refs:
-      - LIB-18#
+      - to: LIB-18
+        type: references
+        when: "『pydantic』の使い方と制約を確認するとき。"
     status: implemented
   - name: StartSessionResponse
     title: 開始のレスポンス

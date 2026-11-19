@@ -37,7 +37,9 @@ functions:
       4. 1〜3 で OSError（`gdbus` が無い）・subprocess.SubprocessError（拡張が無い・無効で終了コードが 0 でない・時間切れ）・ValueError・SyntaxError（出力の書式が違う）が出た場合、空を返却する（貼り付けを止めない）
          - `[WARNING]` フォーカスしているウィンドウの wm_class を読み込めなかった（元の例外）
     refs:
-      - LIB-1#
+      - to: LIB-1
+        type: references
+        when: "『Focused Window D-Bus』の使い方と制約を確認するとき。"
     status: planned
     notes:
       テスト: 単体テストのファイルは `tests/unit/voice_paste/integrations/keyboard/test_active_window_wayland.py`。subprocess.run を差し替える。実物の拡張は検証環境の VM での通しの確認で確認する

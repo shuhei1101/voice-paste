@@ -136,7 +136,10 @@ classes:
           type: None
           description: なし
     refs:
-      - SCR-9#elements[文言の一覧]
+      - to: SCR-9
+        item: "elements[文言の一覧]"
+        type: references
+        when: "『設定画面』の「文言の一覧」の表示と振る舞いを確認するとき。"
     status: implemented
 aliases:
   - EdgePhrasePanel

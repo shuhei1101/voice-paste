@@ -151,7 +151,9 @@ classes:
             expected: presets.{kind}[0] が B、presets.{kind}[1] が A、presets.{kind}[2] が追加した空のプリセットの値で、presets.{kind}.order が True。続けて add_preset を呼ぶと presets.{kind}[3] が増える
         status: planned
     refs:
-      - SCR-9#
+      - to: SCR-9
+        type: references
+        when: "『設定画面』の表示と振る舞いを確認するとき。"
     status: implemented
 aliases:
   - PresetListPanel

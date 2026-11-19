@@ -98,7 +98,10 @@ constants:
         description: Haas の文字起こしのサーバー（`transcription.haas` の全てのキー）
     description: 型は `Mapping[Feature, frozenset[str]]`。キーは設定のドットで結んだキー。
     refs:
-      - SCR-9#elements[設定の欄]
+      - to: SCR-9
+        item: "elements[設定の欄]"
+        type: references
+        when: "『設定画面』の「設定の欄」の表示と振る舞いを確認するとき。"
     status: planned
 functions:
   - name: detect_os

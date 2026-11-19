@@ -212,7 +212,9 @@ lead: クローン直後に環境を作る・常駐サービスを起動する�
 prerequisites:
   - リポジトリの直下で、Windows では Windows の uv（WSL からは `uv.exe`）、Ubuntu 24.04 では Linux の uv（`uv`）で実行する。各分類のコマンドは Windows の uv で書き込み、Ubuntu では `uv.exe` を `uv` に読み替える
 refs:
-  - MOD-12#
+  - to: MOD-12
+    type: references
+    when: "『常駐アプリ / 起動と配線』の構成を確認するとき。"
 tags:
   - name: topic:コマンド
     main: true

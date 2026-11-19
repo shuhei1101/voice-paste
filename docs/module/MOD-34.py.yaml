@@ -88,7 +88,9 @@ classes:
           description: その回に動かした窓の左上の座標。動かしていなければ None
         status: implemented
     refs:
-      - SCR-10#
+      - to: SCR-10
+        type: references
+        when: "『録音の画面』の表示と振る舞いを確認するとき。"
     status: implemented
     notes:
       テスト: 画面の振る舞い（ボタンで UiDeps の関数が呼ばれること・出し分け）は画面設計を元にした結合テスト（`tests/integration/ui/`）で確認する。

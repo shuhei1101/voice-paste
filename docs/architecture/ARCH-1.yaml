@@ -191,8 +191,14 @@ external_systems:
     detail: IF-11#
     cost: 無料。本文は 100 MB まで（Cloudflare の無料プラン）・応答待ちは 83 秒まで（ゲートウェイの `upstream.header_timeout_sec`）
     refs:
-      - NFR-1#requirements[ブラウザの要求の応答時間]
-      - NFR-1#requirements[ブラウザの本文の上限]
+      - to: NFR-1
+        item: "requirements[ブラウザの要求の応答時間]"
+        type: requires
+        when: "『非機能要件』の「ブラウザの要求の応答時間」の決定値を確認するとき。"
+      - to: NFR-1
+        item: "requirements[ブラウザの本文の上限]"
+        type: requires
+        when: "『非機能要件』の「ブラウザの本文の上限」の決定値を確認するとき。"
     notes:
       事前確認: 常駐アプリはゲートウェイへ問い合わせない（受ける側のため）。公開の登録は反映作業『ゲートウェイへの登録』で行い、外の端末から `/web/` が画面を返却することで確認する。
     status: planned
@@ -204,8 +210,14 @@ external_systems:
     test_file: tests/external/voice_paste/integrations/openai/test_transcriber.py
     cost: 従量課金（既定の gpt-transcribe は音声 1 分あたり $0.0045）。録音が端末の外へ送信される
     refs:
-      - NFR-1#requirements[OpenAIの文字起こしのタイムアウトと再送]
-      - NFR-1#requirements[OpenAIの文字起こしの料金]
+      - to: NFR-1
+        item: "requirements[OpenAIの文字起こしのタイムアウトと再送]"
+        type: requires
+        when: "『非機能要件』の「OpenAIの文字起こしのタイムアウトと再送」の決定値を確認するとき。"
+      - to: NFR-1
+        item: "requirements[OpenAIの文字起こしの料金]"
+        type: requires
+        when: "『非機能要件』の「OpenAIの文字起こしの料金」の決定値を確認するとき。"
     status: planned
   - name: Focused Window D-Bus（GNOME Shell の拡張）
     purpose: Linux の Wayland のセッションで、貼り付けのキーを送信する直前にフォーカスしているウィンドウの wm_class を読み込み、端末アプリかを見分ける

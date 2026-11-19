@@ -105,7 +105,10 @@ data_models:
         default: '""'
         description: transcribe_longform の separator
     refs:
-      - IF-12#request[short_audio_limit_sec]
+      - to: IF-12
+        item: "request[short_audio_limit_sec]"
+        type: requires
+        when: "『音声を文字に起こす』の「short_audio_limit_sec」と入出力・フローを突き合わせるとき。"
     status: planned
 constants:
   - name: TUNING_FLOAT_RANGES
@@ -127,7 +130,9 @@ constants:
         value: (0.01, 1.0)
         description: 16 kHz で 1 サンプル以上の窓にする
     refs:
-      - IF-12#
+      - to: IF-12
+        type: requires
+        when: "『音声を文字に起こす』の入出力とフローと突き合わせるとき。"
     status: planned
   - name: BATCH_SIZE_RANGE
     title: バッチの大きさの範囲
@@ -136,7 +141,10 @@ constants:
     summary: batch_size の下限と上限（両端を含む）
     value: (1, 256)
     refs:
-      - IF-12#request[batch_size]
+      - to: IF-12
+        item: "request[batch_size]"
+        type: requires
+        when: "『音声を文字に起こす』の「batch_size」と入出力・フローを突き合わせるとき。"
     status: planned
   - name: SEPARATOR_MAX_LENGTH
     title: 区切りをつなぐ文字の長さの上限
@@ -145,7 +153,10 @@ constants:
     summary: separator の文字数の上限
     value: '16'
     refs:
-      - IF-12#request[separator]
+      - to: IF-12
+        item: "request[separator]"
+        type: requires
+        when: "『音声を文字に起こす』の「separator」と入出力・フローを突き合わせるとき。"
     status: planned
   - name: SAMPLE_RATE
     title: モデルのサンプリングレート
@@ -222,7 +233,9 @@ functions:
         expected: TuningValueError。field が separator
         exception: separator が長い
     refs:
-      - IF-12#
+      - to: IF-12
+        type: requires
+        when: "『音声を文字に起こす』の入出力とフローと突き合わせるとき。"
     status: planned
   - name: create_app
     title: サーバーの app の組み立て
@@ -280,9 +293,15 @@ functions:
         expected: 403 の problem+json
     status: planned
 refs:
-  - IF-12#
-  - IF-13#
-  - IF-14#
+  - to: IF-12
+    type: requires
+    when: "『音声を文字に起こす』の入出力とフローと突き合わせるとき。"
+  - to: IF-13
+    type: requires
+    when: "『準備できたかを返す』の入出力とフローと突き合わせるとき。"
+  - to: IF-14
+    type: requires
+    when: "『停止する』の入出力とフローと突き合わせるとき。"
 id: MOD-99
 visibility: internal
 classes:

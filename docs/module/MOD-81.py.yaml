@@ -23,7 +23,9 @@ functions:
          - `[WARNING]` アクティブなウィンドウの WM_CLASS を読み込めなかった（元の例外）
       5. つないだ Display は最後に close する
     refs:
-      - LIB-23#
+      - to: LIB-23
+        type: references
+        when: "『python-xlib』の使い方と制約を確認するとき。"
     status: planned
     notes:
       テスト: 単体テストのファイルは `tests/unit/voice_paste/integrations/keyboard/test_active_window_linux.py`。Windows では skip する（python-xlib を読み込まない）

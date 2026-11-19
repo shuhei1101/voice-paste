@@ -70,7 +70,9 @@ classes:
             mock: なし
             expected: 例外が出ない
     refs:
-      - LIB-29#
+      - to: LIB-29
+        type: references
+        when: "『uvicorn』の使い方と制約を確認するとき。"
     status: implemented
     description: |-
       app とポートを受けて `uvicorn.Server`（host は `127.0.0.1` 固定、アクセスログを出さない）を作る。

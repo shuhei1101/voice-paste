@@ -48,7 +48,9 @@ license: Windows の一部（常駐アプリに同梱しない）
 official_url: https://learn.microsoft.com/en-us/windows/win32/api/winbase/nf-winbase-powersetrequest
 install: 不要（Windows に入っている）
 refs:
-  - SC-8#
+  - to: SC-8
+    type: references
+    when: "『録音する』の流れと突き合わせるとき。"
 aliases:
   - kernel32
 tags:

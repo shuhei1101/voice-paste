@@ -62,7 +62,9 @@ functions:
         expected: DisplayInhibitError が送出され、続く release_display_linux が何もしない
         exception: 子プロセスを起動できない
     refs:
-      - LIB-32#
+      - to: LIB-32
+        type: references
+        when: "『gnome-session-inhibit』の使い方と制約を確認するとき。"
     status: planned
   - name: release_display_linux
     title: 画面の消灯の抑止を解除する（Linux）

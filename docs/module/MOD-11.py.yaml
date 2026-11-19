@@ -476,7 +476,10 @@ functions:
         mock: なし
         expected: 同じ文字が返る
     refs:
-      - SC-9#scenarios[正常シナリオ（文頭・文末の決まった文言を消す）]
+      - to: SC-9
+        item: "scenarios[正常シナリオ（文頭・文末の決まった文言を消す）]"
+        type: references
+        when: "『録音を文字に起こす』の「正常シナリオ（文頭・文末の決まった文言を消す）」の流れと突き合わせるとき。"
     status: implemented
   - name: resolve_glossary_presets
     title: 用語集のプリセットの一覧の解決
@@ -531,8 +534,14 @@ functions:
         mock: なし
         expected: 「既定」（["yogo"]）・「会議」（["会議用", "yogo"]）の 2 件が返る
     refs:
-      - CFG-1#settings[glossary_presets[].name]
-      - CFG-1#settings[glossary_presets[].glossaries]
+      - to: CFG-1
+        item: "settings[glossary_presets[].name]"
+        type: references
+        when: "『設定: 常駐アプリ』の「glossary_presets[」の既定値と意味を確認するとき。"
+      - to: CFG-1
+        item: "settings[glossary_presets[].glossaries]"
+        type: references
+        when: "『設定: 常駐アプリ』の「glossary_presets[」の既定値と意味を確認するとき。"
     status: planned
   - name: pick_glossary_preset
     title: 補正に使う用語集のプリセットの選択
@@ -601,8 +610,14 @@ functions:
         mock: なし
         expected: 「会議」のプリセットが返る
     refs:
-      - CFG-1#settings[active_glossary_preset]
-      - IF-10#request[glossary_preset]
+      - to: CFG-1
+        item: "settings[active_glossary_preset]"
+        type: references
+        when: "『設定: 常駐アプリ』の「active_glossary_preset」の既定値と意味を確認するとき。"
+      - to: IF-10
+        item: "request[glossary_preset]"
+        type: requires
+        when: "『録音を開始する』の「glossary_preset」と入出力・フローを突き合わせるとき。"
     status: planned
   - name: list_preset_glossaries
     title: 用語集のプリセットの用語集

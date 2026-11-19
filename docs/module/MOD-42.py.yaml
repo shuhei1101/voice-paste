@@ -169,7 +169,9 @@ classes:
             expected: True の後は custom-keybindings に常駐サービスのパスが無く、False の後は <Primary><Alt>d の登録が 1 つある
         status: planned
     refs:
-      - SC-5#
+      - to: SC-5
+        type: references
+        when: "『常駐アプリを起動する』の流れと突き合わせるとき。"
     status: planned
 constants:
   - name: MEDIA_KEYS_SCHEMA

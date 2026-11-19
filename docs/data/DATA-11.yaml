@@ -20,7 +20,10 @@ fields:
     description: その行を補正に使用するか。`0` の行だけがオフで、列が無い・空・ほかの値はオン
     example: '1'
 refs:
-  - ER-2#tables[%APPDATA%\voice-paste\glossaries\glossary_{n}.csv]
+  - to: ER-2
+    item: "tables[%APPDATA%\\voice-paste\\glossaries\\glossary_{n}.csv]"
+    type: references
+    when: "『ER 図: 常駐アプリのファイル』の「%APPDATA%\\voice-paste\\glossaries\\glossary_{n}.csv」の列と制約を確認するとき。"
 tags:
   - name: topic:用語集
     main: true

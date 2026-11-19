@@ -57,8 +57,12 @@ functions:
         exception: PyAV が開けない
     status: planned
 refs:
-  - IF-12#
-  - LIB-4#
+  - to: IF-12
+    type: requires
+    when: "『音声を文字に起こす』の入出力とフローと突き合わせるとき。"
+  - to: LIB-4
+    type: references
+    when: "『av』の使い方と制約を確認するとき。"
 id: MOD-100
 visibility: internal
 lead: 受けた音声を PyAV で 16 kHz モノラルの配列に復号する処理を受け持ち、受け付ける音声の形式を変えるときに参照する。

@@ -33,8 +33,12 @@ functions:
       5. 修飾キーを順に押し、主キーを押して離し、修飾キーを逆順に離す。途中で失敗しても、押した修飾キーは逆順に離す（send_enter と同じ）
          - `[INFO]` 貼り付けのキーを送信した（送信したキー）
     refs:
-      - LIB-19#
-      - SC-7#
+      - to: LIB-19
+        type: references
+        when: "『pynput』の使い方と制約を確認するとき。"
+      - to: SC-7
+        type: references
+        when: "『起こした文字を届ける』の流れと突き合わせるとき。"
     status: planned
     notes:
       テスト: 単体テストのファイルは `tests/unit/voice_paste/integrations/keyboard/test_sender_linux.py`。Windows では skip する（python-xlib を読み込まない）

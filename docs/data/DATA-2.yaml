@@ -34,7 +34,10 @@ fields:
     type: string
     description: done のときの補正した文字。それ以外は null
 refs:
-  - ER-1#tables[localStorage voice-paste.results]
+  - to: ER-1
+    item: "tables[localStorage voice-paste.results]"
+    type: references
+    when: "『ER 図: ブラウザの端末のデータ』の「localStorage voice-paste.results」の列と制約を確認するとき。"
 tags:
   - name: topic:結果
     main: true

@@ -41,7 +41,9 @@ functions:
       - name: GlossaryPresetNotFoundError
         condition: 指定した用語集のプリセットが今の設定の一覧に無い
     refs:
-      - IF-10#
+      - to: IF-10
+        type: requires
+        when: "『録音を開始する』の入出力とフローと突き合わせるとき。"
     unit_tests:
       - name: test_start_session_route_when_callback_not_allowed
         case: 異常
@@ -93,7 +95,9 @@ functions:
       type: None
       description: 200 で返却する
     refs:
-      - IF-8#
+      - to: IF-8
+        type: requires
+        when: "『録音を停止する』の入出力とフローと突き合わせるとき。"
     status: implemented
   - name: complete_session_route
     title: 完了の route
@@ -118,7 +122,9 @@ functions:
       type: None
       description: 202 で返却する
     refs:
-      - IF-9#
+      - to: IF-9
+        type: requires
+        when: "『録音を完了する』の入出力とフローと突き合わせるとき。"
     status: implemented
   - name: get_session_api_deps
     title: 録音セッションの API の依存の取得

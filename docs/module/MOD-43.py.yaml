@@ -52,8 +52,14 @@ functions:
         mock: なし
         expected: (1920 + 2560 - 400 - WINDOW_MARGIN_PX, 1400 - 200 - WINDOW_MARGIN_PX)
     refs:
-      - CFG-1#settings[ui.position]
-      - CFG-1#settings[ui.follow_cursor]
+      - to: CFG-1
+        item: "settings[ui.position]"
+        type: references
+        when: "『設定: 常駐アプリ』の「ui.position」の既定値と意味を確認するとき。"
+      - to: CFG-1
+        item: "settings[ui.follow_cursor]"
+        type: references
+        when: "『設定: 常駐アプリ』の「ui.follow_cursor」の既定値と意味を確認するとき。"
     status: implemented
 lead: 設定のモニターと位置から窓を配置する座標を求める処理を受け持ち、録音の画面の出る位置を変えるときに参照する。
 tags:

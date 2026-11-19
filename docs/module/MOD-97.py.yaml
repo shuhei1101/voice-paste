@@ -7,7 +7,10 @@ constants:
     summary: 接続を待つ秒数
     value: '3.0'
     refs:
-      - NFR-1#requirements[Haasの文字起こしのタイムアウト]
+      - to: NFR-1
+        item: "requirements[Haasの文字起こしのタイムアウト]"
+        type: requires
+        when: "『非機能要件』の「Haasの文字起こしのタイムアウト」の決定値を確認するとき。"
     status: planned
   - name: HAAS_RESPONSE_TIMEOUT_SEC
     title: Haas の文字起こしの応答のタイムアウト
@@ -16,7 +19,10 @@ constants:
     summary: 応答を待つ秒数
     value: '180.0'
     refs:
-      - NFR-1#requirements[Haasの文字起こしのタイムアウト]
+      - to: NFR-1
+        item: "requirements[Haasの文字起こしのタイムアウト]"
+        type: requires
+        when: "『非機能要件』の「Haasの文字起こしのタイムアウト」の決定値を確認するとき。"
     status: planned
 classes:
   - name: HaasTranscriber
@@ -132,8 +138,12 @@ classes:
             expected: multipart に short_audio_limit_sec=20.0・batch_size=8・alpha=3.0・guard=false・chunk_sec=15.0・search_sec=1.0・window_sec=0.05・separator=。が届いている
         status: planned
     refs:
-      - IF-12#
-      - SC-9#
+      - to: IF-12
+        type: requires
+        when: "『音声を文字に起こす』の入出力とフローと突き合わせるとき。"
+      - to: SC-9
+        type: references
+        when: "『録音を文字に起こす』の流れと突き合わせるとき。"
     status: planned
 id: MOD-97
 visibility: internal

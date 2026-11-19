@@ -42,7 +42,9 @@ elements:
     source: Settings.{キー}
     target: Settings.{キー}（保存で settings.yaml へ書き込む）
     refs:
-      - CFG-1#
+      - to: CFG-1
+        type: references
+        when: "『設定: 常駐アプリ』の設定の既定値と意味を確認するとき。"
   - name: 再起動で反映のマーカー
     id: restart_badge_{key}
     kind: label
@@ -64,7 +66,10 @@ elements:
     source: Settings.hotkeys.*・Settings.keyboard.paste_key・Settings.outputs[].hotkey・Settings.presets[].hotkey・Settings.glossary_preset_hotkeys[].hotkey
     target: 同じキー（pynput の書式へ変える）
     refs:
-      - CFG-1#settings[hotkeys.start]
+      - to: CFG-1
+        item: "settings[hotkeys.start]"
+        type: references
+        when: "『設定: 常駐アプリ』の「hotkeys.start」の既定値と意味を確認するとき。"
   - name: 再起動のメッセージ
     id: restart_notice
     kind: label
@@ -132,7 +137,10 @@ elements:
     source: Settings.presets[]（kind で絞る）
     target: Settings.presets[]（ブラウザ添付のタブの並び → エンドポイントへ送信のタブの並びの順で書き込む）
     refs:
-      - CFG-1#settings[presets[].kind]
+      - to: CFG-1
+        item: "settings[presets[].kind]"
+        type: references
+        when: "『設定: 常駐アプリ』の「presets[」の既定値と意味を確認するとき。"
   - name: プリセットが無いときの案内
     id: preset_empty_{kind}
     kind: label
@@ -153,7 +161,10 @@ elements:
     source: Settings.presets[].enabled
     target: Settings.presets[].enabled
     refs:
-      - CFG-1#settings[presets[].enabled]
+      - to: CFG-1
+        item: "settings[presets[].enabled]"
+        type: references
+        when: "『設定: 常駐アプリ』の「presets[」の既定値と意味を確認するとき。"
   - name: プリセットのタイトルの欄
     id: preset_title_{n}
     kind: input
@@ -170,7 +181,10 @@ elements:
     source: Settings.presets[].title
     target: Settings.presets[].title
     refs:
-      - CFG-1#settings[presets[].title]
+      - to: CFG-1
+        item: "settings[presets[].title]"
+        type: references
+        when: "『設定: 常駐アプリ』の「presets[」の既定値と意味を確認するとき。"
   - name: プリセットの URL の欄
     id: preset_url_{n}
     kind: input
@@ -187,7 +201,10 @@ elements:
     source: Settings.presets[].url
     target: Settings.presets[].url
     refs:
-      - CFG-1#settings[presets[].url]
+      - to: CFG-1
+        item: "settings[presets[].url]"
+        type: references
+        when: "『設定: 常駐アプリ』の「presets[」の既定値と意味を確認するとき。"
   - name: Enter まで送信の切り替え
     id: preset_send_enter_{n}
     kind: checkbox
@@ -201,7 +218,10 @@ elements:
     source: Settings.presets[].send_enter
     target: Settings.presets[].send_enter
     refs:
-      - CFG-1#settings[presets[].send_enter]
+      - to: CFG-1
+        item: "settings[presets[].send_enter]"
+        type: references
+        when: "『設定: 常駐アプリ』の「presets[」の既定値と意味を確認するとき。"
   - name: Authorization の欄
     id: preset_authorization_{n}
     kind: input
@@ -217,7 +237,10 @@ elements:
     source: Settings.presets[].authorization
     target: Settings.presets[].authorization
     refs:
-      - CFG-1#settings[presets[].authorization]
+      - to: CFG-1
+        item: "settings[presets[].authorization]"
+        type: references
+        when: "『設定: 常駐アプリ』の「presets[」の既定値と意味を確認するとき。"
   - name: プリセットのホットキーの欄
     id: preset_hotkey_{n}
     kind: input
@@ -233,7 +256,10 @@ elements:
     source: Settings.presets[].hotkey
     target: Settings.presets[].hotkey（空は空文字で書き込む）
     refs:
-      - CFG-1#settings[presets[].hotkey]
+      - to: CFG-1
+        item: "settings[presets[].hotkey]"
+        type: references
+        when: "『設定: 常駐アプリ』の「presets[」の既定値と意味を確認するとき。"
   - name: プリセットを上へのボタン
     id: preset_up_{n}
     kind: button
@@ -291,7 +317,10 @@ elements:
     reason: 用語集は再起動の要らない日々の編集で、メニューから直接開けるまとまりにした（確認ログ）
     status: planned
     refs:
-      - CFG-1#settings[glossaries[].name]
+      - to: CFG-1
+        item: "settings[glossaries[].name]"
+        type: references
+        when: "『設定: 常駐アプリ』の「glossaries[」の既定値と意味を確認するとき。"
   - name: 補正に使う用語集の選択
     id: glossary_active_{n}
     kind: radio
@@ -307,7 +336,10 @@ elements:
     action: 選んだ用語集の削除ボタンを無効にし、前に選んでいた用語集の削除ボタンを有効にする
     status: removed
     refs:
-      - CFG-1#settings[active_glossary]
+      - to: CFG-1
+        item: "settings[active_glossary]"
+        type: references
+        when: "『設定: 常駐アプリ』の「active_glossary」の既定値と意味を確認するとき。"
   - name: 用語集の名前のボタン
     id: glossary_pick_{n}
     kind: button
@@ -372,7 +404,10 @@ elements:
     target: Settings.glossaries[].name（前後の空白を除く）
     status: planned
     refs:
-      - CFG-1#settings[glossaries[].name]
+      - to: CFG-1
+        item: "settings[glossaries[].name]"
+        type: references
+        when: "『設定: 常駐アプリ』の「glossaries[」の既定値と意味を確認するとき。"
   - name: 用語集の行の表
     id: glossary_entries
     kind: table
@@ -386,7 +421,10 @@ elements:
     target: その用語集の CSV。保存で書き戻すのは、設定画面で行を変えた用語集（誤変換・正しい表記・オン・オフのどれかを変えた、行を追加した・削除した）と、追加した用語集の CSV だけで、表の順に行とオン・オフを書き込む。行を変えていない用語集の CSV には触れない（`glossary_path` から `glossaries` へ書き移すだけの保存や、ほかのまとまりだけを変えた保存でも触れない）
     status: implemented
     refs:
-      - CFG-1#settings[glossaries[].path]
+      - to: CFG-1
+        item: "settings[glossaries[].path]"
+        type: references
+        when: "『設定: 常駐アプリ』の「glossaries[」の既定値と意味を確認するとき。"
   - name: 行を使うの切り替え
     id: glossary_entry_on_{n}
     kind: checkbox
@@ -497,7 +535,10 @@ elements:
     source: Settings.hint_presets[]（enabled が true のものの words）
     status: implemented
     refs:
-      - CFG-1#settings[hint_presets[].words]
+      - to: CFG-1
+        item: "settings[hint_presets[].words]"
+        type: references
+        when: "『設定: 常駐アプリ』の「hint_presets[」の既定値と意味を確認するとき。"
   - name: ヒントのプリセットの一覧
     id: hint_preset_list
     kind: list
@@ -511,7 +552,10 @@ elements:
     target: Settings.hint_presets[]（一覧の順に書き込む）
     status: implemented
     refs:
-      - CFG-1#settings[hint_presets[].name]
+      - to: CFG-1
+        item: "settings[hint_presets[].name]"
+        type: references
+        when: "『設定: 常駐アプリ』の「hint_presets[」の既定値と意味を確認するとき。"
   - name: ヒントのプリセットが無いときの案内
     id: hint_preset_empty
     kind: label
@@ -535,7 +579,10 @@ elements:
     target: Settings.hint_presets[].enabled
     status: implemented
     refs:
-      - CFG-1#settings[hint_presets[].enabled]
+      - to: CFG-1
+        item: "settings[hint_presets[].enabled]"
+        type: references
+        when: "『設定: 常駐アプリ』の「hint_presets[」の既定値と意味を確認するとき。"
   - name: ヒントのプリセットの語の数と長さ
     id: hint_preset_size_{n}
     kind: label
@@ -563,7 +610,10 @@ elements:
     target: Settings.hint_presets[].name（前後の空白を除く）
     status: implemented
     refs:
-      - CFG-1#settings[hint_presets[].name]
+      - to: CFG-1
+        item: "settings[hint_presets[].name]"
+        type: references
+        when: "『設定: 常駐アプリ』の「hint_presets[」の既定値と意味を確認するとき。"
   - name: ヒントの語の欄
     id: hint_word_{n}_{m}
     kind: input
@@ -582,7 +632,10 @@ elements:
     reason: 単語のエラーをその単語の欄の下に出すため、複数行の文字の欄 1 つではなく単語ごとの欄にした。1 行に 1 単語は、単語と読みを見比べるためと、読みの欄の名前を列の見出しで常に出すため（ユーザーの判断。モック `docs/mock/pages/settings/264/b-word-table/`）
     status: implemented
     refs:
-      - CFG-1#settings[hint_presets[].words]
+      - to: CFG-1
+        item: "settings[hint_presets[].words]"
+        type: references
+        when: "『設定: 常駐アプリ』の「hint_presets[」の既定値と意味を確認するとき。"
   - name: ヒントの語の削除ボタン
     id: hint_word_remove_{n}_{m}
     kind: button
@@ -666,7 +719,9 @@ elements:
     label: 保存しました。（反映が restart の欄が変わっているとき「「再起動で反映」の設定 {件数} 件は、再起動するまで前の値で動きます。」を続ける）
     visible_when: 「保存」で確認に通って書き込めた後。欄を変えると非表示にする
     refs:
-      - CFG-1#
+      - to: CFG-1
+        type: references
+        when: "『設定: 常駐アプリ』の設定の既定値と意味を確認するとき。"
   - name: 誤変換を削除する行の説明
     id: glossary_delete_note
     kind: label
@@ -697,7 +752,10 @@ elements:
     source: Settings.edge_phrases[]
     target: Settings.edge_phrases[]（一覧の順に書き込む。文言が空の行は捨てる）
     refs:
-      - CFG-1#settings[edge_phrases[].text]
+      - to: CFG-1
+        item: "settings[edge_phrases[].text]"
+        type: references
+        when: "『設定: 常駐アプリ』の「edge_phrases[」の既定値と意味を確認するとき。"
     reason: 並べ替えをつまみにした（確認ログ）
     status: implemented
   - name: 行のつまみ
@@ -722,7 +780,10 @@ elements:
     source: Settings.edge_phrases[].text
     target: Settings.edge_phrases[].text（前後の空白を除く）
     refs:
-      - CFG-1#settings[edge_phrases[].text]
+      - to: CFG-1
+        item: "settings[edge_phrases[].text]"
+        type: references
+        when: "『設定: 常駐アプリ』の「edge_phrases[」の既定値と意味を確認するとき。"
     status: implemented
   - name: 位置の選択
     id: edge_phrase_position_{n}
@@ -738,7 +799,10 @@ elements:
     source: Settings.edge_phrases[].position
     target: Settings.edge_phrases[].position
     refs:
-      - CFG-1#settings[edge_phrases[].position]
+      - to: CFG-1
+        item: "settings[edge_phrases[].position]"
+        type: references
+        when: "『設定: 常駐アプリ』の「edge_phrases[」の既定値と意味を確認するとき。"
     status: implemented
   - name: 文言の行の削除ボタン
     id: edge_phrase_remove_{n}
@@ -788,7 +852,10 @@ elements:
     source: Settings.glossary_presets[]
     target: Settings.glossary_presets[]（保存で settings.yaml へ書き込み、`active_glossary` のキーは削除する）
     refs:
-      - CFG-1#settings[glossary_presets[].name]
+      - to: CFG-1
+        item: "settings[glossary_presets[].name]"
+        type: references
+        when: "『設定: 常駐アプリ』の「glossary_presets[」の既定値と意味を確認するとき。"
     status: planned
   - name: 補正に使うプリセットの選択
     id: glossary_preset_active_{n}
@@ -801,7 +868,10 @@ elements:
     source: Settings.active_glossary_preset
     target: Settings.active_glossary_preset
     refs:
-      - CFG-1#settings[active_glossary_preset]
+      - to: CFG-1
+        item: "settings[active_glossary_preset]"
+        type: references
+        when: "『設定: 常駐アプリ』の「active_glossary_preset」の既定値と意味を確認するとき。"
     status: planned
   - name: 用語集のプリセットの名前のボタン
     id: glossary_preset_pick_{n}
@@ -856,7 +926,10 @@ elements:
     source: Settings.glossary_presets[].name
     target: Settings.glossary_presets[].name（前後の空白を除く）
     refs:
-      - CFG-1#settings[glossary_presets[].name]
+      - to: CFG-1
+        item: "settings[glossary_presets[].name]"
+        type: references
+        when: "『設定: 常駐アプリ』の「glossary_presets[」の既定値と意味を確認するとき。"
     status: planned
   - name: 使う用語集の表
     id: glossary_preset_glossaries
@@ -869,7 +942,10 @@ elements:
     source: Settings.glossary_presets[].glossaries
     target: Settings.glossary_presets[].glossaries
     refs:
-      - CFG-1#settings[glossary_presets[].glossaries]
+      - to: CFG-1
+        item: "settings[glossary_presets[].glossaries]"
+        type: references
+        when: "『設定: 常駐アプリ』の「glossary_presets[」の既定値と意味を確認するとき。"
     status: planned
   - name: 使う用語集のつまみ
     id: glossary_preset_glossary_grip_{n}
@@ -958,7 +1034,10 @@ elements:
     target: Settings.hint_presets[].readings[]（前後の空白を除く。全ての単語の読みが空なら空の一覧）
     status: planned
     refs:
-      - CFG-1#settings[hint_presets[].readings]
+      - to: CFG-1
+        item: "settings[hint_presets[].readings]"
+        type: references
+        when: "『設定: 常駐アプリ』の「hint_presets[」の既定値と意味を確認するとき。"
   - name: ヒントの語と読みの列の見出し
     id: hint_words_head_{n}
     kind: label
@@ -979,7 +1058,10 @@ elements:
     initial_value: 設定画面を開いたときの `transcription.engine` のエンジンのタブ
     action: 選んだタブのエンジンの欄に切り替える。エンジンの選択の欄を変えても、出しているタブは替えない
     refs:
-      - CFG-1#settings[transcription.engine]
+      - to: CFG-1
+        item: "settings[transcription.engine]"
+        type: references
+        when: "『設定: 常駐アプリ』の「transcription.engine」の既定値と意味を確認するとき。"
     status: planned
   - name: 使用中のマーカー
     id: engine_in_use_{engine}
@@ -1018,7 +1100,10 @@ elements:
     source: Settings.glossary_preset_hotkeys[]
     target: Settings.glossary_preset_hotkeys[]（保存で settings.yaml へ書き込む）
     refs:
-      - CFG-1#settings[glossary_preset_hotkeys[].hotkey]
+      - to: CFG-1
+        item: "settings[glossary_preset_hotkeys[].hotkey]"
+        type: references
+        when: "『設定: 常駐アプリ』の「glossary_preset_hotkeys[」の既定値と意味を確認するとき。"
     status: planned
   - name: ショートカットのキーの欄
     id: shortcut_hotkey_{n}
@@ -1033,7 +1118,10 @@ elements:
     source: Settings.glossary_preset_hotkeys[].hotkey
     target: Settings.glossary_preset_hotkeys[].hotkey
     refs:
-      - CFG-1#settings[glossary_preset_hotkeys[].hotkey]
+      - to: CFG-1
+        item: "settings[glossary_preset_hotkeys[].hotkey]"
+        type: references
+        when: "『設定: 常駐アプリ』の「glossary_preset_hotkeys[」の既定値と意味を確認するとき。"
     status: planned
   - name: 切り替える用語集のプリセットの選択
     id: shortcut_preset_{n}
@@ -1048,7 +1136,10 @@ elements:
     source: Settings.glossary_preset_hotkeys[].preset
     target: Settings.glossary_preset_hotkeys[].preset
     refs:
-      - CFG-1#settings[glossary_preset_hotkeys[].preset]
+      - to: CFG-1
+        item: "settings[glossary_preset_hotkeys[].preset]"
+        type: references
+        when: "『設定: 常駐アプリ』の「glossary_preset_hotkeys[」の既定値と意味を確認するとき。"
     status: planned
   - name: ショートカットの行の削除ボタン
     id: shortcut_remove_{n}
@@ -1235,8 +1326,12 @@ screen: src/voice_paste/ui/windows/settings_window.py
 mock: docs/mock/pages/settings/291/a-shortcuts-first/
 lead: トレイの「設定…」「用語集の設定…」「ショートカットの設定…」から開く画面。設定の全てのキーをまとまりに並べ、設定のモデルで確認してから保存する。
 refs:
-  - SC-6#
-  - CFG-1#
+  - to: SC-6
+    type: references
+    when: "『設定を変える』の流れと突き合わせるとき。"
+  - to: CFG-1
+    type: references
+    when: "『設定: 常駐アプリ』の設定の既定値と意味を確認するとき。"
 notes:
   設定のレイヤー: |-
     設定の値は、既定値 `config/defaults.yaml` → 環境の値 `settings.yaml` → checkout の上書き `settings.local.yaml` を重ねた値（シナリオ 設定を変える の補足『設定のレイヤー』）。

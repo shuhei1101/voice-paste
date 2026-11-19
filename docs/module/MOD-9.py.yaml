@@ -281,7 +281,10 @@ functions:
         mock: now
         expected: source がそのまま返り、history/ に何も書き込まれない
     refs:
-      - MOD-26#function_types[StoreWebAudioFn]
+      - to: MOD-26
+        item: "function_types[StoreWebAudioFn]"
+        type: references
+        when: "『常駐アプリ / ブラウザの文字起こし / types.py』の「StoreWebAudioFn」を呼ぶ・変えるときに、引数と戻り値を確認するとき。"
     status: planned
 tags:
   - name: topic:履歴

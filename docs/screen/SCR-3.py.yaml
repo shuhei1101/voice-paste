@@ -44,7 +44,10 @@ screen: src/voice_paste/ui/windows/busy_dialog.py
 mock: docs/mock/pages/busy-dialog/288/a-reason-by-cause/
 lead: 録音を始められないとき（API から始めた録音の処理中・前の録音の終了の処理中）に録音開始のホットキーを押したとき、始められない理由を通知するダイアログ。
 refs:
-  - MOD-32#functions[notify]
+  - to: MOD-32
+    item: "functions[notify]"
+    type: references
+    when: "『常駐アプリ / ホットキーと画面 / bridge.py』の「notify」を呼ぶ・変えるときに、引数と戻り値を確認するとき。"
 test_file: tests/integration/ui/test_busy_dialog.py
 tags:
   - name: topic:ダイアログ

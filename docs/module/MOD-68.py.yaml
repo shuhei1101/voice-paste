@@ -65,7 +65,9 @@ classes:
             mock: onnxruntime.InferenceSession
             expected: どちらの run にも 0 の h・c が渡る
     refs:
-      - LIB-15#
+      - to: LIB-15
+        type: references
+        when: "『onnxruntime』の使い方と制約を確認するとき。"
     status: planned
 constants:
   - name: VAD_CONTEXT
@@ -89,7 +91,9 @@ constants:
     summary: 常駐アプリのパッケージ（voice_paste.integrations.vad）に同梱した Silero VAD のモデルの配置先（faster-whisper 1.2.1 の get_vad_model が開くものと同じファイル）
     value: '"assets/silero_vad_v6.onnx"'
     refs:
-      - LIB-8#
+      - to: LIB-8
+        type: references
+        when: "『faster-whisper』の使い方と制約を確認するとき。"
     status: planned
 functions:
   - name: load_vad_session
@@ -127,7 +131,9 @@ functions:
         expected: StartupError が送出される
         exception: VAD のモデルを開けない
     refs:
-      - LIB-15#
+      - to: LIB-15
+        type: references
+        when: "『onnxruntime』の使い方と制約を確認するとき。"
     status: planned
 aliases:
   - StreamingVad

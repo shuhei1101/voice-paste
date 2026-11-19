@@ -141,7 +141,7 @@ enums:
       - to: CFG-1
         item: "settings[outputs[].enter_modifiers]"
         type: references
-        when: "『設定: 常駐アプリ』の設定「outputs[」のenter_modifiers]の既定値と意味を確認するとき。"
+        when: "『設定: 常駐アプリ』の設定「outputs[].enter_modifiers」の既定値と意味を確認するとき。"
     status: planned
 function_types:
   - name: ProgressFn

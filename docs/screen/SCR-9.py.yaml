@@ -140,7 +140,7 @@ elements:
       - to: CFG-1
         item: "settings[presets[].kind]"
         type: references
-        when: "『設定: 常駐アプリ』の設定「presets[」のkind]の既定値と意味を確認するとき。"
+        when: "『設定: 常駐アプリ』の設定「presets[].kind」の既定値と意味を確認するとき。"
   - name: プリセットが無いときの案内
     id: preset_empty_{kind}
     kind: label
@@ -164,7 +164,7 @@ elements:
       - to: CFG-1
         item: "settings[presets[].enabled]"
         type: references
-        when: "『設定: 常駐アプリ』の設定「presets[」のenabled]の既定値と意味を確認するとき。"
+        when: "『設定: 常駐アプリ』の設定「presets[].enabled」の既定値と意味を確認するとき。"
   - name: プリセットのタイトルの欄
     id: preset_title_{n}
     kind: input
@@ -184,7 +184,7 @@ elements:
       - to: CFG-1
         item: "settings[presets[].title]"
         type: references
-        when: "『設定: 常駐アプリ』の設定「presets[」のtitle]の既定値と意味を確認するとき。"
+        when: "『設定: 常駐アプリ』の設定「presets[].title」の既定値と意味を確認するとき。"
   - name: プリセットの URL の欄
     id: preset_url_{n}
     kind: input
@@ -204,7 +204,7 @@ elements:
       - to: CFG-1
         item: "settings[presets[].url]"
         type: references
-        when: "『設定: 常駐アプリ』の設定「presets[」のurl]の既定値と意味を確認するとき。"
+        when: "『設定: 常駐アプリ』の設定「presets[].url」の既定値と意味を確認するとき。"
   - name: Enter まで送信の切り替え
     id: preset_send_enter_{n}
     kind: checkbox
@@ -221,7 +221,7 @@ elements:
       - to: CFG-1
         item: "settings[presets[].send_enter]"
         type: references
-        when: "『設定: 常駐アプリ』の設定「presets[」のsend_enter]の既定値と意味を確認するとき。"
+        when: "『設定: 常駐アプリ』の設定「presets[].send_enter」の既定値と意味を確認するとき。"
   - name: Authorization の欄
     id: preset_authorization_{n}
     kind: input
@@ -240,7 +240,7 @@ elements:
       - to: CFG-1
         item: "settings[presets[].authorization]"
         type: references
-        when: "『設定: 常駐アプリ』の設定「presets[」のauthorization]の既定値と意味を確認するとき。"
+        when: "『設定: 常駐アプリ』の設定「presets[].authorization」の既定値と意味を確認するとき。"
   - name: プリセットのホットキーの欄
     id: preset_hotkey_{n}
     kind: input
@@ -259,7 +259,7 @@ elements:
       - to: CFG-1
         item: "settings[presets[].hotkey]"
         type: references
-        when: "『設定: 常駐アプリ』の設定「presets[」のhotkey]の既定値と意味を確認するとき。"
+        when: "『設定: 常駐アプリ』の設定「presets[].hotkey」の既定値と意味を確認するとき。"
   - name: プリセットを上へのボタン
     id: preset_up_{n}
     kind: button
@@ -320,7 +320,7 @@ elements:
       - to: CFG-1
         item: "settings[glossaries[].name]"
         type: references
-        when: "『設定: 常駐アプリ』の設定「glossaries[」のname]の既定値と意味を確認するとき。"
+        when: "『設定: 常駐アプリ』の設定「glossaries[].name」の既定値と意味を確認するとき。"
   - name: 補正に使う用語集の選択
     id: glossary_active_{n}
     kind: radio
@@ -407,7 +407,7 @@ elements:
       - to: CFG-1
         item: "settings[glossaries[].name]"
         type: references
-        when: "『設定: 常駐アプリ』の設定「glossaries[」のname]の既定値と意味を確認するとき。"
+        when: "『設定: 常駐アプリ』の設定「glossaries[].name」の既定値と意味を確認するとき。"
   - name: 用語集の行の表
     id: glossary_entries
     kind: table
@@ -424,7 +424,7 @@ elements:
       - to: CFG-1
         item: "settings[glossaries[].path]"
         type: references
-        when: "『設定: 常駐アプリ』の設定「glossaries[」のpath]の既定値と意味を確認するとき。"
+        when: "『設定: 常駐アプリ』の設定「glossaries[].path」の既定値と意味を確認するとき。"
   - name: 行を使うの切り替え
     id: glossary_entry_on_{n}
     kind: checkbox
@@ -538,7 +538,7 @@ elements:
       - to: CFG-1
         item: "settings[hint_presets[].words]"
         type: references
-        when: "『設定: 常駐アプリ』の設定「hint_presets[」のwords]の既定値と意味を確認するとき。"
+        when: "『設定: 常駐アプリ』の設定「hint_presets[].words」の既定値と意味を確認するとき。"
   - name: ヒントのプリセットの一覧
     id: hint_preset_list
     kind: list
@@ -555,7 +555,7 @@ elements:
       - to: CFG-1
         item: "settings[hint_presets[].name]"
         type: references
-        when: "『設定: 常駐アプリ』の設定「hint_presets[」のname]の既定値と意味を確認するとき。"
+        when: "『設定: 常駐アプリ』の設定「hint_presets[].name」の既定値と意味を確認するとき。"
   - name: ヒントのプリセットが無いときの案内
     id: hint_preset_empty
     kind: label
@@ -582,7 +582,7 @@ elements:
       - to: CFG-1
         item: "settings[hint_presets[].enabled]"
         type: references
-        when: "『設定: 常駐アプリ』の設定「hint_presets[」のenabled]の既定値と意味を確認するとき。"
+        when: "『設定: 常駐アプリ』の設定「hint_presets[].enabled」の既定値と意味を確認するとき。"
   - name: ヒントのプリセットの語の数と長さ
     id: hint_preset_size_{n}
     kind: label
@@ -613,7 +613,7 @@ elements:
       - to: CFG-1
         item: "settings[hint_presets[].name]"
         type: references
-        when: "『設定: 常駐アプリ』の設定「hint_presets[」のname]の既定値と意味を確認するとき。"
+        when: "『設定: 常駐アプリ』の設定「hint_presets[].name」の既定値と意味を確認するとき。"
   - name: ヒントの語の欄
     id: hint_word_{n}_{m}
     kind: input
@@ -635,7 +635,7 @@ elements:
       - to: CFG-1
         item: "settings[hint_presets[].words]"
         type: references
-        when: "『設定: 常駐アプリ』の設定「hint_presets[」のwords]の既定値と意味を確認するとき。"
+        when: "『設定: 常駐アプリ』の設定「hint_presets[].words」の既定値と意味を確認するとき。"
   - name: ヒントの語の削除ボタン
     id: hint_word_remove_{n}_{m}
     kind: button
@@ -755,7 +755,7 @@ elements:
       - to: CFG-1
         item: "settings[edge_phrases[].text]"
         type: references
-        when: "『設定: 常駐アプリ』の設定「edge_phrases[」のtext]の既定値と意味を確認するとき。"
+        when: "『設定: 常駐アプリ』の設定「edge_phrases[].text」の既定値と意味を確認するとき。"
     reason: 並べ替えをつまみにした（確認ログ）
     status: implemented
   - name: 行のつまみ
@@ -783,7 +783,7 @@ elements:
       - to: CFG-1
         item: "settings[edge_phrases[].text]"
         type: references
-        when: "『設定: 常駐アプリ』の設定「edge_phrases[」のtext]の既定値と意味を確認するとき。"
+        when: "『設定: 常駐アプリ』の設定「edge_phrases[].text」の既定値と意味を確認するとき。"
     status: implemented
   - name: 位置の選択
     id: edge_phrase_position_{n}
@@ -802,7 +802,7 @@ elements:
       - to: CFG-1
         item: "settings[edge_phrases[].position]"
         type: references
-        when: "『設定: 常駐アプリ』の設定「edge_phrases[」のposition]の既定値と意味を確認するとき。"
+        when: "『設定: 常駐アプリ』の設定「edge_phrases[].position」の既定値と意味を確認するとき。"
     status: implemented
   - name: 文言の行の削除ボタン
     id: edge_phrase_remove_{n}
@@ -855,7 +855,7 @@ elements:
       - to: CFG-1
         item: "settings[glossary_presets[].name]"
         type: references
-        when: "『設定: 常駐アプリ』の設定「glossary_presets[」のname]の既定値と意味を確認するとき。"
+        when: "『設定: 常駐アプリ』の設定「glossary_presets[].name」の既定値と意味を確認するとき。"
     status: planned
   - name: 補正に使うプリセットの選択
     id: glossary_preset_active_{n}
@@ -929,7 +929,7 @@ elements:
       - to: CFG-1
         item: "settings[glossary_presets[].name]"
         type: references
-        when: "『設定: 常駐アプリ』の設定「glossary_presets[」のname]の既定値と意味を確認するとき。"
+        when: "『設定: 常駐アプリ』の設定「glossary_presets[].name」の既定値と意味を確認するとき。"
     status: planned
   - name: 使う用語集の表
     id: glossary_preset_glossaries
@@ -945,7 +945,7 @@ elements:
       - to: CFG-1
         item: "settings[glossary_presets[].glossaries]"
         type: references
-        when: "『設定: 常駐アプリ』の設定「glossary_presets[」のglossaries]の既定値と意味を確認するとき。"
+        when: "『設定: 常駐アプリ』の設定「glossary_presets[].glossaries」の既定値と意味を確認するとき。"
     status: planned
   - name: 使う用語集のつまみ
     id: glossary_preset_glossary_grip_{n}
@@ -1037,7 +1037,7 @@ elements:
       - to: CFG-1
         item: "settings[hint_presets[].readings]"
         type: references
-        when: "『設定: 常駐アプリ』の設定「hint_presets[」のreadings]の既定値と意味を確認するとき。"
+        when: "『設定: 常駐アプリ』の設定「hint_presets[].readings」の既定値と意味を確認するとき。"
   - name: ヒントの語と読みの列の見出し
     id: hint_words_head_{n}
     kind: label
@@ -1103,7 +1103,7 @@ elements:
       - to: CFG-1
         item: "settings[glossary_preset_hotkeys[].hotkey]"
         type: references
-        when: "『設定: 常駐アプリ』の設定「glossary_preset_hotkeys[」のhotkey]の既定値と意味を確認するとき。"
+        when: "『設定: 常駐アプリ』の設定「glossary_preset_hotkeys[].hotkey」の既定値と意味を確認するとき。"
     status: planned
   - name: ショートカットのキーの欄
     id: shortcut_hotkey_{n}
@@ -1121,7 +1121,7 @@ elements:
       - to: CFG-1
         item: "settings[glossary_preset_hotkeys[].hotkey]"
         type: references
-        when: "『設定: 常駐アプリ』の設定「glossary_preset_hotkeys[」のhotkey]の既定値と意味を確認するとき。"
+        when: "『設定: 常駐アプリ』の設定「glossary_preset_hotkeys[].hotkey」の既定値と意味を確認するとき。"
     status: planned
   - name: 切り替える用語集のプリセットの選択
     id: shortcut_preset_{n}
@@ -1139,7 +1139,7 @@ elements:
       - to: CFG-1
         item: "settings[glossary_preset_hotkeys[].preset]"
         type: references
-        when: "『設定: 常駐アプリ』の設定「glossary_preset_hotkeys[」のpreset]の既定値と意味を確認するとき。"
+        when: "『設定: 常駐アプリ』の設定「glossary_preset_hotkeys[].preset」の既定値と意味を確認するとき。"
     status: planned
   - name: ショートカットの行の削除ボタン
     id: shortcut_remove_{n}

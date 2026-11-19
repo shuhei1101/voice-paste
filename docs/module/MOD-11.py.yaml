@@ -537,11 +537,11 @@ functions:
       - to: CFG-1
         item: "settings[glossary_presets[].name]"
         type: references
-        when: "『設定: 常駐アプリ』の設定「glossary_presets[」のname]の既定値と意味を確認するとき。"
+        when: "『設定: 常駐アプリ』の設定「glossary_presets[].name」の既定値と意味を確認するとき。"
       - to: CFG-1
         item: "settings[glossary_presets[].glossaries]"
         type: references
-        when: "『設定: 常駐アプリ』の設定「glossary_presets[」のglossaries]の既定値と意味を確認するとき。"
+        when: "『設定: 常駐アプリ』の設定「glossary_presets[].glossaries」の既定値と意味を確認するとき。"
     status: planned
   - name: pick_glossary_preset
     title: 補正に使う用語集のプリセットの選択

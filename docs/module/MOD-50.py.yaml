@@ -429,7 +429,7 @@ data_models:
       - to: CFG-1
         item: "settings[presets[].kind]"
         type: references
-        when: "『設定: 常駐アプリ』の設定「presets[」のkind]の既定値と意味を確認するとき。"
+        when: "『設定: 常駐アプリ』の設定「presets[].kind」の既定値と意味を確認するとき。"
     status: implemented
   - name: EndpointPreset
     title: エンドポイントへ送信のプリセット
@@ -466,7 +466,7 @@ data_models:
       - to: CFG-1
         item: "settings[presets[].authorization]"
         type: references
-        when: "『設定: 常駐アプリ』の設定「presets[」のauthorization]の既定値と意味を確認するとき。"
+        when: "『設定: 常駐アプリ』の設定「presets[].authorization」の既定値と意味を確認するとき。"
     status: implemented
   - name: PresetOptions
     title: プリセットの種類のオプション
@@ -587,11 +587,11 @@ data_models:
       - to: CFG-1
         item: "settings[glossaries[].name]"
         type: references
-        when: "『設定: 常駐アプリ』の設定「glossaries[」のname]の既定値と意味を確認するとき。"
+        when: "『設定: 常駐アプリ』の設定「glossaries[].name」の既定値と意味を確認するとき。"
       - to: CFG-1
         item: "settings[glossaries[].path]"
         type: references
-        when: "『設定: 常駐アプリ』の設定「glossaries[」のpath]の既定値と意味を確認するとき。"
+        when: "『設定: 常駐アプリ』の設定「glossaries[].path」の既定値と意味を確認するとき。"
     status: implemented
   - name: HintPresetSettings
     title: 表記のヒントのプリセットの設定
@@ -621,19 +621,19 @@ data_models:
       - to: CFG-1
         item: "settings[hint_presets[].name]"
         type: references
-        when: "『設定: 常駐アプリ』の設定「hint_presets[」のname]の既定値と意味を確認するとき。"
+        when: "『設定: 常駐アプリ』の設定「hint_presets[].name」の既定値と意味を確認するとき。"
       - to: CFG-1
         item: "settings[hint_presets[].words]"
         type: references
-        when: "『設定: 常駐アプリ』の設定「hint_presets[」のwords]の既定値と意味を確認するとき。"
+        when: "『設定: 常駐アプリ』の設定「hint_presets[].words」の既定値と意味を確認するとき。"
       - to: CFG-1
         item: "settings[hint_presets[].enabled]"
         type: references
-        when: "『設定: 常駐アプリ』の設定「hint_presets[」のenabled]の既定値と意味を確認するとき。"
+        when: "『設定: 常駐アプリ』の設定「hint_presets[].enabled」の既定値と意味を確認するとき。"
       - to: CFG-1
         item: "settings[hint_presets[].readings]"
         type: references
-        when: "『設定: 常駐アプリ』の設定「hint_presets[」のreadings]の既定値と意味を確認するとき。"
+        when: "『設定: 常駐アプリ』の設定「hint_presets[].readings」の既定値と意味を確認するとき。"
     status: implemented
   - name: HintWordSource
     title: 手がかりの語の出所
@@ -700,11 +700,11 @@ data_models:
       - to: CFG-1
         item: "settings[edge_phrases[].text]"
         type: references
-        when: "『設定: 常駐アプリ』の設定「edge_phrases[」のtext]の既定値と意味を確認するとき。"
+        when: "『設定: 常駐アプリ』の設定「edge_phrases[].text」の既定値と意味を確認するとき。"
       - to: CFG-1
         item: "settings[edge_phrases[].position]"
         type: references
-        when: "『設定: 常駐アプリ』の設定「edge_phrases[」のposition]の既定値と意味を確認するとき。"
+        when: "『設定: 常駐アプリ』の設定「edge_phrases[].position」の既定値と意味を確認するとき。"
     status: implemented
   - name: GlossaryPresetSettings
     title: 用語集のプリセットの設定
@@ -725,11 +725,11 @@ data_models:
       - to: CFG-1
         item: "settings[glossary_presets[].name]"
         type: references
-        when: "『設定: 常駐アプリ』の設定「glossary_presets[」のname]の既定値と意味を確認するとき。"
+        when: "『設定: 常駐アプリ』の設定「glossary_presets[].name」の既定値と意味を確認するとき。"
       - to: CFG-1
         item: "settings[glossary_presets[].glossaries]"
         type: references
-        when: "『設定: 常駐アプリ』の設定「glossary_presets[」のglossaries]の既定値と意味を確認するとき。"
+        when: "『設定: 常駐アプリ』の設定「glossary_presets[].glossaries」の既定値と意味を確認するとき。"
     status: planned
   - name: GlossaryPresetHotkeySettings
     title: 用語集のプリセットを切り替えるショートカットの設定
@@ -749,11 +749,11 @@ data_models:
       - to: CFG-1
         item: "settings[glossary_preset_hotkeys[].hotkey]"
         type: references
-        when: "『設定: 常駐アプリ』の設定「glossary_preset_hotkeys[」のhotkey]の既定値と意味を確認するとき。"
+        when: "『設定: 常駐アプリ』の設定「glossary_preset_hotkeys[].hotkey」の既定値と意味を確認するとき。"
       - to: CFG-1
         item: "settings[glossary_preset_hotkeys[].preset]"
         type: references
-        when: "『設定: 常駐アプリ』の設定「glossary_preset_hotkeys[」のpreset]の既定値と意味を確認するとき。"
+        when: "『設定: 常駐アプリ』の設定「glossary_preset_hotkeys[].preset」の既定値と意味を確認するとき。"
     status: planned
   - name: OpenAISettings
     title: OpenAI API の設定
@@ -881,7 +881,7 @@ enums:
       - to: CFG-1
         item: "settings[presets[].kind]"
         type: references
-        when: "『設定: 常駐アプリ』の設定「presets[」のkind]の既定値と意味を確認するとき。"
+        when: "『設定: 常駐アプリ』の設定「presets[].kind」の既定値と意味を確認するとき。"
     status: implemented
 constants:
   - name: HINT_MAX_BYTES
@@ -1943,7 +1943,7 @@ functions:
       - to: CFG-1
         item: "settings[hint_presets[].words]"
         type: references
-        when: "『設定: 常駐アプリ』の設定「hint_presets[」のwords]の既定値と意味を確認するとき。"
+        when: "『設定: 常駐アプリ』の設定「hint_presets[].words」の既定値と意味を確認するとき。"
     status: implemented
   - name: find_hint_preset_name_overlaps
     title: 表記のヒントのプリセットの名前の重なりの検出

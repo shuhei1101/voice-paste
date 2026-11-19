@@ -120,11 +120,11 @@ elements:
       - to: CFG-1
         item: "settings[outputs[].enabled]"
         type: references
-        when: "『設定: 常駐アプリ』の設定「outputs[」のenabled]の既定値と意味を確認するとき。"
+        when: "『設定: 常駐アプリ』の設定「outputs[].enabled」の既定値と意味を確認するとき。"
       - to: CFG-1
         item: "settings[outputs[].hotkey]"
         type: references
-        when: "『設定: 常駐アプリ』の設定「outputs[」のhotkey]の既定値と意味を確認するとき。"
+        when: "『設定: 常駐アプリ』の設定「outputs[].hotkey」の既定値と意味を確認するとき。"
       - to: SCR-7
         type: references
         when: "『文字起こし中の表示』の表示と振る舞いを確認するとき。"
@@ -154,15 +154,15 @@ elements:
       - to: CFG-1
         item: "settings[presets[].title]"
         type: references
-        when: "『設定: 常駐アプリ』の設定「presets[」のtitle]の既定値と意味を確認するとき。"
+        when: "『設定: 常駐アプリ』の設定「presets[].title」の既定値と意味を確認するとき。"
       - to: CFG-1
         item: "settings[presets[].hotkey]"
         type: references
-        when: "『設定: 常駐アプリ』の設定「presets[」のhotkey]の既定値と意味を確認するとき。"
+        when: "『設定: 常駐アプリ』の設定「presets[].hotkey」の既定値と意味を確認するとき。"
       - to: CFG-1
         item: "settings[presets[].enabled]"
         type: references
-        when: "『設定: 常駐アプリ』の設定「presets[」のenabled]の既定値と意味を確認するとき。"
+        when: "『設定: 常駐アプリ』の設定「presets[].enabled」の既定値と意味を確認するとき。"
       - to: SCR-7
         type: references
         when: "『文字起こし中の表示』の表示と振る舞いを確認するとき。"

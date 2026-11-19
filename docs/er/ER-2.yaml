@@ -181,7 +181,7 @@ tables:
       - to: CFG-1
         item: "settings[glossaries[].path]"
         type: references
-        when: "『設定: 常駐アプリ』の設定「glossaries[」のpath]の既定値と意味を確認するとき。"
+        when: "『設定: 常駐アプリ』の設定「glossaries[].path」の既定値と意味を確認するとき。"
   - name: '%LOCALAPPDATA%\voice-paste\ui\{ハッシュ}.svg'
     title: 開くマーカーの画像
     source: DATA-12#

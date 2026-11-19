@@ -90,11 +90,11 @@ elements:
       - to: CFG-1
         item: "settings[outputs[].enabled]"
         type: references
-        when: "『設定: 常駐アプリ』の設定「outputs[」のenabled]の既定値と意味を確認するとき。"
+        when: "『設定: 常駐アプリ』の設定「outputs[].enabled」の既定値と意味を確認するとき。"
       - to: CFG-1
         item: "settings[outputs[].hotkey]"
         type: references
-        when: "『設定: 常駐アプリ』の設定「outputs[」のhotkey]の既定値と意味を確認するとき。"
+        when: "『設定: 常駐アプリ』の設定「outputs[].hotkey」の既定値と意味を確認するとき。"
       - to: CFG-1
         item: "settings[ui.transcribing_show_hotkeys]"
         type: references
@@ -117,7 +117,7 @@ elements:
       - to: CFG-1
         item: "settings[presets[].title]"
         type: references
-        when: "『設定: 常駐アプリ』の設定「presets[」のtitle]の既定値と意味を確認するとき。"
+        when: "『設定: 常駐アプリ』の設定「presets[].title」の既定値と意味を確認するとき。"
     status: planned
 screen: src/voice_paste/ui/windows/transcribing_indicator.py
 mock: docs/mock/pages/transcribing-indicator/108/c-both/

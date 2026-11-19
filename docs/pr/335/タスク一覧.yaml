@@ -70,8 +70,10 @@ tasks:
     updated_by: planner
     updated_at: '2026-11-19T16:43:53.251101+00:00'
   - process: ドキュメント修正
-    status: todo
+    status: done
     note: dev-docs.yaml の documents[].schema の ref を全て design-schemas/v9.2.0 へ統一し、v9.2.0 の検査に通らない設計書（data・architecture・nonfunctional・interface・module・screen・er・config・library・dev-command・layout の 100 件）の文字列の refs を関連の要素（to・item・type・when）へ移す。design_docs publish が終了の状態 0 で終わることを確かめる
+    updated_by: planner
+    updated_at: '2026-11-19T16:48:53.781129+00:00'
   - process: 単体テスト作成
     status: skipped
     reason: コードを変えない

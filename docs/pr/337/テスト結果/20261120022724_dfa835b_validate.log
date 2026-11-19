@@ -1,0 +1,3 @@
+$ cd /home/shuhei2441/repo/ai-monitor/.claude/worktrees/develop  # ai-monitor develop 88e73e9ea
+$ PYTHONPATH=src uv run python -m ai_monitor.design_docs validate --root /home/shuhei2441/repo/voice-paste/.claude/worktrees/chore-dev-docs-bump-design-schema-v9.5.0
+exit=0

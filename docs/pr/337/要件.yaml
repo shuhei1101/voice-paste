@@ -1,0 +1,11 @@
+docs:
+  - page: dev-docs.yaml
+    new: false
+    change: documents[].schema.ref を全ての行で design-schemas/v9.2.0 から design-schemas/v9.5.0 へ上げる
+    status: done
+    updated_by: planner
+    updated_at: '2026-11-19T17:27:53.639378+00:00'
+scope_out:
+  - item: design_docs publish が書き出す生成物（目次・_config.yml・nav.project.yml 等）の差分
+    reason: publish の終了の状態を確かめるために流す生成の変更で、要望（スキーマのバージョンを上げる）に含まれない。生成物は作業ブランチへ入れずに戻す
+    plan: none

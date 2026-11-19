@@ -25,9 +25,6 @@ content_types:
   - name: pr_doc
     group: role
     summary: 作業 PR ごとの計画と記録
-  - name: schema
-    group: role
-    summary: 設計書のスキーマ
   - name: config
     group: role
     summary: アプリの設定と、その既定値・見本
@@ -224,13 +221,6 @@ entries:
         contents: 画面の色・書体・余白のデザイントークン
         content_types:
           - design_token
-  - type: folder
-    name: schemas
-    contents: knowledge に無く、このリポジトリが持つ用語集の設計書のスキーマ
-    content_types:
-      - schema
-    naming:
-      - glossary.schema.yaml
   - type: folder
     name: src
     contents: 常駐アプリのコード

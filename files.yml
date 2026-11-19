@@ -128,12 +128,6 @@ files:
     description: "rule-inject がファイルに当てるこのリポジトリ固有のルールの索引を受け持ち、リポジトリ固有のルールを足すときに参照する。"
     tags:
       - tool:rule-inject
-  - path: "schemas/glossary.schema.yaml"
-    name: "用語集のスキーマ"
-    description: "用語集の文書の 1 件の用語のキーを受け持ち、用語集のキーを変えるときに参照する。"
-    tags:
-      - topic:用語集
-      - topic:スキーマ
   - path: "tsconfig.build.json"
     name: "外の端末の画面のスクリプトの生成の設定"
     description: "外の端末の画面の TypeScript から app.js を生成する tsc の設定を受け持ち、スクリプトの生成のしかたを変えるときに参照する。"

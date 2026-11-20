@@ -45,7 +45,7 @@ elements:
     source: UiBridge.copied の起こした文字
     action: 起こした文字をクリップボードへ書き込む
 screen: src/voice_paste/ui/tray.py
-mock: docs/mock/pages/tray-notification/339/a-file-failures/
+mock: docs/mock/pages/tray-notification/37/a-notification/
 lead: 裏の処理で起きた失敗と、「コピーのみ」のコピーの完了と、ショートカットでの用語集のプリセットの切り替えを Windows の通知で通知する。通知は数秒で畳まれ、通知センターには残らない。畳まれた後は、失敗の理由をトレイのメニューの「ログフォルダを開く」から確認する。
 refs:
   - to: MOD-32

@@ -129,7 +129,7 @@ elements:
     visible_when: トレイから指定した音声ファイルの録音セッションのとき
     source: 録音セッションの音声ファイルのパス
 screen: src/voice_paste/ui/windows/transcribing_indicator.py
-mock: docs/mock/pages/transcribing-indicator/339/a-file-name/
+mock: docs/mock/pages/transcribing-indicator/108/c-both/
 lead: 確定から届けるまで、録音の画面と同じ位置に出る小さな表示。文字起こしの経過と残りの時間、今の出力先を出し、固定の出力先への切り替えを受ける。
 refs:
   - to: SC-9

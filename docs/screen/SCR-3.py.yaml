@@ -48,7 +48,7 @@ elements:
     label: 音声ファイルを文字に起こして届けています。終わってから、もう一度録音開始のホットキーを押してください。
     visible_when: 処理中の録音セッションの入口が audio_file
 screen: src/voice_paste/ui/windows/busy_dialog.py
-mock: docs/mock/pages/busy-dialog/339/a-file-busy/
+mock: docs/mock/pages/busy-dialog/288/a-reason-by-cause/
 lead: 録音を始められないとき（API から始めた録音の処理中・前の録音の終了の処理中）に録音開始のホットキーを押したとき、始められない理由を通知するダイアログ。
 refs:
   - to: MOD-32

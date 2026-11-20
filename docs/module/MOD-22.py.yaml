@@ -46,6 +46,10 @@ data_models:
         type: str | None
         default: None
         description: API の開始で指定した用語集のプリセットの名前。None は設定で選んでいるプリセットで補正する（ホットキー・トレイの録音は常に None）
+      - name: audio_path
+        type: Path | None
+        default: None
+        description: 入口が audio_file のときに指定した音声ファイルのパス（元の場所のまま。履歴へコピーしない）。それ以外は None
     status: implemented
   - name: SessionDeps
     title: 録音セッションの依存
@@ -117,6 +121,9 @@ data_models:
       - name: stop_continuous_recording
         type: Callable[[], None]
         description: 連続録音を止めて音量を戻し、区間に切り出していない話し声を最後の区間として引き渡し終えてから戻る（録音の stop_continuous）
+      - name: probe_audio_file
+        type: Callable[[Path], None]
+        description: 指定した音声ファイルを PyAV で開き、音声のストリームを読めることを確かめる。読めなければ AudioUnreadableError（外部連携の probe_audio をファイルを開いて呼ぶ）
     status: implemented
   - name: SessionApiDeps
     title: 録音セッションの API の依存
@@ -282,8 +289,8 @@ function_types:
     summary: 状態の変化と失敗を画面・トレイへ引き渡す
     args:
       - name: event
-        type: Literal["state_changed", "busy", "microphone_unavailable", "transcription_failed", "delivery_failed", "api_unavailable", "engine_fallback", "engine_settings_mismatch", "output_changed"]
-        description: 通知の種類（engine_fallback は、Haas からローカルの Whisper へ切り戻したこと。engine_settings_mismatch は、起動の前から動いている Haas のサーバーが設定と違うこと。理由は違う項目の名前を「・」でつないだ文字。output_changed は、文字起こし中に届ける出力先を差し替えたこと。理由は切り替えた先の出力先の ID）
+        type: Literal["state_changed", "busy", "microphone_unavailable", "transcription_failed", "delivery_failed", "api_unavailable", "engine_fallback", "engine_settings_mismatch", "output_changed", "audio_file_unsupported", "audio_file_transcription_failed", "audio_file_delivery_failed"]
+        description: 通知の種類（engine_fallback は、Haas からローカルの Whisper へ切り戻したこと。engine_settings_mismatch は、起動の前から動いている Haas のサーバーが設定と違うこと。理由は違う項目の名前を「・」でつないだ文字。output_changed は、文字起こし中に届ける出力先を差し替えたこと。理由は切り替えた先の出力先の ID。audio_file_unsupported は、指定した音声ファイルを読めないこと。理由はファイル名。audio_file_transcription_failed は、指定した音声ファイルの文字起こしに失敗したこと。理由は失敗の理由。audio_file_delivery_failed は、指定した音声ファイルから起こした文字を届けられなかったこと。理由は届けられなかった理由）
       - name: detail
         type: str | None
         description: 理由などの文字

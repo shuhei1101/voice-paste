@@ -7,7 +7,7 @@ elements:
     kind: window
     position: 窓
     description: 文字起こし中の表示の窓。録音の画面と同じ設定の位置に出し、フォーカスを取らない（貼り付け先の入力欄からフォーカスを奪わない）。録音の画面を動かした回は、確定した時点の録音の画面の位置（隠したまま確定した回は隠す前の位置）に出す。録音の画面と同じく、面は `color.*.surface`、外側の縁は `color.*.frame` の 1px の線で描く（`*` は `ui.theme` で決まる明暗）。タスクバーに出ない枠なしの窓のまま、見出しの行をつかんで動かす。動かした位置はその回だけ使い、次の回は今までどおりの位置に出す。出力先の切り替えのボタンを出す回は、ボタンが名前を省かずに収まる幅（既定 380px）にする
-    visible_when: ホットキー・トレイから始めた録音セッションが transcribing か delivering の間（`recording.hide_window` がオフのとき）。API から始めた録音では出さない
+    visible_when: ホットキー・トレイから始めた録音セッションが transcribing か delivering の間（`recording.hide_window` がオフのとき）と、トレイから指定した音声ファイルの録音セッションが transcribing か delivering の間（`recording.hide_window` によらない）。API から始めた録音では出さない
     source: UiBridge.notified（state_changed）
     refs:
       - to: CFG-1
@@ -119,6 +119,15 @@ elements:
         type: references
         when: "『設定: 常駐アプリ』の設定「presets[].title」の既定値と意味を確認するとき。"
     status: planned
+  - name: 音声ファイルの名前
+    id: audio_file_name
+    kind: label
+    position: 窓 > 見出しの下
+    description: トレイから指定した音声ファイルの名前（フォルダのパスを除く）を 1 行で出す。窓の幅に収まらない名前は末尾を「…」で省き、マウスを合わせると全体を出す
+    io: 表示
+    type: 文字列
+    visible_when: トレイから指定した音声ファイルの録音セッションのとき
+    source: 録音セッションの音声ファイルのパス
 screen: src/voice_paste/ui/windows/transcribing_indicator.py
 mock: docs/mock/pages/transcribing-indicator/108/c-both/
 lead: 確定から届けるまで、録音の画面と同じ位置に出る小さな表示。文字起こしの経過と残りの時間、今の出力先を出し、固定の出力先への切り替えを受ける。

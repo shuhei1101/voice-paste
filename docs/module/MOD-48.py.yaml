@@ -121,6 +121,9 @@ enums:
       - value: api
         title: API
         description: POST /sessions
+      - value: audio_file
+        title: 音声ファイル
+        description: トレイのメニューから指定した音声ファイル（録音せずに、そのファイルを文字に起こす）
     status: implemented
   - name: EnterModifier
     title: Enter と一緒に押す修飾キー

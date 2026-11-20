@@ -120,6 +120,7 @@ class Harness:
     get_cancel_grace: MagicMock
     start_cancel_timer: MagicMock
     cancel_timer: MagicMock
+    probe_audio_file: MagicMock
 
     def call_names(self) -> list[str]:
         """SessionDeps の関数が呼ばれた順に、関数の名前を返す。"""
@@ -227,9 +228,12 @@ def make_harness(audio_path: Path, *, report_progress: MagicMock | None = None) 
     for name, mock in mocks.items():
         parent.attach_mock(mock, name)
 
+    probe_audio_file = MagicMock(return_value=None)
+    parent.attach_mock(probe_audio_file, "probe_audio_file")
     deps = SessionDeps(
         now=clock,
         report_progress=MagicMock() if report_progress is None else report_progress,
+        probe_audio_file=probe_audio_file,
         **mocks,
     )
     return Harness(
@@ -240,6 +244,7 @@ def make_harness(audio_path: Path, *, report_progress: MagicMock | None = None) 
         audio_path=audio_path,
         parent=parent,
         cancel_timer=cancel_timer,
+        probe_audio_file=probe_audio_file,
         **mocks,
     )
 

@@ -53,6 +53,9 @@ class Entry(StrEnum):
     API = "api"
     """POST /sessions。"""
 
+    AUDIO_FILE = "audio_file"
+    """トレイのメニューから指定した音声ファイル（録音せずに、そのファイルを文字に起こす）。"""
+
 
 @dataclass(frozen=True, slots=True, kw_only=True)
 class TranscriptionOutcome:

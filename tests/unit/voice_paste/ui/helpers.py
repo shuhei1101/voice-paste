@@ -92,15 +92,19 @@ def make_ui_deps(
         fields["reset_settings"] = MagicMock(return_value=(load_test_default_settings(), False))
     if "default_settings" in {field.name for field in dataclasses.fields(UiDepsModel)}:
         fields["default_settings"] = MagicMock(return_value=load_test_default_settings())
+    fields["start_audio_file"] = MagicMock(return_value=None)
+    fields["history_dir"] = tmp_path / "history"
     fields.update(overrides)
     return UiDepsModel(**fields)
 
 
 def make_tray(tmp_path: Path) -> Tray:
-    """設定とログのフォルダを一時フォルダの下にしたトレイを作る。"""
+    """設定・ログ・履歴のフォルダを一時フォルダの下にしたトレイを作る。"""
     from voice_paste.ui.tray import Tray as TrayWidget
 
-    return TrayWidget(settings_dir=tmp_path, log_dir=tmp_path / "log")
+    return TrayWidget(
+        settings_dir=tmp_path, log_dir=tmp_path / "log", history_dir=tmp_path / "history"
+    )
 
 
 def make_session(
@@ -109,8 +113,9 @@ def make_session(
     *,
     output_id: str | None = None,
     output_preset: Preset | None = None,
+    audio_path: Path | None = None,
 ) -> Session:
-    """入口と状態を指定した Session を作る。output_id・output_preset は確定で選んだ固定の出力先の ID とカスタムプリセット。"""
+    """入口と状態を指定した Session を作る。output_id・output_preset は確定で選んだ固定の出力先の ID とカスタムプリセット、audio_path は入口が audio_file のときに指定した音声ファイル。"""
     from voice_paste.features.session.types import Session as SessionModel
     from voice_paste.features.session.types import SessionState
     from voice_paste.shared.types import Entry
@@ -123,4 +128,5 @@ def make_session(
         callback_url=None,
         output_id=output_id,
         output_preset=output_preset,
+        audio_path=audio_path,
     )

@@ -628,6 +628,7 @@ def build_stack(
         clear_recording=recorder.clear,
         get_cancel_grace=lambda: timedelta(0),
         start_cancel_timer=_start_cancel_timer,
+        probe_audio_file=lambda audio_path: None,
     )
     manager = SessionManager(deps, SESSION_LIMIT, CONTINUOUS_SESSION_LIMIT)
 
@@ -826,6 +827,7 @@ def build_output_stack(
         clear_recording=recorder.clear,
         get_cancel_grace=lambda: timedelta(0),
         start_cancel_timer=_start_cancel_timer,
+        probe_audio_file=lambda audio_path: None,
     )
     return OutputStack(
         manager=SessionManager(deps, SESSION_LIMIT, CONTINUOUS_SESSION_LIMIT),

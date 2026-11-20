@@ -97,6 +97,7 @@ from voice_paste.server.runner import ApiServerRunner
 from voice_paste.server.token import create_token, write_token_file
 from voice_paste.shared.constants import AppPaths, resolve_app_paths
 from voice_paste.shared.errors import (
+    AudioUnreadableError,
     DeliveryError,
     EngineError,
     HotkeyError,
@@ -146,7 +147,11 @@ from voice_paste.ui.bridge import (
 from voice_paste.ui.controller import UiController, UiDeps
 from voice_paste.ui.style import apply_theme
 from voice_paste.ui.tray import Tray, TrayState
-from voice_paste.ui.windows.busy_dialog import BUSY_REASON_API, BUSY_REASON_FINISHING
+from voice_paste.ui.windows.busy_dialog import (
+    BUSY_REASON_API,
+    BUSY_REASON_AUDIO_FILE,
+    BUSY_REASON_FINISHING,
+)
 from voice_paste.ui.windows.recording_window import RecordingWindow
 from voice_paste.ui.windows.transcribing_indicator import TranscribingIndicator
 
@@ -729,6 +734,7 @@ def build_handlers(
         clear_recording=recorder.clear,
         get_cancel_grace=lambda: timedelta(seconds=store.get().recording.cancel_grace_sec),
         start_cancel_timer=_start_cancel_timer,
+        probe_audio_file=_probe_audio_file,
     )
     session_manager = SessionManager(
         deps,
@@ -929,17 +935,53 @@ def start_local_session(
     try:
         session_manager.start(entry)
     except SessionBusyError:
-        # 処理中: API の録音の処理中か、ホットキー・トレイの録音の終了の処理中かを、処理中のダイアログで知らせる
-        current = session_manager.current()
-        reason = (
-            BUSY_REASON_API if current is not None and current.entry == Entry.API else BUSY_REASON_FINISHING
-        )
-        notify("busy", reason)
+        # 処理中: API の録音・音声ファイルの処理中か、ホットキー・トレイの録音の終了の処理中かを、処理中のダイアログで知らせる
+        notify("busy", _busy_reason(session_manager.current()))
     except MicrophoneUnavailableError:
         # マイクを開けない: トレイの通知で知らせる
         notify("microphone_unavailable", None)
     except Exception:  # noqa: BLE001 pynput・画面のスレッドへ例外を漏らさないため
         logger.exception("録音を始められなかった")
+
+
+def start_audio_file_session(
+    audio_path: Path,
+    *,
+    session_manager: SessionManager,
+    notify: NotifyFn,
+    get_settings: Callable[[], Settings],
+) -> None:
+    """SessionManager.start_audio_file を呼び、断られた理由をユーザーへ知らせる。例外を画面のスレッドへ漏らさない。"""
+    # 1. 今の設定でオンの固定の出力先の最初のものへ届ける（オンのものが無ければ None）
+    output_id = next((output.id for output in get_settings().outputs if output.enabled), None)
+    try:
+        session_manager.start_audio_file(audio_path, output_id)
+    except SessionBusyError:
+        # 処理中: 今の録音セッションの入口に応じた理由で、処理中のダイアログで知らせる
+        notify("busy", _busy_reason(session_manager.current()))
+    except AudioUnreadableError:
+        # 読めない形式: ファイル名を添えてトレイの通知で知らせる
+        notify("audio_file_unsupported", audio_path.name)
+    except Exception:  # noqa: BLE001 画面のスレッドへ例外を漏らさないため
+        logger.exception("音声ファイルから始められなかった")
+
+
+def _busy_reason(current: Session | None) -> str:
+    """処理中の録音セッションの入口から、処理中のダイアログの理由を決める（api・audio_file 以外は終了の処理中）。"""
+    if current is not None and current.entry == Entry.API:
+        return BUSY_REASON_API
+    if current is not None and current.entry == Entry.AUDIO_FILE:
+        return BUSY_REASON_AUDIO_FILE
+    return BUSY_REASON_FINISHING
+
+
+def _probe_audio_file(audio_path: Path) -> None:
+    """指定した音声ファイルを開き、PyAV で音声のストリームを読めるかを確かめる。開けなければ AudioUnreadableError。"""
+    try:
+        with audio_path.open("rb") as file:
+            probe_audio(file)
+    except OSError as error:
+        raise AudioUnreadableError(f"音声ファイルを開けない（{error}）") from error
 
 
 def _collect_hotkeys(settings: Settings) -> list[str]:
@@ -1122,6 +1164,8 @@ def build_ui_deps(
     show_recording_window: Callable[[], None],
     request_glossary_preset_switch: Callable[[str], None],
     apply_theme: Callable[[], None],
+    *,
+    notify: NotifyFn,
 ) -> UiDeps:
     """Handlers と置き場所から、画面・トレイが呼ぶ UiDeps を組む。"""
     session_manager = handlers.session_manager
@@ -1144,6 +1188,12 @@ def build_ui_deps(
 
     return UiDeps(
         start=partial(handlers.start_local_session, Entry.TRAY),
+        start_audio_file=partial(
+            start_audio_file_session,
+            session_manager=session_manager,
+            notify=notify,
+            get_settings=store.latest,
+        ),
         pause=session_manager.pause,
         resume=session_manager.resume,
         complete=complete,
@@ -1175,6 +1225,7 @@ def build_ui_deps(
         default_settings=partial(load_default_settings, paths.defaults_file, SETTINGS_MODEL),
         hidden_setting_keys=hidden_setting_keys(unavailable_features(CURRENT_OS)),
         reports_progress=_reports_progress(handlers.active_engine),
+        history_dir=paths.history_dir,
     )
 
 
@@ -1211,6 +1262,7 @@ def _build_idle_ui_deps(
 
     return UiDeps(
         start=do_nothing,
+        start_audio_file=do_nothing,
         pause=do_nothing,
         resume=do_nothing,
         complete=do_nothing,
@@ -1250,6 +1302,7 @@ def _build_idle_ui_deps(
         default_settings=partial(load_default_settings, paths.defaults_file, SETTINGS_MODEL),
         hidden_setting_keys=hidden_setting_keys(unavailable_features(CURRENT_OS)),
         reports_progress=_reports_progress(EngineName(settings.transcription.engine)),
+        history_dir=paths.history_dir,
     )
 
 
@@ -1468,7 +1521,7 @@ def _run_service(
         lambda: QMetaObject.invokeMethod(app, "quit", Qt.ConnectionType.QueuedConnection)
     )
     bridge = UiBridge()
-    tray = Tray(paths.settings_file.parent, paths.log_dir)
+    tray = Tray(paths.settings_file.parent, paths.log_dir, paths.history_dir)
     apply_theme(app, "system", image_dir=paths.ui_image_dir)
     tray.set_state(TrayState.STARTING, busy=False)
     wake_timer = _install_signal_handlers(app)
@@ -1636,6 +1689,7 @@ def _finish_startup(
             handlers.settings_store.latest,
             image_dir=paths.ui_image_dir,
         ),
+        notify=ui_notify,
     )
     _watch_system_theme(app, deps.apply_theme)
     running.controller = _build_controller(bridge, tray, deps)

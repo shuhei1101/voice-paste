@@ -547,7 +547,7 @@ classes:
         title: 確定後の流れ
         kind: メソッド
         scope: internal
-        summary: 文字起こし → 補正 → 履歴への追記 → 届けるを実行し、待機中に戻す
+        summary: 文字起こし → 補正 → 履歴への追記 → 届けるを実行し、待機中に戻す（入口が audio_file の録音セッションも、履歴への追記と一時の音声の削除を飛ばして同じ流れで扱う）
         args:
           - name: session
             type: Session
@@ -556,25 +556,25 @@ classes:
           - name: audio_path
             type: Path
             required: true
-            description: 保存した録音
+            description: 保存した録音（入口が audio_file なら指定した音声ファイル）
         returns:
           type: None
           description: なし
         process: |-
           1. 録音を文字に起こす（文字起こし。入口が api でなければ進みを通知する関数に report_progress を引き渡し、api なら None）
-             - TranscriptionError の場合、入口が api なら result=failed を届け、それ以外は transcription_failed を通知して 7 へ
+             - TranscriptionError の場合、入口が api なら result=failed を届け、audio_file なら audio_file_transcription_failed、それ以外は transcription_failed を通知して 7 へ
                - `[ERROR]` 文字起こしに失敗した（録音セッションの ID・理由）
           2. 録音セッションの glossary_preset を引き渡して用語集で補正する（用語集での補正）
-          3. 起こした文字を履歴に追記する（履歴への文字の追記）
-          4. 結果が空で入口が api でなければ、届けずに 7 へ
+          3. 入口が audio_file でなければ、起こした文字を履歴に追記する（履歴への文字の追記。指定した音声ファイルは履歴に残さない）
+          4. 結果が空で入口が api でなければ（audio_file を含む）、届けずに 7 へ
              - `[INFO]` 文字起こしの結果が空だった（録音セッションの ID）
           5. ロックの中で状態を delivering にし、そのときの今の録音セッション（文字起こし中に switch_output で差し替えた出力先を持つ）を引き直す
              - 差し替えと届け始めが重なったときは、先にロックを取った方で決まる（delivering にした後の switch_output は何もしない）
           6. 引き直した録音セッションで result=transcribed を届ける（出力先への配送）
-             - DeliveryError（UnknownOutputError を含む）の場合、delivery_failed を通知する
-             - 2〜6 で想定外の例外が出た場合、入口が api なら result=failed を届け、それ以外は文字起こしの前後に応じて transcription_failed か delivery_failed を通知する
+             - DeliveryError（UnknownOutputError を含む）の場合、入口が audio_file なら audio_file_delivery_failed、それ以外は delivery_failed を通知する
+             - 2〜6 で想定外の例外が出た場合、入口が api なら result=failed を届け、それ以外は文字起こしの前後に応じて文字起こしの失敗か届けられないことを通知する（入口が audio_file なら audio_file_transcription_failed か audio_file_delivery_failed、それ以外は transcription_failed か delivery_failed）
                - `[ERROR]` 確定後の流れで想定外の例外（logger.exception）
-          7. どの経路でも必ず（finally）一時の音声を削除し（一時の音声の削除）、録音セッションを空にして待機中を通知する
+          7. どの経路でも必ず（finally）、入口が audio_file でなければ一時の音声を削除し（一時の音声の削除。指定した音声ファイルは削除しない）、録音セッションを空にして待機中を通知する
         unit_tests:
           - name: test_run_after_confirm
             case: 正常
@@ -618,6 +618,30 @@ classes:
             condition: 入口が hotkey で deliver が UnknownOutputError を送出する
             mock: SessionDeps の全関数
             expected: notify に delivery_failed が渡り、録音セッションが空になる
+          - name: test_run_after_confirm_when_audio_file
+            case: 正常
+            summary: 音声ファイルは履歴に追記せず、削除もせずに届ける
+            condition: 入口が audio_file の録音セッション。transcribe が文字を返す
+            mock: SessionDeps の全関数
+            expected: transcribe が指定したパスで呼ばれ、correct の結果で deliver が 1 回呼ばれ、append_text・discard_temporary が呼ばれず、録音セッションが無くなる
+          - name: test_run_after_confirm_when_empty_from_audio_file
+            case: 正常
+            summary: 音声ファイルの結果が空なら届けない
+            condition: 入口が audio_file。transcribe が空の文字を返す
+            mock: SessionDeps の全関数
+            expected: deliver が呼ばれず、notify に失敗が渡らず、録音セッションが無くなる
+          - name: test_run_after_confirm_when_audio_file_transcription_failed
+            case: 異常
+            summary: 音声ファイルの文字起こしの失敗を音声ファイルの種類で通知する
+            condition: 入口が audio_file。transcribe が TranscriptionError を送出する
+            mock: SessionDeps の全関数
+            expected: notify に audio_file_transcription_failed（理由）が渡り、deliver・append_text・discard_temporary が呼ばれず、録音セッションが無くなる
+          - name: test_run_after_confirm_when_audio_file_delivery_failed
+            case: 異常
+            summary: 音声ファイルの届けられないことを音声ファイルの種類で通知する
+            condition: 入口が audio_file。deliver が DeliveryError を送出する
+            mock: SessionDeps の全関数
+            expected: notify に audio_file_delivery_failed（理由）が渡り、録音セッションが無くなる
       - name: close
         title: 終了時の片付け
         kind: メソッド
@@ -980,6 +1004,70 @@ classes:
             mock: SessionDeps の全関数
             expected: 例外が出ず、recording の録音セッションの output_id が None のままで、notify に output_changed が渡らない
         status: planned
+      - name: start_audio_file
+        title: 音声ファイルからの開始
+        kind: メソッド
+        scope: public
+        thread_safe: true
+        summary: 待機中なら、指定した音声ファイルを入力にした録音セッションを作り、文字起こしを始める（録音はしない）
+        args:
+          - name: audio_path
+            type: Path
+            required: true
+            description: 指定した音声ファイルのパス
+          - name: output_id
+            type: str | None
+            required: true
+            description: 届ける固定の出力先の ID（設定でオンの固定の出力先の最初のもの。オンのものが無ければ None）
+        returns:
+          type: Session
+          description: 始めた録音セッション（入口は audio_file、状態は transcribing）
+        process: |-
+          1. ロックを取る
+          2. 録音セッションが残っているかを確認する
+             - cancel_pending の場合、予約を取りやめ、録音を捨てて（discard_recording）録音セッションを空にしてから、3 へ進む
+               - `[INFO]` 猶予の間に音声ファイルの開始が来たため録音を取り消した（録音セッションの ID）
+             - それ以外で残っている場合、SessionBusyError を送出する
+               - `[INFO]` 処理中のため開始を断った（入口・処理中の録音セッションの ID）
+          3. 音声ファイルを確かめる（probe_audio_file）
+             - AudioUnreadableError の場合、そのまま送出する（録音セッションは作らない）
+               - `[INFO]` 音声ファイルを読めないため開始を断った（ファイルのパス・理由）
+          4. 録音セッションを作り（entry=audio_file・audio_path・output_id）、状態を transcribing にする
+          5. 文字起こしから届けるまでを、録音の確定後と同じ流れでワーカースレッドに始める（_run_after_confirm(session, audio_path)）
+          6. 状態の変化を通知する（ユーザーへの通知）
+             - `[INFO]` 録音セッションを始めた（録音セッションの ID・入口・ファイルのパス）
+        exceptions:
+          - name: SessionBusyError
+            condition: ほかの録音セッションが残っている
+          - name: AudioUnreadableError
+            condition: 指定した音声ファイルを PyAV で開けない・音声のストリームが無い（probe_audio_file から伝わる）
+        unit_tests:
+          - name: test_start_audio_file_when_idle
+            case: 正常
+            summary: 待機中なら音声ファイルを起こして届ける
+            condition: 録音セッションが無い。transcribe が文字を返す
+            mock: SessionDeps の全関数
+            expected: entry=audio_file・状態 transcribing の録音セッションが返り、start_recording と save_recording・append_text・discard_temporary が呼ばれず、transcribe が audio_path で呼ばれ、correct の結果で deliver が 1 回呼ばれる
+          - name: test_start_audio_file_when_busy
+            case: 異常
+            summary: 処理中は断る
+            condition: recording の録音セッションがある
+            mock: SessionDeps の全関数
+            expected: SessionBusyError が送出され、probe_audio_file が呼ばれない
+            exception: ほかの録音セッションが残っている
+          - name: test_start_audio_file_when_unreadable
+            case: 異常
+            summary: 読めない音声ファイルは録音セッションを作らない
+            condition: probe_audio_file が AudioUnreadableError を送出する
+            mock: SessionDeps の全関数
+            expected: AudioUnreadableError が伝わり、録音セッションが無いままで、続く start が通る
+            exception: 指定した音声ファイルを読めない
+          - name: test_start_audio_file_when_cancel_pending
+            case: 正常
+            summary: 猶予の間の音声ファイルの開始は内部の録音を捨ててから始める
+            condition: ホットキーの録音セッションが cancel_pending
+            mock: SessionDeps の全関数
+            expected: discard_recording と予約の取りやめが 1 回ずつ呼ばれ、新しい ID の audio_file の録音セッションが返る
     status: implemented
 constants:
   - name: CANCEL_THREAD_NAME

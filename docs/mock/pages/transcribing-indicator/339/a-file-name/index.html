@@ -1,0 +1,56 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8">
+  <!-- viewport: 狭い幅でも見本を縦に積んで読めるようにする -->
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>文字起こし中の表示 | voice-paste のモック</title>
+  <!-- 部品は #37、見本の枠は #82、配色と背景のアプリは #94、出力先の切り替えは #108、ファイル名の行は #339 の共有 CSS に置く -->
+  <link rel="stylesheet" href="../../../../refs/37/assets/style.css">
+  <link rel="stylesheet" href="../../../../refs/82/assets/style.css">
+  <link rel="stylesheet" href="../../../../refs/94/assets/style.css">
+  <link rel="stylesheet" href="../../../../refs/108/assets/style.css">
+  <link rel="stylesheet" href="../../../../refs/339/assets/style.css">
+</head>
+<body>
+  <main>
+    <!-- パンくず -->
+    <nav class="crumb" aria-label="パンくず"><a href="../../../">pages</a> / <a href="../../">transcribing-indicator</a> / <a href="../">339</a> / <span>a-file-name</span></nav>
+
+    <!-- 画面の説明 -->
+    <header class="intro">
+      <h1>文字起こし中の表示</h1>
+      <p>トレイから指定した音声ファイルを文字に起こしている間の表示。#108 の表示に、指定した音声ファイルの名前の行を 1 行足す（計画書の未確定の論点の推奨案 B）。出力先は、設定でオンにした固定の出力先の最初のものを選んだ状態で始め、録音のときと同じく切り替えられる。</p>
+    </header>
+
+    <div class="desk desk--wide">
+
+      <!-- 場面: 始まってすぐ -->
+      <section class="specimen" aria-labelledby="h-start">
+        <h2 id="h-start">始まってすぐ</h2>
+        <div class="specimen__scroll"><div class="bgapp bgapp--white bgapp--focus pal-cool theme-light"><div class="bgapp__text" aria-hidden="true"><p class="bgapp__title">白い背景のアプリ（チャット）</p><div class="bgapp__line" style="width:72%"></div><div class="bgapp__line" style="width:88%"></div><div class="bgapp__line" style="width:64%"></div><div class="bgapp__line" style="width:90%"></div><div class="bgapp__line" style="width:58%"></div><div class="bgapp__line" style="width:80%"></div></div><div class="bgapp__field" aria-hidden="true"><span>議事録の下書き</span><span class="caret"></span></div><div class="win busy busy--switch" role="group" aria-label="文字起こし中の表示"><div class="busy__head"><span class="spinner" aria-hidden="true"></span><span class="state state--busy" role="status">文字起こし中</span></div><p class="busy__file" title="20261120-091544.wav">20261120-091544.wav</p><div class="busy__meta"><span class="num">経過 1.4 秒</span><span>残りを計っています</span></div><div class="out" role="group" aria-labelledby="out-start"><p class="out__label" id="out-start">出力先</p><div class="out-switch" style="--n:3"><button type="button" class="btn btn--switch btn--hk" aria-pressed="true" data-hint="貼り付けたい場所にカーソルを合わせてください"><svg class="check" viewBox="0 0 16 16" aria-hidden="true"><path d="M3 8.5l3.2 3L13 4.5"/></svg><span>貼り付けて送信</span><kbd>Ctrl+Alt+D</kbd></button><button type="button" class="btn btn--switch btn--hk" aria-pressed="false" data-hint="貼り付けたい場所にカーソルを合わせてください"><svg class="check" viewBox="0 0 16 16" aria-hidden="true"><path d="M3 8.5l3.2 3L13 4.5"/></svg><span>貼り付けのみ</span><kbd>Ctrl+Alt+V</kbd></button><button type="button" class="btn btn--switch btn--hk" aria-pressed="false" data-hint="起こした文字をクリップボードにコピーします"><svg class="check" viewBox="0 0 16 16" aria-hidden="true"><path d="M3 8.5l3.2 3L13 4.5"/></svg><span>コピーのみ</span><kbd>Ctrl+Alt+C</kbd></button></div></div><p class="hint">貼り付けたい場所にカーソルを合わせてください</p></div></div></div>
+        <p class="scene-note">録音の画面を出さない設定でも出す。フォーカスは取らず、貼り付けたい場所へカーソルを移す案内を出す。</p>
+      </section>
+
+      <!-- 場面: 長いファイル名 -->
+      <section class="specimen" aria-labelledby="h-long">
+        <h2 id="h-long">長いファイル名</h2>
+        <div class="specimen__scroll"><div class="pal-cool theme-light"><div class="win busy busy--switch" role="group" aria-label="文字起こし中の表示"><div class="busy__head"><span class="spinner" aria-hidden="true"></span><span class="state state--busy" role="status">文字起こし中</span></div><p class="busy__file" title="2026年11月20日_定例会議_プロジェクトの進捗の確認と来月の計画の相談.m4a">2026年11月20日_定例会議_プロジェクトの進捗の確認と来月の計画の相談.m4a</p><label class="sr-only" for="p-long">文字起こしの進み</label><progress id="p-long" max="100" value="18">18%</progress><div class="busy__meta"><span class="num">経過 41.0 秒</span><span class="num">残り 3 分 06 秒 / 3 分 48 秒</span></div><div class="out" role="group" aria-labelledby="out-long"><p class="out__label" id="out-long">出力先</p><div class="out-switch" style="--n:3"><button type="button" class="btn btn--switch btn--hk" aria-pressed="true" data-hint="貼り付けたい場所にカーソルを合わせてください"><svg class="check" viewBox="0 0 16 16" aria-hidden="true"><path d="M3 8.5l3.2 3L13 4.5"/></svg><span>貼り付けて送信</span><kbd>Ctrl+Alt+D</kbd></button><button type="button" class="btn btn--switch btn--hk" aria-pressed="false" data-hint="貼り付けたい場所にカーソルを合わせてください"><svg class="check" viewBox="0 0 16 16" aria-hidden="true"><path d="M3 8.5l3.2 3L13 4.5"/></svg><span>貼り付けのみ</span><kbd>Ctrl+Alt+V</kbd></button><button type="button" class="btn btn--switch btn--hk" aria-pressed="false" data-hint="起こした文字をクリップボードにコピーします"><svg class="check" viewBox="0 0 16 16" aria-hidden="true"><path d="M3 8.5l3.2 3L13 4.5"/></svg><span>コピーのみ</span><kbd>Ctrl+Alt+C</kbd></button></div></div><p class="hint">貼り付けたい場所にカーソルを合わせてください</p></div></div></div>
+        <p class="scene-note">表示の幅に収まらない名前は末尾を「…」で省き、マウスを合わせると全体を出す。フォルダのパスは出さない。</p>
+      </section>
+
+      <!-- 場面の先 -->
+      <section class="specimen" aria-labelledby="h-next">
+        <h2 id="h-next">この後</h2>
+        <ul class="scene-note">
+          <li>届けた・結果が空: 表示を閉じ、<a href="../../../tray/339/a-file-items/index.html#h-idle">トレイ</a>を待機中に戻す</li>
+          <li>文字起こしに失敗: 表示を閉じ、<a href="../../../tray-notification/339/a-file-failures/index.html#h-failed">トレイの通知</a>で知らせる</li>
+        </ul>
+      </section>
+
+    </div>
+  </main>
+  <!-- 出力先のボタンの押下で、選んでいる出力先と案内の文を差し替える（モックの動き） -->
+  <script src="../../../../refs/108/assets/app.js"></script>
+</body>
+</html>

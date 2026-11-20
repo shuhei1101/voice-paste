@@ -96,6 +96,12 @@ data_models:
       - name: reports_progress
         type: bool
         description: 動いているエンジンが区間ごとの進みを通知するか（local_whisper は True、openai・haas は False。haas から切り戻した起動は local_whisper として True）。engine の反映は再起動のため、保存した設定ではなく起動の配線で決めた値を持つ
+      - name: start_audio_file
+        type: Callable[[Path], None]
+        description: 指定した音声ファイルからの開始（start_audio_file_session を部分適用したもの）
+      - name: history_dir
+        type: Path
+        description: 「履歴フォルダを開く」で開くフォルダと、音声ファイルを選ぶダイアログで最初に開くフォルダ
     status: implemented
 classes:
   - name: UiController
@@ -174,12 +180,12 @@ classes:
              - 録音セッションが cancel_pending（取り消しの猶予中）の場合、録音セッションが無いときと同じに見せる（トレイを待機中・録音の画面を閉じる・「録音の画面を表示」を NOT_RECORDING）。待たせた再起動・終了は行う
              - 録音セッションが無く、待たせた再起動・終了がある場合、それを行う（request_restart か request_quit）
              - 録音の画面を隠している場合、窓は出さずに状態の表示だけを替える（RecordingWindow.set_paused）
-             - transcribing・delivering で文字起こし中の表示を出す場合、その回に録音の画面を動かしていれば動かした位置（RecordingWindow.moved_position）を引き渡す。動かしていなければ引き渡さず、設定の位置に出す。あわせて録音セッションの output_id と、カスタムプリセットで確定したならそのタイトル（output_preset.title）を引き渡す（TranscribingIndicator.open。文字起こし中の表示が既に出ている delivering の通知では開き直さない）
+             - transcribing・delivering で文字起こし中の表示を出す場合、その回に録音の画面を動かしていれば動かした位置（RecordingWindow.moved_position）を引き渡す。動かしていなければ引き渡さず、設定の位置に出す。あわせて録音セッションの output_id と、カスタムプリセットで確定したならそのタイトル（output_preset.title）と、入口が audio_file なら音声ファイルの名前（audio_path.name）を引き渡す（入口が audio_file の録音セッションは recording.hide_window によらず出す。TranscribingIndicator.open。文字起こし中の表示が既に出ている delivering の通知では開き直さない）
              - 最後に、トレイの「録音の画面を表示」を今の状態に合わせる（Tray.set_recording_window）
           2. output_changed の場合、文字起こし中の表示の今の出力先を detail（切り替えた先の出力先の ID）に替える（TranscribingIndicator.set_output）
           3. busy の場合、detail（始められない理由）を引き渡して処理中のダイアログを出す（show_busy_dialog）
           4. show_recording_window の場合、隠した録音の画面を戻す（show_recording）
-          5. microphone_unavailable・transcription_failed・delivery_failed・api_unavailable の場合、トレイの通知を出す（Tray.show_failure）
+          5. microphone_unavailable・transcription_failed・audio_file_unsupported・audio_file_transcription_failed・audio_file_delivery_failed・delivery_failed・api_unavailable の場合、トレイの通知を出す（Tray.show_failure）
              - それ以外の種類の場合、何もしない
                - `[WARNING]` 知らない通知を受けた（種類）
         unit_tests:
@@ -565,6 +571,31 @@ classes:
             condition: UiDeps.copy が DeliveryError("クリップボードへ書き込めませんでした") を送出する
             mock: UiDeps の全関数・Tray
             expected: Tray.show_failure(delivery_failed, クリップボードへ書き込めませんでした) が呼ばれ、ERROR のログが 1 行出て、例外が外へ出ない
+      - name: on_audio_file_requested
+        title: 音声ファイルの指定
+        kind: メソッド
+        scope: public
+        summary: 「音声ファイルを文字に起こす…」を受け、OS 標準のファイルを開くダイアログで音声ファイルを 1 つ選ばせて、音声ファイルからの開始を呼ぶ
+        returns:
+          type: None
+          description: なし
+        process: |-
+          1. 履歴のフォルダ（history_dir。無ければ作る）を最初に開いた状態で、ファイルを開くダイアログを出す（QFileDialog.getOpenFileName。絞り込みは音声ファイル（*.wav *.mp3 *.m4a *.mp4 *.ogg *.webm *.flac）と全てのファイル）
+          2. 空のパス（キャンセル）の場合、何もしない
+          3. 選んだパスで音声ファイルからの開始を呼ぶ（start_audio_file）
+        unit_tests:
+          - name: test_on_audio_file_requested_when_selected
+            case: 正常
+            summary: 選んだ音声ファイルで開始を呼ぶ
+            condition: ダイアログを差し替えて WAV のパスを返す
+            mock: QFileDialog.getOpenFileName・UiDeps
+            expected: start_audio_file が選んだパスで 1 回呼ばれ、ダイアログに history_dir が最初のフォルダとして渡る
+          - name: test_on_audio_file_requested_when_cancelled
+            case: 正常
+            summary: キャンセルでは何もしない
+            condition: ダイアログを差し替えて空のパスを返す
+            mock: QFileDialog.getOpenFileName・UiDeps
+            expected: start_audio_file が呼ばれない
     refs:
       - to: SCR-10
         type: requires

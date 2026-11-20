@@ -36,6 +36,9 @@ type FailureEvent = Literal[
     "engine_settings_mismatch",
     "settings_invalid",
     "paste_unavailable",
+    "audio_file_unsupported",
+    "audio_file_transcription_failed",
+    "audio_file_delivery_failed",
 ]
 """トレイの通知で知らせる失敗の種類（engine_unavailable・engine_fallback・engine_settings_mismatch・settings_invalid・paste_unavailable は起動のときの失敗。engine_fallback は Haas からローカルの Whisper へ切り戻したとき。engine_settings_mismatch は起動の前から動いている Haas のサーバーが設定と違うとき。paste_unavailable は Linux の Wayland のセッションでキーの送信の機器を開けないとき）。"""
 
@@ -49,6 +52,9 @@ FAILURE_TITLES: dict[str, str] = {
     "engine_settings_mismatch": "Haas の設定を反映できません",
     "settings_invalid": "起動できませんでした",
     "paste_unavailable": "貼り付けを使用できません",
+    "audio_file_unsupported": "音声ファイルを開けませんでした",
+    "audio_file_transcription_failed": "文字起こしできませんでした",
+    "audio_file_delivery_failed": "届けられませんでした",
 }
 """知らせの種類ごとの、通知の見出し。"""
 
@@ -61,8 +67,15 @@ FAILURE_BODY_SUFFIXES: dict[str, str] = {
     "transcription_failed": "録音は履歴に残っています。",
     "delivery_failed": "起こした文字は履歴に残っています。",
     "api_unavailable": "ホットキーとトレイからの録音は使えます。",
+    "audio_file_transcription_failed": "指定したファイルは元の場所に残っています。",
+    "audio_file_delivery_failed": "指定したファイルは元の場所に残っているので、もう一度文字に起こせます。",
 }
 """知らせの種類ごとの、理由の後に添える文（履歴に残っていること・次にすること）。"""
+
+AUDIO_FILE_UNSUPPORTED_BODY: str = (
+    "「{name}」は音声として読めない形式です。WAV・MP3・M4A などの音声ファイルを選んでください。"
+)
+"""読めない形式の音声ファイルを選んだときの通知の本文（{name} はファイル名）。"""
 
 COPY_COMPLETED_TITLE: str = "コピーしました"
 """コピーの完了の通知の見出し。"""
@@ -137,9 +150,11 @@ SHOW_WINDOW_TEXT: str = "録音の画面を表示"
 SETTINGS_TEXT: str = "設定…"
 SETTINGS_GLOSSARY_TEXT: str = "用語集の設定…"
 SETTINGS_SHORTCUTS_TEXT: str = "ショートカットの設定…"
+AUDIO_FILE_TEXT: str = "音声ファイルを文字に起こす…"
+HISTORY_FOLDER_TEXT: str = "履歴フォルダを開く"
 BUSY_SUFFIX: str = "（処理中）"
 FAILED_SUFFIX: str = "（準備に失敗）"
-"""メニューの「録音を開始」「録音の画面を表示」と設定の 3 項目の文言と、押せない理由の添え字。"""
+"""メニューの「録音を開始」「録音の画面を表示」「音声ファイルを文字に起こす…」「履歴フォルダを開く」と設定の 3 項目の文言と、押せない理由の添え字。"""
 
 SHOW_WINDOW_REASONS: dict[RecordingWindowState, str] = {
     RecordingWindowState.SHOWN: "（表示中）",
@@ -176,11 +191,15 @@ class Tray(QObject):
     recopy_requested = Signal(str)
     """コピーの完了の通知を押した（その通知のときに起こした文字を渡す）。"""
 
-    def __init__(self, settings_dir: Path, log_dir: Path) -> None:
-        """設定とログのフォルダを受け、準備中のアイコンとメニューを出す。"""
+    audio_file_requested = Signal()
+    """「音声ファイルを文字に起こす…」。"""
+
+    def __init__(self, settings_dir: Path, log_dir: Path, history_dir: Path) -> None:
+        """設定・ログ・履歴のフォルダを受け、準備中のアイコンとメニューを出す。"""
         super().__init__()
         self._settings_dir = settings_dir
         self._log_dir = log_dir
+        self._history_dir = history_dir
         self._failed = False
         self._failed_settings_enabled = True
         self._copied_text: str | None = None
@@ -195,6 +214,7 @@ class Tray(QObject):
         self._menu = menu
         self._start_action = self._add_item(menu, "menu_start", START_TEXT)
         self._show_window_action = self._add_item(menu, "menu_show_window", SHOW_WINDOW_TEXT)
+        self._audio_file_action = self._add_item(menu, "menu_transcribe_audio_file", AUDIO_FILE_TEXT)
         menu.addSeparator()
         self._settings_action = self._add_item(menu, "menu_settings", SETTINGS_TEXT)
         self._settings_glossary_action = self._add_item(
@@ -207,17 +227,20 @@ class Tray(QObject):
             menu, "menu_open_settings_folder", "設定フォルダを開く"
         )
         open_log_folder = self._add_item(menu, "menu_open_log_folder", "ログフォルダを開く")
+        open_history_folder = self._add_item(menu, "menu_open_history_folder", HISTORY_FOLDER_TEXT)
         menu.addSeparator()
         restart_action = self._add_item(menu, "menu_restart", "再起動")
         quit_action = self._add_item(menu, "menu_quit", "終了")
 
         self._start_action.triggered.connect(self.start_requested)
         self._show_window_action.triggered.connect(self.show_window_requested)
+        self._audio_file_action.triggered.connect(self.audio_file_requested)
         self._settings_action.triggered.connect(self.settings_requested)
         self._settings_glossary_action.triggered.connect(self.settings_glossary_requested)
         self._settings_shortcuts_action.triggered.connect(self.settings_shortcuts_requested)
         open_settings_folder.triggered.connect(lambda: self._open_folder(self._settings_dir))
         open_log_folder.triggered.connect(self._open_log_folder)
+        open_history_folder.triggered.connect(self._open_history_folder)
         restart_action.triggered.connect(self.restart_requested)
         quit_action.triggered.connect(self.quit_requested)
 
@@ -233,21 +256,23 @@ class Tray(QObject):
 
     def set_state(self, state: TrayState, *, busy: bool) -> None:
         """アイコン・ヒント・メニューの押せる項目と文言を状態に合わせる。"""
-        # 1. 失敗の起動なら、状態を失敗のままにし、録音を押せなくする。設定の 3 項目は settings_enabled のときだけ押せるままにする
+        # 1. 失敗の起動なら、状態を失敗のままにし、録音と音声ファイルを押せなくする。設定の 3 項目は settings_enabled のときだけ押せるままにする
         if self._failed:
             self._apply(
                 TrayState.FAILED,
                 start_text=START_TEXT + FAILED_SUFFIX,
+                audio_file_text=AUDIO_FILE_TEXT + FAILED_SUFFIX,
                 start_enabled=False,
                 settings_enabled=self._failed_settings_enabled,
             )
             return
 
-        # 2. それ以外は、状態の画像とヒントに替え、処理中なら録音を押せなくする（設定の 3 項目は押せるまま）。
-        #    準備中は、配線が終わるまで受け手が無いため録音と設定の 3 項目を押せなくする
+        # 2. それ以外は、状態の画像とヒントに替え、処理中なら録音と音声ファイルを押せなくする（設定の 3 項目は押せるまま）。
+        #    準備中は、配線が終わるまで受け手が無いため録音・音声ファイルと設定の 3 項目を押せなくする
         self._apply(
             state,
             start_text=START_TEXT + (BUSY_SUFFIX if busy else ""),
+            audio_file_text=AUDIO_FILE_TEXT + (BUSY_SUFFIX if busy else ""),
             start_enabled=state is TrayState.IDLE and not busy,
             settings_enabled=state is not TrayState.STARTING,
         )
@@ -288,6 +313,8 @@ class Tray(QObject):
         title = FAILURE_TITLES[event]
         if event == "microphone_unavailable":
             body = MICROPHONE_BODY
+        elif event == "audio_file_unsupported":
+            body = AUDIO_FILE_UNSUPPORTED_BODY.format(name=detail)
         elif event in STARTUP_BODY_FORMATS:
             # 設定を読めないときは、読めなかったファイルのパスを「・」でつないで出す
             body = STARTUP_BODY_FORMATS[event].format(
@@ -340,15 +367,18 @@ class Tray(QObject):
         state: TrayState,
         *,
         start_text: str,
+        audio_file_text: str,
         start_enabled: bool,
         settings_enabled: bool,
     ) -> None:
-        """アイコン・ヒント・メニューの項目の文言と押せるかを反映する。"""
+        """アイコン・ヒント・メニューの項目の文言と押せるかを反映する。「音声ファイルを文字に起こす…」は「録音を開始」と同じときに押せる。"""
         self._icon.setIcon(self._icons[state])
         self._icon.setToolTip(f"{TOOLTIP_PREFIX}{STATE_NAMES[state]}")
         self._start_label = start_text
         self._apply_start_text()
         self._start_action.setEnabled(start_enabled)
+        self._audio_file_action.setText(audio_file_text)
+        self._audio_file_action.setEnabled(start_enabled)
         for action in (
             self._settings_action,
             self._settings_glossary_action,
@@ -389,6 +419,11 @@ class Tray(QObject):
     def _open_log_folder(self) -> None:
         """ログのフォルダをエクスプローラーで開く。"""
         self._open_folder(self._log_dir)
+
+    def _open_history_folder(self) -> None:
+        """履歴のフォルダが無ければ作ってから、エクスプローラーで開く。"""
+        self._history_dir.mkdir(parents=True, exist_ok=True)
+        self._open_folder(self._history_dir)
 
     @staticmethod
     def _open_folder(folder: Path) -> None:

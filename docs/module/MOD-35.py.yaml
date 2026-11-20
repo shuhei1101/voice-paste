@@ -46,6 +46,12 @@ classes:
             default: None
             passing: keyword
             description: カスタムプリセットで確定したときのそのタイトル。引き渡されたら切り替えのボタンと貼り付けの案内を出さず、プリセットの名前だけを出す
+          - name: audio_file_name
+            type: str | None
+            required: false
+            default: None
+            passing: keyword
+            description: 指定した音声ファイルの名前。引き渡されたら見出しの下に 1 行で出し（窓の幅に収まらなければ末尾を「…」で省き、ヒントに全体を出す）、引き渡されなければ行を隠す
         returns:
           type: None
           description: なし

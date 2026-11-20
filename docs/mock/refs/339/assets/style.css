@@ -1,0 +1,55 @@
+/* ===== PR 339 の画面モック: #37・#82・#94・#108 の assets の上に重ねる ===== */
+
+/* 文字起こし中の表示: 指定した音声ファイルの名前（長い名前は末尾を省略する） */
+.busy__file {
+  margin: 0;
+  overflow: hidden;
+  font-family: var(--font-mono);
+  font-size: 12px;
+  color: var(--text-2);
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+/* 音声ファイルを選ぶダイアログの見立て（OS 標準のダイアログの要素だけを並べる） */
+.filedlg { width: min(100%, 560px); }
+
+/* 場所の欄 */
+.filedlg__path {
+  margin: 0;
+  padding: 6px 10px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  font-family: var(--font-mono);
+  font-size: 12px;
+  overflow-wrap: anywhere;
+}
+
+/* ファイルの一覧 */
+.filedlg__list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+}
+
+/* 一覧の 1 行 */
+.filedlg__list li {
+  padding: 4px 10px;
+  font-family: var(--font-mono);
+  font-size: 12px;
+}
+
+/* 選んでいる行 */
+.filedlg__list li[aria-selected="true"] {
+  background: var(--sunken);
+  outline: 2px solid var(--accent-fg);
+  outline-offset: -2px;
+}
+
+/* 絞り込みの欄 */
+.filedlg__filter {
+  font-size: 12px;
+  color: var(--text-2);
+}

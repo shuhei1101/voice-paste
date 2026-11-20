@@ -1,0 +1,31 @@
+confirmations:
+  - topic: 画面一覧と画面遷移の置き方
+    decision: 計画書の画面一覧・画面遷移の置き方でモック作成へ進む（推奨案 A）
+    decided_by: thumbs_up
+    approver: shuhei1101
+    commit:
+    thread: https://github.com/shuhei1101/voice-paste/pull/339#discussion_r4640593934
+  - topic: モックの内容（トレイ・トレイの通知・処理中のダイアログ）
+    decision: このモックの内容で画面設計へ進む（推奨案 A）
+    decided_by: thumbs_up
+    approver: shuhei1101
+    commit:
+    thread: https://github.com/shuhei1101/voice-paste/pull/339#discussion_r4640976085
+  - topic: トレイのメニューの項目名
+    decision: 「音声ファイルを文字に起こす…」「履歴フォルダを開く」（推奨案 A）
+    decided_by: thumbs_up
+    approver: shuhei1101
+    commit:
+    thread: https://github.com/shuhei1101/voice-paste/pull/339#discussion_r4640976953
+  - topic: 文字起こし中の表示に、指定した音声ファイルの名前を出すか
+    decision: ファイル名を 1 行で出す。長い名前は末尾を省略する（推奨案 B）
+    decided_by: thumbs_up
+    approver: shuhei1101
+    commit:
+    thread: https://github.com/shuhei1101/voice-paste/pull/339#discussion_r4640977812
+  - topic: 音声ファイルから起こした文字を届けられなかったときの通知の文言
+    decision: 見出し「届けられませんでした」・本文「{理由}。指定したファイルは元の場所に残っているので、もう一度文字に起こせます。」（推奨案 A）
+    decided_by: thumbs_up
+    approver: shuhei1101
+    commit: ae487c63f106072dacc62a8702b530b1d6000d25
+    thread: https://github.com/shuhei1101/voice-paste/pull/339#discussion_r4641284823

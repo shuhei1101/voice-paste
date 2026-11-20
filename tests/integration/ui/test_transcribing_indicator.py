@@ -150,17 +150,20 @@ def _advance(indicator: TranscribingIndicator, clock: FakeClock, seconds: float)
         pytest.param("api", "transcribing", False, False, id="api_transcribing"),
         pytest.param("hotkey", "recording", False, False, id="hotkey_recording"),
         pytest.param("hotkey", "transcribing", True, False, id="hide_window"),
+        pytest.param("audio_file", "transcribing", False, True, id="audio_file_transcribing"),
+        pytest.param("audio_file", "delivering", False, True, id="audio_file_delivering"),
+        pytest.param("audio_file", "transcribing", True, True, id="audio_file_hide_window"),
     ],
 )
 def test_transcribing_indicator_visible_when(
     make_ui: Callable[..., Ui], entry: str, state: str, hide_window: bool, shown: bool
 ) -> None:
-    """ホットキー・トレイの録音セッションが transcribing か delivering の間だけ出る。画面を出さない設定・API の録音では出さない（表示条件）。"""
+    """ホットキー・トレイ・音声ファイルの録音セッションが transcribing か delivering の間だけ出る。画面を出さない設定（音声ファイルを除く）・API の録音では出さない（表示条件）。"""
     # 準備
     ui = make_ui(make_settings(recording=dict(hide_window=hide_window)))
 
     # 実行
-    ui.notify_state(entry, state)
+    ui.notify_state(entry, state, audio_path=Path("memo.wav") if entry == "audio_file" else None)
 
     # 検証
     assert ui.indicator.isVisible() is shown
@@ -489,6 +492,70 @@ def test_output_heading_when_preset(make_ui: Callable[..., Ui]) -> None:
 
     # 検証
     assert find(ui.indicator, QLabel, "output_heading").isVisible()
+
+
+
+# === audio_file_name ===
+
+
+def test_audio_file_name_when_audio_file(make_ui: Callable[..., Ui], tmp_path: Path) -> None:
+    """トレイから指定した音声ファイルの録音セッションでは、フォルダのパスを除いたファイル名を見出しの下に 1 行で出し、ヒントに全体を出す。"""
+    # 準備
+    ui = make_ui()
+
+    # 実行
+    ui.notify_state(
+        "audio_file", "transcribing", output_id="paste_only", audio_path=tmp_path / "会議メモ.m4a"
+    )
+
+    # 検証
+    label = find(ui.indicator, QLabel, "audio_file_name")
+    assert label.isVisible()
+    assert label.text() == "会議メモ.m4a"
+    assert label.toolTip() == "会議メモ.m4a"
+
+
+def test_audio_file_name_when_long(make_ui: Callable[..., Ui], tmp_path: Path) -> None:
+    """窓の幅に収まらない名前は末尾を「…」で省き、ヒントに全体を出す（窓は広げない）。"""
+    # 準備
+    ui = make_ui()
+    name = "とても長い名前の音声ファイル" * 8 + ".wav"
+
+    # 実行
+    ui.notify_state("audio_file", "transcribing", output_id="paste_only", audio_path=tmp_path / name)
+
+    # 検証
+    label = find(ui.indicator, QLabel, "audio_file_name")
+    assert label.text().endswith("…")
+    assert label.toolTip() == name
+    assert ui.indicator.width() < label.fontMetrics().horizontalAdvance(name)
+
+
+@pytest.mark.parametrize("entry", ["hotkey", "tray"])
+def test_audio_file_name_when_recording_session(make_ui: Callable[..., Ui], entry: str) -> None:
+    """録音の文字起こしでは、ファイル名の行を出さない。"""
+    # 実行
+    ui = make_ui()
+    ui.notify_state(entry, "transcribing", output_id="paste_only")
+
+    # 検証
+    assert not find(ui.indicator, QLabel, "audio_file_name").isVisible()
+
+
+def test_audio_file_name_when_reopened(make_ui: Callable[..., Ui], tmp_path: Path) -> None:
+    """音声ファイルの回の後の録音の回では、ファイル名の行を隠す。"""
+    # 準備
+    ui = make_ui()
+    ui.notify_state(
+        "audio_file", "transcribing", output_id="paste_only", audio_path=tmp_path / "memo.wav"
+    )
+    ui.notify_state(None)
+
+    # 実行
+    ui.notify_state("hotkey", "transcribing", output_id="paste_only")
+
+    # 検証
+    assert not find(ui.indicator, QLabel, "audio_file_name").isVisible()
 
 
 # === switch_button_{output_id} ===

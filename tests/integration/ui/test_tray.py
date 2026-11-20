@@ -15,7 +15,7 @@ from unittest.mock import MagicMock
 import pytest
 from PySide6.QtCore import QUrl
 from PySide6.QtGui import QAction, QColor, QDesktopServices
-from PySide6.QtWidgets import QSystemTrayIcon
+from PySide6.QtWidgets import QFileDialog, QSystemTrayIcon
 
 from tests.integration.ui.helpers import Ui, edge_and_face_colors
 from tests.support.settings import make_settings
@@ -26,12 +26,14 @@ if TYPE_CHECKING:
 MENU_ORDER = (
     "menu_start",
     "menu_show_window",
+    "menu_transcribe_audio_file",
     "",
     "menu_settings",
     "menu_settings_glossary",
     "menu_settings_shortcuts",
     "menu_open_settings_folder",
     "menu_open_log_folder",
+    "menu_open_history_folder",
     "",
     "menu_restart",
     "menu_quit",
@@ -204,7 +206,7 @@ def test_tray_icon_left_click_when_not_hidden(
 
 
 def test_menu_order(make_ui: Callable[..., Ui]) -> None:
-    """メニューは、録音を開始・録音の画面を表示・区切り・設定…・用語集の設定…・ショートカットの設定…・設定フォルダを開く・ログフォルダを開く・区切り・再起動・終了の順に並ぶ。"""
+    """メニューは、録音を開始・録音の画面を表示・音声ファイルを文字に起こす…・区切り・設定…・用語集の設定…・ショートカットの設定…・設定フォルダを開く・ログフォルダを開く・履歴フォルダを開く・区切り・再起動・終了の順に並ぶ。"""
     # 実行
     ui = make_ui()
 
@@ -285,6 +287,119 @@ def test_menu_start_action(make_ui: Callable[..., Ui]) -> None:
 
     # 検証
     ui.deps.start.assert_called_once()
+
+
+# === menu_transcribe_audio_file ===
+
+
+def test_menu_transcribe_audio_file_when_idle(make_ui: Callable[..., Ui]) -> None:
+    """待機中は「音声ファイルを文字に起こす…」を押せる。"""
+    from voice_paste.ui.tray import TrayState
+
+    # 準備
+    ui = make_ui()
+
+    # 実行
+    ui.tray.set_state(TrayState.IDLE, busy=False)
+
+    # 検証
+    action = _action(ui.tray, "menu_transcribe_audio_file")
+    assert _label(action) == "音声ファイルを文字に起こす…"
+    assert action.isEnabled()
+
+
+@pytest.mark.parametrize(
+    ("entry", "state"),
+    [
+        pytest.param("hotkey", "recording", id="hotkey_recording"),
+        pytest.param("api", "recording", id="api_recording"),
+        pytest.param("audio_file", "transcribing", id="audio_file_transcribing"),
+    ],
+)
+def test_menu_transcribe_audio_file_when_busy(
+    make_ui: Callable[..., Ui], tmp_path: Path, entry: str, state: str
+) -> None:
+    """録音から届けるまでの間（API から始めた録音・音声ファイルの文字起こしの間を含む）は「（処理中）」を添えて押せない。音声ファイルの文字起こしの間は「録音を開始」も押せない。"""
+    # 準備
+    ui = make_ui()
+
+    # 実行
+    ui.notify_state(
+        entry, state, audio_path=tmp_path / "memo.wav" if entry == "audio_file" else None
+    )
+
+    # 検証
+    action = _action(ui.tray, "menu_transcribe_audio_file")
+    assert _label(action) == "音声ファイルを文字に起こす…（処理中）"
+    assert not action.isEnabled()
+    assert not _action(ui.tray, "menu_start").isEnabled()
+
+
+def test_menu_transcribe_audio_file_when_starting(make_ui: Callable[..., Ui]) -> None:
+    """準備中は押せない。"""
+    # 実行
+    ui = make_ui()
+
+    # 検証
+    assert not _action(ui.tray, "menu_transcribe_audio_file").isEnabled()
+
+
+def test_menu_transcribe_audio_file_when_failed(make_ui: Callable[..., Ui]) -> None:
+    """起動に失敗した起動では「（準備に失敗）」を添えて押せない。"""
+    # 準備
+    ui = make_ui()
+
+    # 実行
+    ui.tray.set_failed(settings_enabled=True)
+
+    # 検証
+    action = _action(ui.tray, "menu_transcribe_audio_file")
+    assert _label(action) == "音声ファイルを文字に起こす…（準備に失敗）"
+    assert not action.isEnabled()
+
+
+def test_menu_transcribe_audio_file_action(
+    make_ui: Callable[..., Ui], monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """押すと、履歴のフォルダを最初に開いたファイルを開くダイアログを出し、選んだ音声ファイルで文字起こしを始める。"""
+    from voice_paste.ui.tray import TrayState
+
+    # 準備
+    ui = make_ui()
+    ui.tray.set_state(TrayState.IDLE, busy=False)
+    chosen = ui.deps.history_dir / "20261001" / "20261001120000_s1.wav"
+    dialog = MagicMock(return_value=(str(chosen), "音声ファイル"))
+    monkeypatch.setattr(QFileDialog, "getOpenFileName", dialog)
+
+    # 実行
+    _action(ui.tray, "menu_transcribe_audio_file").trigger()
+
+    # 検証
+    passed = [str(arg) for arg in dialog.call_args.args]
+    assert str(ui.deps.history_dir) in passed
+    file_filter = next(value for value in passed if "*.wav" in value)
+    assert "*.mp3" in file_filter
+    assert "*.m4a" in file_filter
+    assert "(*)" in file_filter
+    ui.deps.start_audio_file.assert_called_once_with(chosen)
+
+
+def test_menu_transcribe_audio_file_action_when_cancelled(
+    make_ui: Callable[..., Ui], monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """ダイアログを取り消したら、何もしない。"""
+    from voice_paste.ui.tray import TrayState
+
+    # 準備
+    ui = make_ui()
+    ui.tray.set_state(TrayState.IDLE, busy=False)
+    monkeypatch.setattr(QFileDialog, "getOpenFileName", MagicMock(return_value=("", "")))
+
+    # 実行
+    _action(ui.tray, "menu_transcribe_audio_file").trigger()
+
+    # 検証
+    ui.deps.start_audio_file.assert_not_called()
 
 
 # === menu_show_window ===
@@ -651,8 +766,25 @@ def test_menu_open_log_folder_action(make_ui: Callable[..., Ui], opened_urls: li
     assert [Path(url.toLocalFile()) for url in opened_urls] == [ui.deps.log_dir]
 
 
+
+def test_menu_open_history_folder_action(
+    make_ui: Callable[..., Ui], opened_urls: list[QUrl]
+) -> None:
+    """「履歴フォルダを開く」は、履歴の配置先のフォルダが無ければ作ってから、エクスプローラーで開く。"""
+    # 準備
+    ui = make_ui()
+    assert not ui.deps.history_dir.exists()
+
+    # 実行
+    _action(ui.tray, "menu_open_history_folder").trigger()
+
+    # 検証
+    assert ui.deps.history_dir.is_dir()
+    assert [Path(url.toLocalFile()) for url in opened_urls] == [ui.deps.history_dir]
+
+
 def test_menu_folders_when_always(make_ui: Callable[..., Ui]) -> None:
-    """設定フォルダ・ログフォルダ・再起動・終了は、どの状態でも出して押せる。"""
+    """設定フォルダ・ログフォルダ・履歴フォルダ・再起動・終了は、どの状態でも出して押せる。"""
     # 準備
     ui = make_ui()
 
@@ -660,7 +792,13 @@ def test_menu_folders_when_always(make_ui: Callable[..., Ui]) -> None:
     ui.notify_state("api", "recording")
 
     # 検証
-    for name in ("menu_open_settings_folder", "menu_open_log_folder", "menu_restart", "menu_quit"):
+    for name in (
+        "menu_open_settings_folder",
+        "menu_open_log_folder",
+        "menu_open_history_folder",
+        "menu_restart",
+        "menu_quit",
+    ):
         assert _action(ui.tray, name).isEnabled()
 
 

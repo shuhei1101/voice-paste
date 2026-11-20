@@ -1,0 +1,31 @@
+# 単体テスト作成の lint（テスト実行方法 TL-5）。変更はテストコードだけで、画面のスクリプト・workflow を変えていないため npm と actionlint の検査は対象外。手元の WSL の .venv で回した
+
+$ uv lock --check
+Resolved 77 packages in 1ms
+exit=0
+$ .venv/bin/lint-imports
+
+╔══╗─────────▶╔╗ ╔╗      ╔╗◀───┐
+╚╣╠╝◀─────┐  ╔╝╚╗║║────▶╔╝╚╗   │
+ ║║   ╔══╦══╦╩╗╔╝║║  ╔╦═╩╗╔╝╔═╦══╗
+ ║║╔══╣╔╗║╔╗║╔╣║ ║║ ╔╬╣╔╗║║ ║│║╔═╝
+╔╣╠╣║║║╚╝║╚╝║║║╚╗║╚═╝║║║║║╚╗║═╣║
+╚══╩╩╩╣╔═╩══╩╝╚═╝╚═══╩╩╝╚╩═╩╩═╩╝
+  └──▶║║                    ▲ 
+      ╚╝────────────────────┘
+
+
+---------
+Contracts
+---------
+
+Analyzed 122 files, 270 dependencies.
+-------------------------------------
+
+層の向き KEPT
+feature の独立 KEPT
+出力先の独立 KEPT (13 ignored imports)
+画面から feature の中へ KEPT (1 ignored import)
+
+Contracts: 4 kept, 0 broken.
+exit=0

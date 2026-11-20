@@ -15,7 +15,7 @@ request:
     required: true
     location: body
     description: 起こす音声（multipart の file）
-    constraints: PyAV（FFmpeg）で復号できる形式。常駐アプリは録音・連続録音の区間は WAV を、ブラウザの音声は録れた形式（webm・ogg・mp4 など）のまま送信する
+    constraints: PyAV（FFmpeg）で復号できる形式。常駐アプリは録音・連続録音の区間は WAV を、ブラウザの音声は録れた形式（webm・ogg・mp4 など）のまま、トレイから指定した音声ファイルはそのファイルのまま（PyAV で音声のストリームを読めることを常駐アプリが確かめたもの）送信する
   - name: vocabulary
     type: str
     required: false
@@ -113,7 +113,7 @@ constraints:
     notes: Haas-ja-v1.0 が学習した発話の長さの上限が約 30 秒のため、既定は 30 秒
   - item: 音声の大きさ
     constraint: 制限なし
-    notes: 常駐アプリが受け付けた音声だけが届く（ブラウザの音声は常駐アプリの本文の上限で弾く）
+    notes: 常駐アプリが受け付けた音声だけが届く（ブラウザの音声は常駐アプリの本文の上限で弾く。トレイから指定した音声ファイルは大きさを制限しないため、長い音声は音声の長さの制約のとおり区切って起こす）
   - item: タイムアウト
     constraint: 設けない
     notes: 待つ時間の上限は呼び出し元の常駐アプリが持つ

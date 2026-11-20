@@ -9,7 +9,7 @@ from pathlib import Path
 from typing import Literal
 
 from PySide6.QtCore import QEvent, QObject, Qt
-from PySide6.QtWidgets import QApplication
+from PySide6.QtWidgets import QApplication, QFileDialog
 
 from voice_paste.features.session.types import Session, SessionState
 from voice_paste.shared.errors import DeliveryError, HotkeyError
@@ -29,7 +29,15 @@ from voice_paste.ui.windows.transcribing_indicator import TranscribingIndicator
 logger = logging.getLogger(__name__)
 
 FAILURE_EVENTS: frozenset[str] = frozenset(
-    {"microphone_unavailable", "transcription_failed", "delivery_failed", "api_unavailable"}
+    {
+        "microphone_unavailable",
+        "transcription_failed",
+        "audio_file_unsupported",
+        "audio_file_transcription_failed",
+        "audio_file_delivery_failed",
+        "delivery_failed",
+        "api_unavailable",
+    }
 )
 """トレイの通知で知らせる失敗の種類。"""
 
@@ -37,6 +45,12 @@ RECORDING_STATES: frozenset[SessionState] = frozenset(
     {SessionState.RECORDING, SessionState.PAUSED, SessionState.STOPPED}
 )
 """トレイが「録音中」を示す録音セッションの状態。"""
+
+AUDIO_FILE_DIALOG_TITLE: str = "文字に起こす音声ファイルを選ぶ"
+"""音声ファイルを選ぶダイアログの窓のタイトル。"""
+
+AUDIO_FILE_FILTER: str = "音声ファイル (*.wav *.mp3 *.m4a *.mp4 *.ogg *.webm *.flac);;全てのファイル (*)"
+"""音声ファイルを選ぶダイアログの絞り込み（PyAV で読める形式の拡張子と、全てのファイル）。"""
 
 
 @dataclass(frozen=True, slots=True, kw_only=True)
@@ -127,6 +141,12 @@ class UiDeps:
     reports_progress: bool
     """動いているエンジンが区間ごとの進みを知らせるか（local_whisper は True、openai・haas は False）。エンジンの反映は再起動のため、保存した設定ではなく起動で決めた値を持つ。"""
 
+    start_audio_file: Callable[[Path], None]
+    """指定した音声ファイルからの開始（start_audio_file_session を部分適用したもの）。"""
+
+    history_dir: Path
+    """「履歴フォルダを開く」で開くフォルダと、音声ファイルを選ぶダイアログで最初に開くフォルダ。"""
+
 
 class UiController(QObject):
     """UiBridge の知らせを受けて、トレイ・録音の画面・文字起こし中の表示・ダイアログを開く・閉じる・替える。
@@ -156,6 +176,7 @@ class UiController(QObject):
         tray.start_requested.connect(deps.start)
         tray.show_window_requested.connect(self.show_recording)
         tray.recopy_requested.connect(self.recopy)
+        tray.audio_file_requested.connect(self.on_audio_file_requested)
         recording_window.hide_requested.connect(self.hide_recording)
         indicator.output_selected.connect(deps.switch_output)
         tray.settings_requested.connect(lambda: self.open_settings())
@@ -183,6 +204,18 @@ class UiController(QObject):
             self._tray.show_failure(event, detail)  # type: ignore[arg-type]
         else:
             logger.warning(f"知らない知らせを受けた（{event}）")
+
+    def on_audio_file_requested(self) -> None:
+        """「音声ファイルを文字に起こす…」を受け、履歴のフォルダを最初に開いたダイアログで音声ファイルを 1 つ選ばせて、音声ファイルからの開始を呼ぶ。"""
+        history_dir = self._deps.history_dir
+        history_dir.mkdir(parents=True, exist_ok=True)
+        path, _ = QFileDialog.getOpenFileName(
+            None, AUDIO_FILE_DIALOG_TITLE, str(history_dir), AUDIO_FILE_FILTER
+        )
+        # キャンセル（空のパス）: 何もしない
+        if not path:
+            return
+        self._deps.start_audio_file(Path(path))
 
     def on_progressed(self, position_sec: float, duration_sec: float) -> None:
         """UiBridge.progressed のスロット。文字起こし中の表示が出ていれば進みを渡す。"""
@@ -322,8 +355,9 @@ class UiController(QObject):
             )
             return
 
-        # ホットキー・トレイの録音セッション: 画面を出さない設定でなければ、状態の画面を出す
+        # ホットキー・トレイの録音セッション: 画面を出さない設定でなければ、状態の画面を出す（音声ファイルの録音セッションは設定によらず文字起こし中の表示を出す）
         show_windows = not self._deps.get_settings().recording.hide_window
+        is_audio_file = session.entry == Entry.AUDIO_FILE
         if in_recording:
             self._close_indicator()
             if show_windows:
@@ -335,13 +369,19 @@ class UiController(QObject):
                 self._recording_window.moved_position() if self._recording_shown else None
             )
             self._close_recording()
-            if show_windows and not self._indicator_shown:
-                # カスタムプリセットで確定した回は、プリセットのタイトルだけを渡す
+            if (show_windows or is_audio_file) and not self._indicator_shown:
+                # カスタムプリセットで確定した回は、プリセットのタイトルだけを渡す。音声ファイルの回はファイル名を渡す
                 preset = session.output_preset
+                file_name = (
+                    {"audio_file_name": session.audio_path.name}
+                    if is_audio_file and session.audio_path is not None
+                    else {}
+                )
                 self._indicator.open(
                     at=moved_position,
                     output_id=session.output_id,
                     preset_title=None if preset is None else preset.title,
+                    **file_name,
                 )
                 self._indicator_shown = True
             self._tray.set_recording_window(RecordingWindowState.NOT_RECORDING)

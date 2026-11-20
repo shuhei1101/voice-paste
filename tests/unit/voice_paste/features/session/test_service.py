@@ -1,4 +1,4 @@
-"""features/session/service.py（SessionManager の start・pause・stop・complete・cancel・truncate_if_expired・_run_after_confirm・switch_output・close・連続録音の _on_segment・_run_segments・_on_continuous_failed）の単体テスト。
+"""features/session/service.py（SessionManager の start・start_audio_file・pause・stop・complete・cancel・truncate_if_expired・_run_after_confirm・switch_output・close・連続録音の _on_segment・_run_segments・_on_continuous_failed）の単体テスト。
 
 SessionDeps の関数は全て Mock に差し替える。
 ワーカースレッドは、起動を覚えるだけの偽物（defer_workers）に差し替えて、テストが動かすタイミングを決める。
@@ -28,6 +28,8 @@ from tests.unit.voice_paste.features.session.helpers import (
     make_segment,
 )
 from voice_paste.shared.errors import (
+    AudioUnreadableError,
+    DeliveryError,
     MicrophoneUnavailableError,
     SessionBusyError,
     SessionNotFoundError,
@@ -51,6 +53,12 @@ def audio_path(tmp_path: Path) -> Path:
 
 
 @pytest.fixture
+def chosen_file(tmp_path: Path) -> Path:
+    """トレイから指定した音声ファイルのパスを返す。"""
+    return tmp_path / "chosen" / "20261001120000_s1.wav"
+
+
+@pytest.fixture
 def continuous_harness(audio_path: Path) -> Iterator[Harness]:
     """連続録音のワーカースレッドを本物で動かす Harness を返す。テストの後に終了で片付け、ワーカースレッドを残さない。"""
     h = make_harness(audio_path)
@@ -70,6 +78,12 @@ def _confirm_api(h: Harness, monkeypatch: pytest.MonkeyPatch) -> None:
     defer_workers(monkeypatch)
     session = h.manager.start("api", callback_url=CALLBACK_URL)
     h.manager.complete(session.id)
+
+
+def _start_audio_file(h: Harness, chosen_file: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    """指定した音声ファイルで録音セッションを始め、文字起こしから届けるまでは動かさずに止めておく。"""
+    defer_workers(monkeypatch)
+    h.manager.start_audio_file(chosen_file, "paste_only")
 
 
 def _block_until_released(
@@ -850,6 +864,170 @@ def test_run_after_confirm_when_unknown_output(
     # 検証
     assert "delivery_failed" in h.events()
     assert h.state() is None
+
+
+def test_run_after_confirm_when_audio_file(
+    audio_path: Path, chosen_file: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """指定した音声ファイルから起こした文字を届け、履歴には残さない（正常系）。"""
+    # 準備
+    h = make_harness(audio_path)
+    h.correct.side_effect = None
+    h.correct.return_value = "テスト"
+    _start_audio_file(h, chosen_file, monkeypatch)
+
+    # 実行
+    h.manager._run_after_confirm(h.current(), chosen_file)
+
+    # 検証
+    assert h.transcribe.call_args.args[0] == chosen_file
+    h.deliver.assert_called_once()
+    assert h.delivered().text == "テスト"
+    h.append_text.assert_not_called()
+    h.discard_temporary.assert_not_called()
+    assert h.state() is None
+
+
+def test_run_after_confirm_when_empty_from_audio_file(
+    audio_path: Path, chosen_file: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """指定した音声ファイルの空の結果は届けず、失敗も知らせない（正常系）。"""
+    # 準備
+    h = make_harness(audio_path)
+    h.transcribe.return_value = ""
+    _start_audio_file(h, chosen_file, monkeypatch)
+
+    # 実行
+    h.manager._run_after_confirm(h.current(), chosen_file)
+
+    # 検証
+    h.deliver.assert_not_called()
+    assert not [event for event in h.events() if event.endswith("_failed")]
+    assert h.state() is None
+
+
+def test_run_after_confirm_when_audio_file_transcription_failed(
+    audio_path: Path, chosen_file: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """指定した音声ファイルの文字起こしの失敗は音声ファイルの種類で知らせる（異常系）。"""
+    # 準備
+    h = make_harness(audio_path)
+    h.transcribe.side_effect = TranscriptionError("文字起こしに失敗した")
+    _start_audio_file(h, chosen_file, monkeypatch)
+
+    # 実行
+    h.manager._run_after_confirm(h.current(), chosen_file)
+
+    # 検証
+    h.notify.assert_any_call("audio_file_transcription_failed", "文字起こしに失敗した")
+    assert "transcription_failed" not in h.events()
+    h.deliver.assert_not_called()
+    h.append_text.assert_not_called()
+    h.discard_temporary.assert_not_called()
+    assert h.state() is None
+
+
+def test_run_after_confirm_when_audio_file_delivery_failed(
+    audio_path: Path, chosen_file: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """指定した音声ファイルから起こした文字を届けられなければ音声ファイルの種類で知らせる（異常系）。"""
+    # 準備
+    h = make_harness(audio_path)
+    h.deliver.side_effect = DeliveryError("貼り付けられなかった")
+    _start_audio_file(h, chosen_file, monkeypatch)
+
+    # 実行
+    h.manager._run_after_confirm(h.current(), chosen_file)
+
+    # 検証
+    h.notify.assert_any_call("audio_file_delivery_failed", "貼り付けられなかった")
+    assert "delivery_failed" not in h.events()
+    assert h.state() is None
+
+
+# === start_audio_file ===
+
+
+def test_start_audio_file_when_idle(
+    audio_path: Path, chosen_file: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """待機中なら指定した音声ファイルを文字に起こして届ける（正常系）。"""
+    # 準備
+    h = make_harness(audio_path)
+    h.correct.side_effect = None
+    h.correct.return_value = "テスト"
+    workers = defer_workers(monkeypatch)
+
+    # 実行
+    session = h.manager.start_audio_file(chosen_file, "paste_only")
+
+    # 検証: 録音セッションは音声ファイルの入口で、文字起こし中から始まる
+    assert str(session.entry) == "audio_file"
+    assert str(session.state) == "transcribing"
+    assert session.audio_path == chosen_file
+    assert session.output_id == "paste_only"
+    h.probe_audio_file.assert_called_once_with(chosen_file)
+    assert "state_changed" in h.events()
+
+    # 実行: ワーカースレッドを動かす
+    assert len(workers) == 1
+    workers[0].run_now()
+
+    # 検証: 録音・保存・履歴・一時の音声を使わずに届ける
+    h.start_recording.assert_not_called()
+    h.save_recording.assert_not_called()
+    h.append_text.assert_not_called()
+    h.discard_temporary.assert_not_called()
+    assert h.transcribe.call_args.args[0] == chosen_file
+    h.deliver.assert_called_once()
+    assert h.delivered().text == "テスト"
+    assert h.state() is None
+
+
+def test_start_audio_file_when_busy(audio_path: Path, chosen_file: Path) -> None:
+    """処理中は断る（異常系）。"""
+    # 準備
+    h = make_harness(audio_path)
+    h.manager.start("hotkey")
+
+    # 実行・検証
+    with pytest.raises(SessionBusyError):
+        h.manager.start_audio_file(chosen_file, "paste_only")
+    h.probe_audio_file.assert_not_called()
+
+
+def test_start_audio_file_when_unreadable(audio_path: Path, chosen_file: Path) -> None:
+    """読めない音声ファイルは断り、待機中のまま（異常系）。"""
+    # 準備
+    h = make_harness(audio_path)
+    h.probe_audio_file.side_effect = AudioUnreadableError("音声のストリームが無い")
+
+    # 実行・検証
+    with pytest.raises(AudioUnreadableError):
+        h.manager.start_audio_file(chosen_file, "paste_only")
+    assert h.state() is None
+    session = h.manager.start("hotkey")
+    assert str(session.state) == "recording"
+
+
+def test_start_audio_file_when_cancel_pending(
+    audio_path: Path, chosen_file: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """猶予の間に指定した音声ファイルは、内部の録音を捨ててから始める（正常系）。"""
+    # 準備
+    h = make_harness(audio_path)
+    first = h.manager.start("hotkey")
+    h.manager._cancel()
+    defer_workers(monkeypatch)
+
+    # 実行
+    session = h.manager.start_audio_file(chosen_file, "paste_only")
+
+    # 検証
+    assert session.id != first.id
+    assert str(session.entry) == "audio_file"
+    h.discard_recording.assert_called_once()
+    h.cancel_timer.assert_called_once()
 
 
 # === switch_output ===

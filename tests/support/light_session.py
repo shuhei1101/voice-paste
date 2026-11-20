@@ -138,6 +138,7 @@ def build_light_manager(
         clear_recording=recorder.clear,
         get_cancel_grace=lambda: timedelta(0),
         start_cancel_timer=_start_cancel_timer,
+        probe_audio_file=lambda audio_path: None,
     )
     continuous_limit_sec = (
         settings.api.continuous.session_limit_sec

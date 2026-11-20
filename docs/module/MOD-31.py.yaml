@@ -121,6 +121,9 @@ classes:
         access: 内部 (_)
         default: None
         description: 最後に出した通知がコピーの完了のときの起こした文字。失敗の通知を出したら None に戻す
+      - name: audio_file_requested
+        type: Signal()
+        description: 「音声ファイルを文字に起こす…」
     methods:
       - name: set_state
         title: 状態の切り替え
@@ -142,8 +145,8 @@ classes:
           type: None
           description: なし
         process: |-
-          1. 失敗の起動なら、状態を FAILED のままにし、「録音を開始（準備に失敗）」を押せなくする。設定の 3 項目（「設定…」「用語集の設定…」「ショートカットの設定…」）は _failed_settings_enabled のときだけ押せるままにする
-          2. それ以外は、状態の画像とヒント（voice-paste: {状態の名前}）に替え、busy なら「録音を開始（処理中）」を押せなくする（設定の 3 項目は押せるまま）。STARTING（準備中）なら「録音を開始」と設定の 3 項目を押せなくする（配線が終わるまで受け手が無い）
+          1. 失敗の起動なら、状態を FAILED のままにし、「録音を開始（準備に失敗）」「音声ファイルを文字に起こす…（準備に失敗）」を押せなくする。設定の 3 項目（「設定…」「用語集の設定…」「ショートカットの設定…」）は _failed_settings_enabled のときだけ押せるままにする
+          2. それ以外は、状態の画像とヒント（voice-paste: {状態の名前}）に替え、busy なら「録音を開始（処理中）」「音声ファイルを文字に起こす…（処理中）」を押せなくする（設定の 3 項目は押せるまま）。STARTING（準備中）なら「録音を開始」「音声ファイルを文字に起こす…」と設定の 3 項目を押せなくする（配線が終わるまで受け手が無い）
           3. 「録音を開始」は押せるときだけ太字にする
         unit_tests:
           - name: test_set_state_when_starting
@@ -388,7 +391,7 @@ classes:
         status: planned
       - name: __init__
         title: トレイの用意
-        summary: 設定とログのフォルダを受け、準備中のアイコンとメニューを出す
+        summary: 設定・ログ・履歴のフォルダを受け、準備中のアイコンとメニューを出す
         kind: メソッド
         scope: public
         args:
@@ -402,11 +405,16 @@ classes:
             required: true
             passing: positional
             description: 「ログフォルダを開く」と、失敗の通知を押したときに開くフォルダ
+          - name: history_dir
+            type: Path
+            required: true
+            passing: positional
+            description: 「履歴フォルダを開く」で開くフォルダ（無ければ作ってから開く）
         returns:
           type: None
           description: なし
         process: |-
-          1. メニューの項目を作り、Signal とアイコンの左クリック・通知の押下をつなぐ
+          1. メニューの項目を作り、Signal とアイコンの左クリック・通知の押下をつなぐ（「音声ファイルを文字に起こす…」は audio_file_requested、「履歴フォルダを開く」は history_dir を無ければ作ってから開く処理へつなぐ）
           2. 準備中のアイコンの画像だけを付け、ヒントを付けずにアイコンを出す（show）
           3. 出した後に set_state(STARTING, busy=False) で準備中のヒントとメニューの文言を付け、「録音の画面を表示」を not_recording にする
         reason: Windows はトレイのアイコンのボタンの名前（スクリーンリーダーが読み込む名前）を、アイコンを出した時点のヒントと今のヒントをつないで作るため、ヒントは出した後に付ける。Qt はアイコンの画像が無いと show で出さないため、画像は先に付ける

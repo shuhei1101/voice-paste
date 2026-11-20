@@ -76,4 +76,6 @@ tasks:
     updated_by: planner
     updated_at: '2026-11-20T11:06:20.283411+00:00'
   - process: 結合テスト作成
-    status: todo
+    status: done
+    updated_by: planner
+    updated_at: '2026-11-20T11:37:35.910349+00:00'

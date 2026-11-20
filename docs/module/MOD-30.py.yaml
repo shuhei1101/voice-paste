@@ -185,7 +185,7 @@ classes:
           2. output_changed の場合、文字起こし中の表示の今の出力先を detail（切り替えた先の出力先の ID）に替える（TranscribingIndicator.set_output）
           3. busy の場合、detail（始められない理由）を引き渡して処理中のダイアログを出す（show_busy_dialog）
           4. show_recording_window の場合、隠した録音の画面を戻す（show_recording）
-          5. microphone_unavailable・transcription_failed・audio_file_unsupported・audio_file_transcription_failed・delivery_failed・api_unavailable の場合、トレイの通知を出す（Tray.show_failure）
+          5. microphone_unavailable・transcription_failed・audio_file_unsupported・audio_file_transcription_failed・audio_file_delivery_failed・delivery_failed・api_unavailable の場合、トレイの通知を出す（Tray.show_failure）
              - それ以外の種類の場合、何もしない
                - `[WARNING]` 知らない通知を受けた（種類）
         unit_tests:

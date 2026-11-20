@@ -361,9 +361,13 @@ def test_on_audio_file_requested_when_selected(
 
     # 検証
     parts.deps.start_audio_file.assert_called_once_with(chosen)
-    assert str(parts.deps.history_dir) in [str(arg) for arg in dialog.call_args.args] + [
+    passed = [str(arg) for arg in dialog.call_args.args] + [
         str(value) for value in dialog.call_args.kwargs.values()
     ]
+    assert str(parts.deps.history_dir) in passed
+    # 絞り込みは、音声ファイルの拡張子と全てのファイルの 2 つ
+    file_filter = next(value for value in passed if "*.wav" in value)
+    assert "(*)" in file_filter
 
 
 def test_on_audio_file_requested_when_cancelled(

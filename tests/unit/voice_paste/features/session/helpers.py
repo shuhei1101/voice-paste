@@ -6,7 +6,6 @@ SessionDeps の関数は呼び出しを覚える Mock に、時刻は進めら�
 
 from __future__ import annotations
 
-import dataclasses
 import threading
 import time
 from collections.abc import Callable
@@ -229,19 +228,13 @@ def make_harness(audio_path: Path, *, report_progress: MagicMock | None = None) 
     for name, mock in mocks.items():
         parent.attach_mock(mock, name)
 
-    # 指定した音声ファイルの確かめは、SessionDeps が持つときだけ渡す
     probe_audio_file = MagicMock(return_value=None)
     parent.attach_mock(probe_audio_file, "probe_audio_file")
-    extra = (
-        {"probe_audio_file": probe_audio_file}
-        if "probe_audio_file" in {field.name for field in dataclasses.fields(SessionDeps)}
-        else {}
-    )
     deps = SessionDeps(
         now=clock,
         report_progress=MagicMock() if report_progress is None else report_progress,
+        probe_audio_file=probe_audio_file,
         **mocks,
-        **extra,
     )
     return Harness(
         manager=SessionManager(

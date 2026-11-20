@@ -5,6 +5,7 @@ import re
 import shutil
 import subprocess
 import tempfile
+import time
 from collections.abc import Callable
 from dataclasses import dataclass
 from pathlib import Path
@@ -52,6 +53,24 @@ def break_lock(tree: Path) -> None:
     (tree / "uv.lock").write_text("broken = [\n", encoding="utf-8")
 
 
+VISIBLE_RETRIES: int = 10
+"""起動した実行を API で参照できるまで、1 秒ごとに確かめる回数（TP-1 の `run_runner` と同じ）。"""
+
+
+def wait_until_visible(run_id: str) -> None:
+    """起動した実行を API で参照できるまで待つ（参照できる前の `gh run watch` はすぐ終わるため）。"""
+    for _ in range(VISIBLE_RETRIES):
+        visible = subprocess.run(
+            ["gh", "api", f"repos/{{owner}}/{{repo}}/actions/runs/{run_id}?exclude_pull_requests=true"],
+            cwd=REPO_ROOT,
+            capture_output=True,
+        )
+        if visible.returncode == 0:
+            return
+        time.sleep(1)
+    pytest.fail(f"実行 {run_id} を {VISIBLE_RETRIES} 秒参照できません")
+
+
 def dispatch(branch: str, layer: str, paths: str | None = None) -> RunResult:
     """workflow を起動して終わるまで待ち、結論・step ごとの結論・成果物のログを返す。"""
     args = ["gh", "workflow", "run", WORKFLOW, "--ref", branch, "-f", f"layer={layer}"]
@@ -61,6 +80,7 @@ def dispatch(branch: str, layer: str, paths: str | None = None) -> RunResult:
     match = re.search(r"https://\S*/actions/runs/(\d+)", out)
     assert match is not None, out
     run_id = match.group(1)
+    wait_until_visible(run_id)
     subprocess.run(["gh", "run", "watch", run_id, "--exit-status"], cwd=REPO_ROOT, capture_output=True)
     view = json.loads(run(["gh", "run", "view", run_id, "--json", "conclusion,jobs"], REPO_ROOT))
     steps = {step["name"]: step["conclusion"] for job in view["jobs"] for step in job["steps"] if step["name"] in STEPS}

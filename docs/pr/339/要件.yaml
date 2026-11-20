@@ -54,8 +54,10 @@ docs:
     status: todo
   - page: docs/scenario/index.yaml
     new: false
-    change: 新設する複合ユースケース（SC-14）と単一ユースケース（SC-15）の行を追加する。SC-14 の行は複合ユースケース設計で追加済み
-    status: todo
+    change: 新設する複合ユースケース（SC-14）と単一ユースケース（SC-15）の行を追加する（README.md の目次の行も手で追加）
+    status: done
+    updated_by: planner
+    updated_at: '2026-11-20T09:28:18.842878+00:00'
 scope_out:
   - item: API から音声ファイルを指定して文字に起こすエンドポイント
     reason: 要望はトレイのメニューからの操作に限られ、API の呼び出し元からの要望が無い

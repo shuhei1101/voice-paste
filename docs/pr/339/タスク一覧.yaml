@@ -20,7 +20,9 @@ tasks:
     updated_by: planner
     updated_at: '2026-11-20T08:48:56.450185+00:00'
   - process: 複合ユースケース設計
-    status: todo
+    status: done
+    updated_by: planner
+    updated_at: '2026-11-20T08:57:49.971650+00:00'
   - process: デザインスタイル選定
     status: skipped
     reason: docs/design-policy.md があり、Issue は見た目の方向を変えないため（判定フローチャート『モック要否』Q4 が YES）

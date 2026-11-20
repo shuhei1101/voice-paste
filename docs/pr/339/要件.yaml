@@ -54,7 +54,7 @@ docs:
     status: todo
   - page: docs/scenario/index.yaml
     new: false
-    change: 新設する複合ユースケースと単一ユースケースの行を追加する
+    change: 新設する複合ユースケース（SC-14）と単一ユースケース（SC-15）の行を追加する。SC-14 の行は複合ユースケース設計で追加済み
     status: todo
 scope_out:
   - item: API から音声ファイルを指定して文字に起こすエンドポイント

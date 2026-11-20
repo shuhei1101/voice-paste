@@ -70,8 +70,10 @@ tasks:
     updated_by: planner
     updated_at: '2026-11-20T11:54:59.510060+00:00'
   - process: ドキュメント修正
-    status: todo
+    status: done
     note: テスト実行方法（TP-1）の TL-2 の run_runner を、実行する結合テストのパスを受ける形にする
+    updated_by: planner
+    updated_at: '2026-11-20T12:11:52.921313+00:00'
   - process: 単体テスト作成
     status: skipped
     reason: モジュール構成設計を通さず、単体テストの対象になるコードを追加しない

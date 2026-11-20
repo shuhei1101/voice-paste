@@ -58,3 +58,22 @@
 
 - 影響しない: `tests/integration/` に、変更したファイルを参照する結合テストは無い（`test.yml`・`IF-15` で検索して 0 件）
 - 結合テストが無い: IF-15 の対応テストは E2E テストの層にあり、結合テスト作成の工程で `tests/e2e/workflow/test_test_yml.py` に追加したフローのテストを足して回す
+
+### E2E
+
+| ファイル | メソッド | 変更種別 | 結果 | 補足 |
+| --- | --- | --- | --- | --- |
+| [tests/e2e/workflow/test_test_yml.py](https://github.com/shuhei1101/voice-paste/blob/9eed25f/tests/e2e/workflow/test_test_yml.py) | 全実行 | 変更 | ✅ | 7 テスト pass<br>`テスト結果/20261120214426_9eed25f_E2Eテスト.log` |
+
+テストコードで直したこと:
+
+| commit | 直したこと | 理由 |
+| --- | --- | --- |
+| [54f62f4](https://github.com/shuhei1101/voice-paste/commit/54f62f4) | step 名を「テストを回す」にし、`paths` を指定する `dispatch`・`test_normal_when_integration` の `paths: tests/integration`・追加したフロー 2 件のテストを足した | IF-15 の変更に合わせる |
+| [10f0ea3](https://github.com/shuhei1101/voice-paste/commit/10f0ea3)・[9eed25f](https://github.com/shuhei1101/voice-paste/commit/9eed25f) | `gh run watch` の代わりに、実行の状態が `completed` になるまで `gh run view` で確かめ続ける | 1 回目は `test_normal_when_integration`、2 回目は `test_error_when_test_times_out` で、実行が終わる前に `gh run watch` が戻り、結論が空で fail した（どちらも workflow の実行自体は期待どおりに終わった） |
+
+### ランナーでの動作確認
+
+規約『Git フックと CI で動かすもの』のとおり、作業ブランチ `fix/ci/test-workflow-paths` の workflow を TL-2 の `run_runner`（`paths="tests/integration/test_deliver_to_endpoint.py"`）で起動し、成功した（3 passed）。
+
+- 実行: [44738134744](https://github.com/shuhei1101/voice-paste/actions/runs/44738134744)

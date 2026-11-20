@@ -10,20 +10,28 @@ tags:
 entry:
   kind: trigger
   value: '`.github/workflows/test.yml`（手動の起動 `workflow_dispatch`。起動を絞る条件は無い）'
-lead: 指定された層のテストの全件をランナーで実行し、ログを成果物に上げる。
+lead: 指定された層のテストの全件か、指定したテストだけをランナーで実行し、ログを成果物に上げる。
 test_file: tests/e2e/workflow/test_test_yml.py
 idempotent: true
 read_only: true
 permissions: '`contents: read`'
-side_effects: 成果物 `test-log`（層の全件を回した pytest の出力）を上げる。リポジトリへは書き込まない
+side_effects: 成果物 `test-log`（回した pytest の出力）を上げる。リポジトリへは書き込まない
 exclusivity: '同じブランチ・同じ層の実行は、先に起動した方を止める（`concurrency` の `group: test-${{ github.ref }}-${{ inputs.layer }}`・`cancel-in-progress: true`）'
 request:
   - name: layer
     type: unit / integration
     required: true
     location: argument
-    description: 全件を回す層。テスト実行方法の実行場所が `runner` の層（単体テスト（バック）・結合テスト（バック））
+    description: テストを回す層。テスト実行方法の実行場所が `runner` の層（単体テスト（バック）・結合テスト（バック））
     notes: '`on.workflow_dispatch.inputs.layer` の `type: choice` の `options`'
+  - name: paths
+    type: string
+    required: false
+    default: なし（層のフォルダの全件を回す）
+    location: argument
+    description: 回すテストのパス（ファイル・フォルダ・pytest のノード ID）を空白で区切って並べる
+    constraints: 各パスが `tests/{layer}/` で始まり、`..` を含まない
+    notes: '`on.workflow_dispatch.inputs.paths` の `type: string`'
 constraints:
   - item: ランナー
     constraint: '`windows-latest`'
@@ -39,6 +47,9 @@ constraints:
     notes: 単体テスト（バック）・結合テスト（バック）に、手元でしか用意できないものを使用するテストは無い
   - item: 層とテストのフォルダ
     constraint: '`unit` は `tests/unit/`、`integration` は `tests/integration/`'
+  - item: テストのパス
+    constraint: '`paths` の各パスが `tests/{layer}/` で始まり `..` を含まないかを確認し、満たさないパスが 1 つでもあれば pytest を実行せず、満たさないパスを `test.log` に記載して step を失敗にする'
+    notes: テスト 1 件の上限の時間とジョブのタイムアウトを層の値で決めているため、層の外のテストを回させない
 overall_flow: |-
   <!-- map -->
 
@@ -48,7 +59,7 @@ overall_flow: |-
     subgraph test
       a[ブランチを取得する] -- 成功 --> b1[uv を入れる]
       b1 -- 成功 --> b2[Python の依存を入れる]
-      b2 -- 成功 --> c[層の全件を回す]
+      b2 -- 成功 --> c[テストを回す]
       a & b1 & b2 & c -->|"失敗（if: always()）"| d[ログを成果物に上げる]
       c -->|"成功（if: always()）"| d
     end
@@ -73,7 +84,7 @@ flows:
       ```mermaid
       flowchart TD
         s([layer: unit で起動]) --> a[ブランチを取得する] --> b1[uv を入れる] --> b2[Python の依存を入れる]
-        b2 --> c[層の全件を回す]
+        b2 --> c[テストを回す]
         c -- 全件 pass --> d[ログを成果物に上げる] --> e([成功])
       ```
 
@@ -96,7 +107,7 @@ flows:
       ```mermaid
       flowchart TD
         s([layer: integration で起動]) --> a[ブランチを取得する] --> b1[uv を入れる] --> b2[Python の依存を入れる]
-        b2 --> c[層の全件を回す]
+        b2 --> c[テストを回す]
         c -- 全件 pass --> d[ログを成果物に上げる] --> e([成功])
       ```
 
@@ -104,6 +115,29 @@ flows:
     expected:
       - 実行の結論が `success`
       - 成果物 `test-log` があり、pytest の集計の行を持つ
+  - name: 正常系（テストのパスを指定）
+    summary: 指定したテストのファイルだけを回し、全件 pass して成功で終わる
+    test: test_normal_when_paths_given
+    setup:
+      - name: Mock
+        description: なし（本物の GitHub Actions で回す）
+      - name: ブランチ
+        description: '`tests/integration/` の中身を、pass するテストのファイルと必ず fail するテストのファイルの 2 件だけに差し替えたブランチ'
+        notes: '`layer: integration`・`paths` に pass するテストのファイルだけを指定する'
+    flow: |-
+      <!-- map -->
+
+      ```mermaid
+      flowchart TD
+        s([layer: integration と paths で起動]) --> a[ブランチを取得する] --> b1[uv を入れる] --> b2[Python の依存を入れる]
+        b2 --> c[テストを回す]
+        c -- 指定したテストが全件 pass --> d[ログを成果物に上げる] --> e([成功])
+      ```
+
+      <!-- /map -->
+    expected:
+      - 実行の結論が `success`
+      - 成果物 `test-log` があり、pass するテストの行と pytest の集計の行を持ち、fail するテストの行を持たない
   - name: 異常系（テストの fail・failure）
     summary: 層の全件に fail があり、ログを上げて失敗で終わる
     test: test_error_when_test_fails
@@ -119,7 +153,7 @@ flows:
       ```mermaid
       flowchart TD
         s([layer: unit で起動]) --> a[ブランチを取得する] --> b1[uv を入れる] --> b2[Python の依存を入れる]
-        b2 --> c[層の全件を回す]
+        b2 --> c[テストを回す]
         c -->|"失敗（if: always()）"| d[ログを成果物に上げる] --> e([失敗])
       ```
 
@@ -142,7 +176,7 @@ flows:
       ```mermaid
       flowchart TD
         s([layer: unit で起動]) --> a[ブランチを取得する] --> b1[uv を入れる] --> b2[Python の依存を入れる]
-        b2 --> c[層の全件を回す]
+        b2 --> c[テストを回す]
         c -->|"失敗（if: always()）"| d[ログを成果物に上げる] --> e([失敗])
       ```
 
@@ -171,7 +205,31 @@ flows:
       <!-- /map -->
     expected:
       - 実行の結論が `failure`
-      - step「層の全件を回す」の結論が `skipped`
+      - step「テストを回す」の結論が `skipped`
+  - name: 異常系（層の外のパス・failure）
+    summary: 層のフォルダの外のパスを指定され、テストを回さずにログを上げて失敗で終わる
+    test: test_error_when_path_outside_layer
+    setup:
+      - name: Mock
+        description: なし（本物の GitHub Actions で回す）
+      - name: ブランチ
+        description: '`tests/integration/` の中身を pass するテスト 1 件だけに差し替えたブランチ'
+        notes: '`layer: integration`・`paths: tests/unit`'
+    flow: |-
+      <!-- map -->
+
+      ```mermaid
+      flowchart TD
+        s([layer: integration と層の外の paths で起動]) --> a[ブランチを取得する] --> b1[uv を入れる] --> b2[Python の依存を入れる]
+        b2 --> c[テストを回す]
+        c -->|"失敗（if: always()）"| d[ログを成果物に上げる] --> e([失敗])
+      ```
+
+      <!-- /map -->
+    expected:
+      - 実行の結論が `failure`
+      - step「テストを回す」の結論が `failure`
+      - 成果物 `test-log` があり、層のフォルダの外のパス `tests/unit` を挙げた行を持ち、pytest の集計の行を持たない
 refs:
   - to: TP-1
     item: "layers[単体テスト（バック）]"
@@ -200,7 +258,7 @@ notes:
     | ブランチを取得する | `actions/checkout` で起動したブランチを取得する |
     | uv を入れる | `astral-sh/setup-uv` で uv を入れる |
     | Python の依存を入れる | `uv sync --frozen` で依存を入れる（Python のバージョンは `.python-version` から uv が入れる） |
-    | 層の全件を回す | `shell: bash`（Windows のランナーの Git Bash）で `uv run --frozen pytest {層のフォルダ} -v -p no:cacheprovider --timeout={テスト 1 件の上限の時間} > test.log 2>&1` を実行し、pytest の終了コードを step の成否にする |
+    | テストを回す | `shell: bash`（Windows のランナーの Git Bash）で、`paths` を `env` で受けて空白で区切り、空なら `{層のフォルダ}`、空でなければ区切ったパスを対象にして `uv run --frozen pytest {対象} -v -p no:cacheprovider --timeout={テスト 1 件の上限の時間} > test.log 2>&1` を実行し、pytest の終了コードを step の成否にする（制約の「テストのパス」を満たさないパスがあれば pytest を実行せずに失敗にする） |
     | ログを成果物に上げる | `if: always()` で `actions/upload-artifact` により `test.log` を成果物 `test-log` に上げる |
   タイムアウトの決め方: |-
     判定フローチャート『タイムアウトの決め方』では、自分の処理の完了を待つだけで進み具合の出力（pytest の `-v` のテスト 1 件ごとの行）があるため、無出力の時間で止まったことを検知する。

@@ -1,0 +1,19 @@
+# 実行環境: WSL の Linux の Python（uv sync --frozen で /tmp/vp341-venv に作成）。worktree に Windows の .venv が無いため、TL-6 の .venv/Scripts/python.exe の代わりに使用した
+$ /tmp/vp341-venv/bin/python -m pytest tests/e2e/workflow/test_test_yml.py --run-e2e -v -p no:cacheprovider
+============================= test session starts ==============================
+platform linux -- Python 3.14.3, pytest-9.1.1, pluggy-1.7.0 -- /tmp/vp341-venv/bin/python
+rootdir: /home/shuhei2441/repo/voice-paste/.claude/worktrees/fix-ci-test-workflow-paths
+configfile: pyproject.toml
+plugins: anyio-4.15.1, platformdirs-4.13.3, timeout-2.4.0
+collecting ... collected 7 items
+
+tests/e2e/workflow/test_test_yml.py::test_normal PASSED                  [ 14%]
+tests/e2e/workflow/test_test_yml.py::test_normal_when_integration PASSED [ 28%]
+tests/e2e/workflow/test_test_yml.py::test_normal_when_paths_given PASSED [ 42%]
+tests/e2e/workflow/test_test_yml.py::test_error_when_test_fails PASSED   [ 57%]
+tests/e2e/workflow/test_test_yml.py::test_error_when_test_times_out PASSED [ 71%]
+tests/e2e/workflow/test_test_yml.py::test_error_when_setup_fails PASSED  [ 85%]
+tests/e2e/workflow/test_test_yml.py::test_error_when_path_outside_layer PASSED [100%]
+
+======================== 7 passed in 573.68s (0:09:33) =========================
+exit=0

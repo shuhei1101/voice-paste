@@ -5,6 +5,7 @@ import re
 import shutil
 import subprocess
 import tempfile
+import time
 from collections.abc import Callable
 from dataclasses import dataclass
 from pathlib import Path
@@ -18,7 +19,7 @@ pytestmark = pytest.mark.real_machine
 WORKFLOW: str = "test.yml"
 """起動する workflow のファイル。"""
 
-STEPS: list[str] = ["ブランチを取得する", "uv を入れる", "Python の依存を入れる", "層の全件を回す", "ログを成果物に上げる"]
+STEPS: list[str] = ["ブランチを取得する", "uv を入れる", "Python の依存を入れる", "テストを回す", "ログを成果物に上げる"]
 """workflow のファイルの step の name（図の step と同じ）。"""
 
 ARTIFACT: str = "test-log"
@@ -52,13 +53,36 @@ def break_lock(tree: Path) -> None:
     (tree / "uv.lock").write_text("broken = [\n", encoding="utf-8")
 
 
-def dispatch(branch: str, layer: str) -> RunResult:
+POLL_INTERVAL_SEC: int = 10
+"""実行の状態を確かめる間隔（秒）。"""
+
+COMPLETION_LIMIT_SEC: int = 90 * 60
+"""実行が終わるまで待つ上限（秒）。ジョブの `timeout-minutes` の最大（`unit` の 82 分）より長くする。"""
+
+
+def wait_until_completed(run_id: str) -> None:
+    """実行の状態が `completed` になるまで待つ（ジョブが割り当たる前の `gh run watch` はすぐ終わるため、状態を確かめ続ける）。"""
+    deadline = time.monotonic() + COMPLETION_LIMIT_SEC
+    while time.monotonic() < deadline:
+        viewed = subprocess.run(
+            ["gh", "run", "view", run_id, "--json", "status"], cwd=REPO_ROOT, capture_output=True, text=True
+        )
+        if viewed.returncode == 0 and json.loads(viewed.stdout)["status"] == "completed":
+            return
+        time.sleep(POLL_INTERVAL_SEC)
+    pytest.fail(f"実行 {run_id} が {COMPLETION_LIMIT_SEC} 秒で終わりません")
+
+
+def dispatch(branch: str, layer: str, paths: str | None = None) -> RunResult:
     """workflow を起動して終わるまで待ち、結論・step ごとの結論・成果物のログを返す。"""
-    out = run(["gh", "workflow", "run", WORKFLOW, "--ref", branch, "-f", f"layer={layer}"], REPO_ROOT)
+    args = ["gh", "workflow", "run", WORKFLOW, "--ref", branch, "-f", f"layer={layer}"]
+    if paths is not None:
+        args += ["-f", f"paths={paths}"]
+    out = run(args, REPO_ROOT)
     match = re.search(r"https://\S*/actions/runs/(\d+)", out)
     assert match is not None, out
     run_id = match.group(1)
-    subprocess.run(["gh", "run", "watch", run_id, "--exit-status"], cwd=REPO_ROOT, capture_output=True)
+    wait_until_completed(run_id)
     view = json.loads(run(["gh", "run", "view", run_id, "--json", "conclusion,jobs"], REPO_ROOT))
     steps = {step["name"]: step["conclusion"] for job in view["jobs"] for step in job["steps"] if step["name"] in STEPS}
     log: str | None = None
@@ -78,13 +102,13 @@ SLEEP_BODY: str = "import time\n\n\ndef test_sleep() -> None:\n    time.sleep(40
 ALL_SUCCESS: dict[str, str] = dict.fromkeys(STEPS, "success")
 """全ての step が成功したときの step ごとの結論。"""
 
-TEST_STEP_FAILED: dict[str, str] = {**ALL_SUCCESS, "層の全件を回す": "failure"}
-"""step「層の全件を回す」だけが失敗したときの step ごとの結論。"""
+TEST_STEP_FAILED: dict[str, str] = {**ALL_SUCCESS, "テストを回す": "failure"}
+"""step「テストを回す」だけが失敗したときの step ごとの結論。"""
 
 SETUP_FAILED: dict[str, str] = {
     **ALL_SUCCESS,
     "Python の依存を入れる": "failure",
-    "層の全件を回す": "skipped",
+    "テストを回す": "skipped",
 }
 """step「Python の依存を入れる」が失敗したときの step ごとの結論。"""
 
@@ -98,11 +122,30 @@ def test_normal(branch_factory: Callable[[PrepareTree], str]) -> None:
 
 
 def test_normal_when_integration(branch_factory: Callable[[PrepareTree], str]) -> None:
-    """正常系（結合テストの層）: 結合テストの層の全件が pass して成功で終わる。"""
-    result = dispatch(branch_factory(replace_layer("integration", PASS_BODY)), "integration")
+    """正常系（結合テストの層）: 結合テストの層のフォルダを指定し、層の全件が pass して成功で終わる。"""
+    result = dispatch(branch_factory(replace_layer("integration", PASS_BODY)), "integration", "tests/integration")
     assert result.conclusion == "success"
     assert result.steps == ALL_SUCCESS
     assert result.log is not None and re.search(r"=+ 1 passed", result.log)
+
+
+def add_fail_file(tree: Path) -> None:
+    """`tests/integration/` に必ず fail するテストのファイルを加える。"""
+    (tree / "tests" / "integration" / "test_e2e_fail.py").write_text(FAIL_BODY, encoding="utf-8")
+
+
+def test_normal_when_paths_given(branch_factory: Callable[[PrepareTree], str]) -> None:
+    """正常系（テストのパスを指定）: 指定したテストのファイルだけを回し、全件 pass して成功で終わる。"""
+
+    def _prepare(tree: Path) -> None:
+        replace_layer("integration", PASS_BODY)(tree)
+        add_fail_file(tree)
+
+    result = dispatch(branch_factory(_prepare), "integration", "tests/integration/test_e2e_workflow.py")
+    assert result.conclusion == "success"
+    assert result.steps == ALL_SUCCESS
+    assert result.log is not None and "test_pass" in result.log and re.search(r"=+ 1 passed", result.log)
+    assert "test_fail" not in result.log
 
 
 def test_error_when_test_fails(branch_factory: Callable[[PrepareTree], str]) -> None:
@@ -127,3 +170,15 @@ def test_error_when_setup_fails(branch_factory: Callable[[PrepareTree], str]) ->
     assert result.conclusion == "failure"
     assert result.steps == SETUP_FAILED
 
+
+def test_error_when_path_outside_layer(branch_factory: Callable[[PrepareTree], str]) -> None:
+    """異常系（層の外のパス・failure）: 層のフォルダの外のパスを含めて指定され、テストを回さずにログを上げて失敗で終わる。"""
+    result = dispatch(
+        branch_factory(replace_layer("integration", PASS_BODY)),
+        "integration",
+        "tests/integration/test_e2e_workflow.py tests/integration/../unit",
+    )
+    assert result.conclusion == "failure"
+    assert result.steps == TEST_STEP_FAILED
+    assert result.log is not None and "tests/integration/../unit" in result.log
+    assert not re.search(r"=+ \d+ (passed|failed)", result.log)

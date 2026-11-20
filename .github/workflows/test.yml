@@ -4,12 +4,16 @@ on:
   workflow_dispatch:
     inputs:
       layer:
-        description: 全件を回す層
+        description: テストを回す層
         type: choice
         required: true
         options:
           - unit
           - integration
+      paths:
+        description: 回すテストのパス（空白区切り。省くと層の全件）
+        type: string
+        required: false
 
 permissions:
   contents: read
@@ -35,15 +39,30 @@ jobs:
       - name: Python の依存を入れる
         run: uv sync --frozen
 
-      - name: 層の全件を回す
+      - name: テストを回す
         env:
           LAYER: ${{ inputs.layer }}
+          PATHS: ${{ inputs.paths }}
         run: |
           case "$LAYER" in
             unit) limit=190 ;;
             integration) limit=110 ;;
           esac
-          uv run --frozen pytest "tests/$LAYER" -v -p no:cacheprovider --timeout="$limit" > test.log 2>&1
+          read -r -a targets <<< "$PATHS"
+          if [ "${#targets[@]}" -eq 0 ]; then
+            targets=("tests/$LAYER")
+          fi
+          invalid=()
+          for target in "${targets[@]}"; do
+            if { [ "$target" != "tests/$LAYER" ] && [[ "$target" != "tests/$LAYER/"* ]]; } || [[ "$target" == *..* ]]; then
+              invalid+=("$target")
+            fi
+          done
+          if [ "${#invalid[@]}" -gt 0 ]; then
+            echo "tests/$LAYER の外のパスか .. を含むパスは回せません: ${invalid[*]}" > test.log
+            exit 1
+          fi
+          uv run --frozen pytest "${targets[@]}" -v -p no:cacheprovider --timeout="$limit" > test.log 2>&1
 
       - name: ログを成果物に上げる
         if: ${{ always() }}

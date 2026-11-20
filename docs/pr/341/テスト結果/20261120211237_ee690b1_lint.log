@@ -1,0 +1,10 @@
+$ uv lock --check
+Using CPython 3.14.3
+Resolved 77 packages in 2ms
+exit=0
+
+$ actionlint
+exit=0
+
+# 回していない検査: .venv/Scripts/lint-imports・npm run typecheck・npm run lint・npm run build && git diff --exit-code -- src/voice_paste/server/web/assets/app.js
+# 理由: 作業 PR の変更ファイル（.github/workflows/test.yml・files.yml・docs/）は Python のコードと画面のスクリプトに触れず、これらの検査の対象が変わらないため

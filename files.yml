@@ -6,7 +6,7 @@ files:
       - tool:git
   - path: ".github/workflows/test.yml"
     name: "テストの全件実行の workflow"
-    description: "単体・結合テストの層の全件を GitHub Actions の Windows のランナーで回す処理を受け持ち、ランナーでのテストの実行を変えるときに参照する。"
+    description: "単体・結合テストの層の全件か指定したテストを GitHub Actions の Windows のランナーで回す処理を受け持ち、ランナーでのテストの実行を変えるときに参照する。"
     tags:
       - topic:testing
       - topic:ci

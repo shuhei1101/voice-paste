@@ -85,5 +85,7 @@ tasks:
     updated_by: planner
     updated_at: '2026-11-20T12:13:03.604990+00:00'
   - process: 結合テスト作成
-    status: todo
+    status: done
     note: IF-15 の対応テスト（tests/e2e/workflow/test_test_yml.py）に、パスを指定したフローのテストを追加する
+    updated_by: planner
+    updated_at: '2026-11-20T12:44:35.592039+00:00'

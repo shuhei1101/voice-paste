@@ -27,7 +27,7 @@ elements:
     description: 録音を開始する。後の流れは録音開始のホットキーと同じで、`recording.hide_window` がオンなら録音の画面を出さない。右に録音開始のホットキーを出す。既定の項目として太字で出し、押せないときは太字を除外する
     label: 録音を開始 [hotkeys.start]（処理中は「録音を開始（処理中）」、準備に失敗した起動では「録音を開始（準備に失敗）」）
     visible_when: 常時
-    enabled_when: 待機中のとき。録音から届けるまでの間（API から始めた録音の間を含む）と、起動に失敗した起動では押せない
+    enabled_when: 待機中のとき。録音から届けるまでの間（API から始めた録音の間と、音声ファイルの文字起こしの間を含む）と、起動に失敗した起動では押せない
     action_ref: MOD-24#classes[SessionManager].methods[start]
     refs:
       - to: SCR-10
@@ -36,7 +36,7 @@ elements:
   - name: 設定…
     id: menu_settings
     kind: menu_item
-    position: メニュー > 区切りの後 > 3 番目
+    position: メニュー > 区切りの後 > 4 番目
     description: 設定画面を出力先のまとまりを選んで開く。設定画面が開いていれば、新しい窓を作らずに最小化を戻して最前面に出し、まとまりは変えない。文字起こしのエンジンを準備できなかった起動でも、設定を修正して再起動できるよう押せるまま残す。設定を読み込めなかった起動では、読み込んだ設定が無いため押せない
     label: 設定…
     visible_when: 常時
@@ -45,7 +45,7 @@ elements:
   - name: 用語集の設定…
     id: menu_settings_glossary
     kind: menu_item
-    position: メニュー > 4 番目
+    position: メニュー > 5 番目
     description: 設定画面を用語集のまとまりを選んで開く。設定画面が開いていれば、新しい窓を作らずに最小化を戻して最前面に出し、用語集のまとまりへ切り替える
     label: 用語集の設定…
     visible_when: 常時
@@ -54,7 +54,7 @@ elements:
   - name: ショートカットの設定…
     id: menu_settings_shortcuts
     kind: menu_item
-    position: メニュー > 5 番目
+    position: メニュー > 6 番目
     description: 設定画面をショートカットのまとまりを選んで開き、ショートカットの一覧の末尾に行を 1 つ追加する（追加した行の初期値は 設定画面 の行の追加ボタン）。設定画面が開いていれば、新しい窓を作らずに最小化を戻して最前面に出し、ショートカットのまとまりへ切り替えて行を 1 つ追加する
     label: ショートカットの設定…
     visible_when: 常時
@@ -63,7 +63,7 @@ elements:
   - name: 設定フォルダを開く
     id: menu_open_settings_folder
     kind: menu_item
-    position: メニュー > 6 番目
+    position: メニュー > 7 番目
     description: settings.yaml のあるフォルダをエクスプローラーで開く
     label: 設定フォルダを開く
     visible_when: 常時
@@ -71,7 +71,7 @@ elements:
   - name: ログフォルダを開く
     id: menu_open_log_folder
     kind: menu_item
-    position: メニュー > 7 番目
+    position: メニュー > 8 番目
     description: ログのフォルダをエクスプローラーで開く
     label: ログフォルダを開く
     visible_when: 常時
@@ -79,7 +79,7 @@ elements:
   - name: 再起動
     id: menu_restart
     kind: menu_item
-    position: メニュー > 区切りの後 > 8 番目
+    position: メニュー > 区切りの後 > 10 番目
     description: 常駐アプリを再起動する（処理中の扱いは補足）
     label: 再起動
     visible_when: 常時
@@ -87,7 +87,7 @@ elements:
   - name: 終了
     id: menu_quit
     kind: menu_item
-    position: メニュー > 9 番目
+    position: メニュー > 11 番目
     description: 常駐アプリを終了する（処理中の扱いは補足）
     label: 終了
     visible_when: 常時
@@ -105,8 +105,29 @@ elements:
       - to: SCR-10
         type: references
         when: "『録音の画面』の表示と振る舞いを確認するとき。"
+  - name: 音声ファイルを文字に起こす…
+    id: menu_transcribe_audio_file
+    kind: menu_item
+    position: メニュー > 3 番目
+    description: 文字に起こす音声ファイルを 1 つ選ぶ OS 標準のファイルを開くダイアログを、履歴のフォルダを最初に開いた状態で出す。絞り込みは、PyAV で読める形式の拡張子を並べた音声ファイルと、全てのファイルの 2 つ。選んだファイルは形式を確かめてから文字に起こし、読めない形式ならトレイの通知で知らせる。キャンセルでは何もしない。押せないときは項目名に理由を添える
+    label: 音声ファイルを文字に起こす…（録音から届けるまでの間は「音声ファイルを文字に起こす…（処理中）」、準備に失敗した起動では「音声ファイルを文字に起こす…（準備に失敗）」）
+    visible_when: 常時
+    enabled_when: 待機中のとき。録音から届けるまでの間（API から始めた録音の間と、音声ファイルの文字起こしの間を含む）と、起動に失敗した起動では押せない
+    action: 音声ファイルを選ぶダイアログを出し、選んだ音声ファイルを入力にした録音セッションを始める
+    refs:
+      - to: SC-15
+        type: references
+        when: 『音声ファイルを指定する』の流れと突き合わせるとき。
+  - name: 履歴フォルダを開く
+    id: menu_open_history_folder
+    kind: menu_item
+    position: メニュー > 9 番目
+    description: 履歴の配置先のフォルダが無ければ作ってから、エクスプローラー（Linux は既定のファイルマネージャー）で開く。履歴を残さない設定でも押せる
+    label: 履歴フォルダを開く
+    visible_when: 常時
+    action: 履歴のフォルダを開く
 screen: src/voice_paste/ui/tray.py
-mock: docs/mock/pages/tray/291/a-menu-items/
+mock: docs/mock/pages/tray/339/a-file-items/
 lead: 常駐アプリの入口。アイコンで状態を示し、右クリックでメニューを開く。
 refs:
   - to: SC-2

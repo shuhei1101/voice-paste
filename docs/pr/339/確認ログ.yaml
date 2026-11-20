@@ -23,3 +23,9 @@ confirmations:
     approver: shuhei1101
     commit:
     thread: https://github.com/shuhei1101/voice-paste/pull/339#discussion_r4640977812
+  - topic: 音声ファイルから起こした文字を届けられなかったときの通知の文言
+    decision: 見出し「届けられませんでした」・本文「{理由}。指定したファイルは元の場所に残っているので、もう一度文字に起こせます。」（推奨案 A）
+    decided_by: thumbs_up
+    approver: shuhei1101
+    commit: ae487c63f106072dacc62a8702b530b1d6000d25
+    thread: https://github.com/shuhei1101/voice-paste/pull/339#discussion_r4641284823

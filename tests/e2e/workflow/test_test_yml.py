@@ -53,22 +53,24 @@ def break_lock(tree: Path) -> None:
     (tree / "uv.lock").write_text("broken = [\n", encoding="utf-8")
 
 
-VISIBLE_RETRIES: int = 10
-"""起動した実行を API で参照できるまで、1 秒ごとに確かめる回数（TP-1 の `run_runner` と同じ）。"""
+POLL_INTERVAL_SEC: int = 10
+"""実行の状態を確かめる間隔（秒）。"""
+
+COMPLETION_LIMIT_SEC: int = 90 * 60
+"""実行が終わるまで待つ上限（秒）。ジョブの `timeout-minutes` の最大（`unit` の 82 分）より長くする。"""
 
 
-def wait_until_visible(run_id: str) -> None:
-    """起動した実行を API で参照できるまで待つ（参照できる前の `gh run watch` はすぐ終わるため）。"""
-    for _ in range(VISIBLE_RETRIES):
-        visible = subprocess.run(
-            ["gh", "api", f"repos/{{owner}}/{{repo}}/actions/runs/{run_id}?exclude_pull_requests=true"],
-            cwd=REPO_ROOT,
-            capture_output=True,
+def wait_until_completed(run_id: str) -> None:
+    """実行の状態が `completed` になるまで待つ（ジョブが割り当たる前の `gh run watch` はすぐ終わるため、状態を確かめ続ける）。"""
+    deadline = time.monotonic() + COMPLETION_LIMIT_SEC
+    while time.monotonic() < deadline:
+        viewed = subprocess.run(
+            ["gh", "run", "view", run_id, "--json", "status"], cwd=REPO_ROOT, capture_output=True, text=True
         )
-        if visible.returncode == 0:
+        if viewed.returncode == 0 and json.loads(viewed.stdout)["status"] == "completed":
             return
-        time.sleep(1)
-    pytest.fail(f"実行 {run_id} を {VISIBLE_RETRIES} 秒参照できません")
+        time.sleep(POLL_INTERVAL_SEC)
+    pytest.fail(f"実行 {run_id} が {COMPLETION_LIMIT_SEC} 秒で終わりません")
 
 
 def dispatch(branch: str, layer: str, paths: str | None = None) -> RunResult:
@@ -80,8 +82,7 @@ def dispatch(branch: str, layer: str, paths: str | None = None) -> RunResult:
     match = re.search(r"https://\S*/actions/runs/(\d+)", out)
     assert match is not None, out
     run_id = match.group(1)
-    wait_until_visible(run_id)
-    subprocess.run(["gh", "run", "watch", run_id, "--exit-status"], cwd=REPO_ROOT, capture_output=True)
+    wait_until_completed(run_id)
     view = json.loads(run(["gh", "run", "view", run_id, "--json", "conclusion,jobs"], REPO_ROOT))
     steps = {step["name"]: step["conclusion"] for job in view["jobs"] for step in job["steps"] if step["name"] in STEPS}
     log: str | None = None

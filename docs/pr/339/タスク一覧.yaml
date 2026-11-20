@@ -41,7 +41,10 @@ tasks:
     updated_by: planner
     updated_at: '2026-11-20T09:59:07.891393+00:00'
   - process: データ設計
-    status: todo
+    status: skipped
+    reason: 指定した音声ファイルと起こした文字を履歴に残さず、新しい設定のキーも状態も足さないため（履歴の配置先は既存の DATA-5・DATA-6 のまま）
+    updated_by: planner
+    updated_at: '2026-11-20T09:59:32.409667+00:00'
   - process: インターフェース定義設計
     status: todo
     updated_by: planner

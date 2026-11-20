@@ -47,7 +47,12 @@
 | `docs/interface/IF-15.yaml` | R7 | - | - |
 | `docs/test-procedure/TP-1.yaml` | R7 | - | - |
 | `files.yml` | R7 | - | - |
-| `docs/pr/341/` の各ファイル | R7 | - | - |
+| `docs/pr/341/CI.mark.md` | R7 | - | - |
+| `docs/pr/341/README.mark.md` | R7 | - | - |
+| `docs/pr/341/タスク一覧.yaml` | R7 | - | - |
+| `docs/pr/341/テスト結果/20261120211237_ee690b1_lint.log` | R7 | - | - |
+| `docs/pr/341/要件.mark.md` | R7 | - | - |
+| `docs/pr/341/要件.yaml` | R7 | - | - |
 
 結合テスト（TL-2）は実行しない。
 

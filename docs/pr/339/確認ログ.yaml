@@ -5,3 +5,21 @@ confirmations:
     approver: shuhei1101
     commit:
     thread: https://github.com/shuhei1101/voice-paste/pull/339#discussion_r4640593934
+  - topic: モックの内容（トレイ・トレイの通知・処理中のダイアログ）
+    decision: このモックの内容で画面設計へ進む（推奨案 A）
+    decided_by: thumbs_up
+    approver: shuhei1101
+    commit:
+    thread: https://github.com/shuhei1101/voice-paste/pull/339#discussion_r4640976085
+  - topic: トレイのメニューの項目名
+    decision: 「音声ファイルを文字に起こす…」「履歴フォルダを開く」（推奨案 A）
+    decided_by: thumbs_up
+    approver: shuhei1101
+    commit:
+    thread: https://github.com/shuhei1101/voice-paste/pull/339#discussion_r4640976953
+  - topic: 文字起こし中の表示に、指定した音声ファイルの名前を出すか
+    decision: ファイル名を 1 行で出す。長い名前は末尾を省略する（推奨案 B）
+    decided_by: thumbs_up
+    approver: shuhei1101
+    commit:
+    thread: https://github.com/shuhei1101/voice-paste/pull/339#discussion_r4640977812

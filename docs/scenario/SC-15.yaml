@@ -1,0 +1,125 @@
+id: SC-15
+visibility: internal
+title: 音声ファイルを指定する
+lead: トレイのメニューから手元の音声ファイルを 1 つ選び、読める形式かを確かめて文字起こしを始めるまでの単一ユースケース。
+primary_actor: 音声入力を使用するユーザー
+trigger: トレイのメニューから「音声ファイルを文字に起こす…」を選ぶ
+preconditions:
+  - 常駐アプリが待機中で、トレイにアイコンが出ている
+scenarios:
+  - name: 正常シナリオ
+    setup:
+      - name: Mock
+        description: マウス・キーボード・Windows のシェル・ファイルを選ぶダイアログ。常駐アプリを pytest のプロセスの中で起動し、操作を Qt のイベントで引き渡す（補足『E2E のテスト』）
+        notes: ファイルを選ぶダイアログは、テストの中で音声合成（SAPI）で書き出した WAV のパスを返す
+    flow: |-
+      <!-- map: {"title": "正常シナリオ"} -->
+
+      ```mermaid
+      sequenceDiagram
+        actor U as ユーザー
+        participant TRAY as トレイ
+        participant DLG as 音声ファイルを選ぶダイアログ
+        participant SVC as 常駐サービス
+
+        U->>TRAY: 「音声ファイルを文字に起こす…」を選ぶ
+        TRAY->>DLG: 履歴のフォルダを最初に開いた状態で、音声ファイルの絞り込みを付けて出す
+        U->>DLG: 音声ファイルを 1 つ選んで開く
+        DLG-->>SVC: 選んだファイルのパス
+        SVC->>SVC: PyAV で開いて音声のストリームを読めることを確かめる
+        SVC->>SVC: 音声ファイルを入力にした録音セッションを作る（入口: 音声ファイル）
+        SVC->>TRAY: 文字起こし中のアイコンにする
+        Note over SVC: 以降は 録音を文字に起こす の 正常シナリオ（指定した音声ファイル）
+      ```
+
+      <!-- /map -->
+    expected:
+      - 音声ファイルを入力にした録音セッションが作られ、文字起こし中になっている
+      - トレイのアイコンが文字起こし中になっている
+      - 指定した音声ファイルが元の場所に同じ中身で残っている
+    test: test_normal
+  - name: 正常シナリオ（選択を取り消す）
+    setup:
+      - name: Mock
+        description: マウス・キーボード・Windows のシェル・ファイルを選ぶダイアログ。常駐アプリを pytest のプロセスの中で起動し、操作を Qt のイベントで引き渡す（補足『E2E のテスト』）
+        notes: ファイルを選ぶダイアログは、取り消したときと同じく空のパスを返す
+    flow: |-
+      <!-- map: {"title": "正常シナリオ（選択を取り消す）"} -->
+
+      ```mermaid
+      sequenceDiagram
+        actor U as ユーザー
+        participant TRAY as トレイ
+        participant DLG as 音声ファイルを選ぶダイアログ
+        participant SVC as 常駐サービス
+
+        U->>TRAY: 「音声ファイルを文字に起こす…」を選ぶ
+        TRAY->>DLG: 出す
+        U->>DLG: キャンセルする
+        DLG-->>TRAY: 空のパス
+        Note over SVC: 録音セッションを作らず、待機中のまま
+      ```
+
+      <!-- /map -->
+    expected:
+      - 録音セッションが作られていない
+      - トレイのアイコンが待機中のまま
+      - 通知が出ていない
+    test: test_normal_when_cancel_selection
+  - name: 異常シナリオ（読めない形式）
+    setup:
+      - name: Mock
+        description: マウス・キーボード・Windows のシェル・ファイルを選ぶダイアログ・通知。常駐アプリを pytest のプロセスの中で起動し、操作を Qt のイベントで引き渡す（補足『E2E のテスト』）
+        notes: ファイルを選ぶダイアログは、拡張子を .mp3 にしたテキストの中身と、音声の無い映像だけの mp4 の 2 通りのパスを返す（parametrize で並べる）
+    flow: |-
+      <!-- map: {"title": "異常シナリオ（読めない形式）"} -->
+
+      ```mermaid
+      sequenceDiagram
+        actor U as ユーザー
+        participant TRAY as トレイ
+        participant DLG as 音声ファイルを選ぶダイアログ
+        participant SVC as 常駐サービス
+        participant LOG as ログ
+
+        U->>TRAY: 「音声ファイルを文字に起こす…」を選ぶ
+        TRAY->>DLG: 出す
+        U->>DLG: ファイルを 1 つ選んで開く
+        DLG-->>SVC: 選んだファイルのパス
+        SVC->>SVC: PyAV で音声のストリームを読めない
+        SVC->>LOG: 読めなかったファイルのパスと理由を書き込む
+        SVC-->>U: 読めない形式であることを通知する
+        Note over SVC: 録音セッションを作らず、待機中のまま
+      ```
+
+      <!-- /map -->
+    expected:
+      - 読めない形式であることがユーザーに通知されている
+      - 録音セッションが作られておらず、トレイのアイコンが待機中のまま
+      - 指定したファイルが元の場所に同じ中身で残っている
+    test: test_error_when_unsupported_format
+notes:
+  読める形式: 外の端末から受ける音声（音声を受け付ける）と同じく、PyAV（faster-whisper）で音声のストリームを読める形式（webm・ogg・mp4・MP3・WAV など）を受ける。形式はファイル名の拡張子ではなく、中身を PyAV で開いて決める。ダイアログの絞り込みは、この形式の拡張子を並べた音声ファイルと、全てのファイルの 2 つにする。
+  履歴: 指定した音声ファイルは履歴へコピーも移動もせず、元の場所から読んで文字に起こす。起こした文字も履歴に書き込まない（履歴の WAV を起こし直すたびに、同じ録音が履歴に増えないようにする）。
+  押せるとき: 「音声ファイルを文字に起こす…」は、待機中のときだけ押せる。録音から届けるまでの間（API から始めた録音の間と、音声ファイルの文字起こしの間を含む）は押せない。ダイアログを出している間に録音が始まった場合は、ファイルを選んでも録音セッションを作らず、処理中のダイアログで始められない理由を出す。
+  E2E のテスト: |-
+    E2E の常駐アプリの起こし方と操作の引き渡し方は、常駐アプリを起動する の補足『E2E のテスト』と同じ。メニューは項目を trigger して選ぶ。
+    ファイルを選ぶダイアログは開かず、ダイアログを出す呼び出しを差し替えて返すパスを決める。差し替えた呼び出しに引き渡された最初のフォルダで、履歴のフォルダを最初に開いたことを確認する。
+refs:
+  - to: SC-9
+    type: references
+    when: 指定した音声ファイルを文字に起こす流れを確認するとき。
+  - to: IF-11
+    type: references
+    when: 外の端末から受ける音声と、読める形式の判定を揃えるとき。
+  - to: SCR-1
+    type: references
+    when: トレイのメニューの項目と押せる条件を確認するとき。
+test_file: tests/e2e/単一ユースケース/test_select_audio_file.py
+tags:
+  - name: topic:音声
+    main: true
+  - name: topic:トレイ
+  - name: topic:ダイアログ
+  - name: topic:メニュー
+  - name: action:検証

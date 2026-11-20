@@ -127,6 +127,33 @@ scenarios:
     uses:
       - SC-15#scenarios[正常シナリオ]
       - SC-9#scenarios[異常シナリオ（指定した音声ファイルの文字起こしに失敗）]
+  - name: 異常シナリオ（音声ファイルの処理中にホットキーを押す）
+    setup:
+      - name: Mock
+        description: ファイルを選ぶダイアログ・録音の入力・貼り付けのキー・通知を差し替える。pytest のプロセスの中で build_handlers で配線し、トレイの項目の入口から始める
+        notes: ファイルを選ぶダイアログは、テストの中で Windows の音声合成（SAPI）で決めた文を書き出した WAV のパスを返す。文字起こしが終わる前にホットキーの入口から録音を始める
+    flow: |-
+      <!-- map: {"title": "異常シナリオ（音声ファイルの処理中にホットキーを押す）"} -->
+
+      ```mermaid
+      flowchart TD
+        U0([ユーザー]) -->|トレイのメニューから項目を選ぶ| UC1([音声ファイルを指定する:正常シナリオ])
+        UC1 -->|文字起こしの間に<br>ホットキーを押す| UC2([録音する:異常シナリオ（処理中に開始が来る）])
+        UC2 --> DONE([処理中であることを通知し<br>音声ファイルの文字起こしを続ける])
+
+        click UC1 "id:SC-15#scenarios[正常シナリオ]"
+        click UC2 "id:SC-8#scenarios[異常シナリオ（処理中に開始が来る）]"
+      ```
+
+      <!-- /map -->
+    expected:
+      - 処理中のため録音を始められないことがユーザーに通知されている（差し替えた通知に処理中の記録がある）
+      - 録音が始まっていない
+      - 音声ファイルから起こした文字が出力先へ届いている（差し替えた貼り付けのキーに記録がある）
+    test: test_error_when_hotkey_during_file_transcription
+    uses:
+      - SC-15#scenarios[正常シナリオ]
+      - SC-8#scenarios[異常シナリオ（処理中に開始が来る）]
 refs:
   - to: SC-12
     type: references

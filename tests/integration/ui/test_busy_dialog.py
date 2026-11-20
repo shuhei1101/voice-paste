@@ -122,6 +122,11 @@ BODY_FINISHING = (
     "前の録音を文字に起こして届けています。"
     "終わってから、もう一度録音開始のホットキーを押してください。"
 )
+
+BODY_AUDIO_FILE = (
+    "音声ファイルを文字に起こして届けています。"
+    "終わってから、もう一度録音開始のホットキーを押してください。"
+)
 """前の録音の終了の処理中の本文。"""
 
 
@@ -156,10 +161,22 @@ def test_busy_body_finishing() -> None:
     assert dialog.informativeText() == BODY_FINISHING
 
 
+
+def test_busy_body_audio_file() -> None:
+    """トレイから指定した音声ファイルの処理中なら、音声ファイルの文字起こしの処理中の理由と次にすることを伝える。"""
+    from voice_paste.ui.windows.busy_dialog import BUSY_REASON_AUDIO_FILE
+
+    # 実行
+    dialog = _shown_dialog(BUSY_REASON_AUDIO_FILE)
+
+    # 検証
+    assert dialog.informativeText() == BODY_AUDIO_FILE
+
+
 @pytest.mark.parametrize(
     ("reason", "body"),
-    [("api", BODY_API), ("finishing", BODY_FINISHING)],
-    ids=["api", "finishing"],
+    [("api", BODY_API), ("finishing", BODY_FINISHING), ("audio_file", BODY_AUDIO_FILE)],
+    ids=["api", "finishing", "audio_file"],
 )
 def test_busy_body_when_notified(make_ui: Callable[..., Ui], reason: str, body: str) -> None:
     """busy の知らせの理由（detail）に合わせた本文を出す。"""

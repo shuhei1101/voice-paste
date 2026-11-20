@@ -56,6 +56,27 @@ NOTIFICATIONS = [
         "貼り付けのキーを送信できません。起こした文字はクリップボードにあります。起こした文字は履歴に残っています。",
         id="delivery_failed_when_wayland_key_sender_not_opened",
     ),
+    pytest.param(
+        "audio_file_unsupported",
+        "memo.txt",
+        "音声ファイルを開けませんでした",
+        "「memo.txt」は音声として読めない形式です。WAV・MP3・M4A などの音声ファイルを選んでください。",
+        id="audio_file_unsupported",
+    ),
+    pytest.param(
+        "audio_file_transcription_failed",
+        "音声を読めませんでした",
+        "文字起こしできませんでした",
+        "音声を読めませんでした。指定したファイルは元の場所に残っています。",
+        id="audio_file_transcription_failed",
+    ),
+    pytest.param(
+        "audio_file_delivery_failed",
+        "クリップボードに書けませんでした",
+        "届けられませんでした",
+        "クリップボードに書けませんでした。指定したファイルは元の場所に残っているので、もう一度文字に起こせます。",
+        id="audio_file_delivery_failed",
+    ),
 ]
 """知らせの種類・理由・見出し・本文（画面設計の「知らせの種類ごとの文言」の表）。"""
 
@@ -89,7 +110,7 @@ def request_switch(ui: Ui, name: str) -> None:
 def test_tray_notification_visible_when(
     make_ui: Callable[..., Ui], shown: MagicMock, event: str, detail: str | None, title: str, body: str
 ) -> None:
-    """microphone_unavailable・transcription_failed・delivery_failed・api_unavailable を受けたとき、通知を 1 つ出す（表示条件）。"""
+    """microphone_unavailable・transcription_failed・delivery_failed・api_unavailable・audio_file_unsupported・audio_file_transcription_failed・audio_file_delivery_failed を受けたとき、通知を 1 つ出す（表示条件）。"""
     # 準備
     ui = make_ui()
 
@@ -346,6 +367,29 @@ def test_open_log_folder_when_clicked(
     ui.tray._icon.messageClicked.emit()
 
     # 検証
+    assert [Path(url.toLocalFile()) for url in urls] == [ui.deps.log_dir]
+
+
+
+@pytest.mark.parametrize(
+    "event",
+    ["audio_file_unsupported", "audio_file_transcription_failed", "audio_file_delivery_failed"],
+)
+def test_open_log_folder_when_clicked_audio_file_failure(
+    make_ui: Callable[..., Ui], shown: MagicMock, monkeypatch: pytest.MonkeyPatch, event: str
+) -> None:
+    """指定した音声ファイルの失敗の通知も、押すとログのフォルダを開く。"""
+    # 準備
+    urls: list[QUrl] = []
+    monkeypatch.setattr(QDesktopServices, "openUrl", MagicMock(side_effect=urls.append))
+    ui = make_ui()
+    ui.controller.on_notified(event, "理由")
+
+    # 実行
+    ui.tray._icon.messageClicked.emit()
+
+    # 検証
+    assert shown.call_args.args[2] == QSystemTrayIcon.MessageIcon.Warning
     assert [Path(url.toLocalFile()) for url in urls] == [ui.deps.log_dir]
 
 

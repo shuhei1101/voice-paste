@@ -230,13 +230,18 @@ class Ui:
         *,
         output_id: str | None = None,
         output_preset: Preset | None = None,
+        audio_path: Path | None = None,
     ) -> None:
-        """今の録音セッションを入口・状態・確定で選んだ出力先かプリセットで差し替え、state_changed を受けさせる（None は待機中）。"""
+        """今の録音セッションを入口・状態・確定で選んだ出力先かプリセット・指定した音声ファイルで差し替え、state_changed を受けさせる（None は待機中）。"""
         session = (
             None
             if entry is None
             else make_session(
-                entry, state or "recording", output_id=output_id, output_preset=output_preset
+                entry,
+                state or "recording",
+                output_id=output_id,
+                output_preset=output_preset,
+                audio_path=audio_path,
             )
         )
         self.deps.current_session.return_value = session

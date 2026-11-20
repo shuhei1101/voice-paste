@@ -113,8 +113,9 @@ def make_session(
     *,
     output_id: str | None = None,
     output_preset: Preset | None = None,
+    audio_path: Path | None = None,
 ) -> Session:
-    """入口と状態を指定した Session を作る。output_id・output_preset は確定で選んだ固定の出力先の ID とカスタムプリセット。"""
+    """入口と状態を指定した Session を作る。output_id・output_preset は確定で選んだ固定の出力先の ID とカスタムプリセット、audio_path は入口が audio_file のときに指定した音声ファイル。"""
     from voice_paste.features.session.types import Session as SessionModel
     from voice_paste.features.session.types import SessionState
     from voice_paste.shared.types import Entry
@@ -127,4 +128,5 @@ def make_session(
         callback_url=None,
         output_id=output_id,
         output_preset=output_preset,
+        audio_path=audio_path,
     )

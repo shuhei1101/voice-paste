@@ -1,0 +1,65 @@
+use_cases:
+  - kind: composite
+    scenario: docs/scenario/SC-14.yaml
+    impact: new
+    detail: トレイのメニューから音声ファイルを指定し、文字に起こして出力先へ届けるまでの流れを新設する
+    depends_on: []
+  - kind: single
+    scenario: docs/scenario/SC-15.yaml
+    impact: new
+    detail: トレイのメニューから音声ファイルを選び、文字起こしを始めるまで（選べない・読めないファイルと、録音から届けるまでの間の扱いを含む）を新設する
+    depends_on:
+      - docs/scenario/SC-14.yaml
+  - kind: single
+    scenario: docs/scenario/SC-2.yaml
+    impact: changed
+    detail: トレイのメニューに履歴のフォルダを開く操作を追加し、メニューの項目の並びに音声ファイルを指定する項目を加える
+    depends_on: []
+  - kind: single
+    scenario: docs/scenario/SC-9.yaml
+    impact: changed
+    detail: 録音のほかに、指定した音声ファイルを文字に起こす入力を受ける
+    depends_on:
+      - docs/scenario/SC-14.yaml
+  - kind: single
+    scenario: docs/scenario/SC-7.yaml
+    impact: changed
+    detail: 音声ファイルから起こした文字を、ホットキーから始めた録音と同じ出力先の選び方で届ける
+    depends_on:
+      - docs/scenario/SC-14.yaml
+  - kind: single
+    scenario: docs/scenario/SC-8.yaml
+    impact: following
+    detail: 音声ファイルの文字起こしの間は録音を始められないことに追随する
+    depends_on:
+      - docs/scenario/SC-15.yaml
+  - kind: composite
+    scenario: docs/scenario/SC-12.yaml
+    impact: run_only
+    detail: 文字起こしと届ける流れに入口を足すため、声で入力した文字を貼り付ける流れが壊れていないかを確かめる
+    depends_on: []
+  - kind: composite
+    scenario: docs/scenario/SC-13.yaml
+    impact: none
+    detail: 外の端末のブラウザから音声ファイルを送信する流れは変えない
+    depends_on: []
+docs:
+  - page: docs/guide/録音して貼り付ける.md
+    new: false
+    change: トレイのメニューから音声ファイルを指定して文字に起こし、出力先へ届ける操作を追加する
+    status: todo
+  - page: docs/guide/起動と設定.md
+    new: false
+    change: 履歴の配置先の説明に、トレイのメニューから履歴のフォルダを開けることを追加する
+    status: todo
+  - page: docs/scenario/index.yaml
+    new: false
+    change: 新設する複合ユースケースと単一ユースケースの行を追加する
+    status: todo
+scope_out:
+  - item: API から音声ファイルを指定して文字に起こすエンドポイント
+    reason: 要望はトレイのメニューからの操作に限られ、API の呼び出し元からの要望が無い
+    plan: none
+  - item: 複数の音声ファイルをまとめて指定して文字に起こす操作
+    reason: 要望は 1 つの音声ファイルを指定して起こし直すことで、まとめて起こす要望が無い
+    plan: none

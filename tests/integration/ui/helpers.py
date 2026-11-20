@@ -271,7 +271,7 @@ def build_ui(tmp_path: Path, settings: Settings | None = None, **deps_overrides:
     from voice_paste.ui.windows.transcribing_indicator import TranscribingIndicator
 
     deps = make_ui_deps(tmp_path, settings=settings, **deps_overrides)
-    tray = Tray(settings_dir=deps.settings_dir, log_dir=deps.log_dir)
+    tray = Tray(settings_dir=deps.settings_dir, log_dir=deps.log_dir, history_dir=deps.history_dir)
     clock = FakeClock()
     recording_window = RecordingWindow(deps, clock=clock)
     indicator = TranscribingIndicator(deps)

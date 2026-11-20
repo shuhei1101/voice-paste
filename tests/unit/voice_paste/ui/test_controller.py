@@ -1,4 +1,4 @@
-"""ui/controller.py（UiController の on_notified・on_copied・recopy・request_exit・open_settings・hide_recording・show_recording・eventFilter）の単体テスト。
+"""ui/controller.py（UiController の on_notified・on_audio_file_requested・on_copied・recopy・request_exit・open_settings・hide_recording・show_recording・eventFilter）の単体テスト。
 
 UiDeps の関数・トレイ・録音の画面・文字起こし中の表示は Mock に差し替える（設定画面だけは本物を開く）。
 画面を使うため offscreen の QApplication（conftest の qapp）で動かす。
@@ -15,7 +15,7 @@ from unittest.mock import MagicMock
 
 import pytest
 from PySide6.QtCore import QEvent, QPoint, QRegularExpression, QTimer
-from PySide6.QtWidgets import QLineEdit, QListWidget, QSlider, QWidget
+from PySide6.QtWidgets import QFileDialog, QLineEdit, QListWidget, QSlider, QWidget
 
 from tests.unit.voice_paste.ui.helpers import FakeClock, make_session, make_ui_deps
 from voice_paste.shared.errors import DeliveryError
@@ -341,6 +341,44 @@ def test_on_notified_when_output_selected(qapp: QApplication, tmp_path: Path) ->
 
     # 検証
     deps.switch_output.assert_called_once_with("paste_only")
+
+
+# === on_audio_file_requested ===
+
+
+def test_on_audio_file_requested_when_selected(
+    qapp: QApplication, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """選んだ音声ファイルで文字起こしを始める（正常系）。"""
+    # 準備
+    parts = _make_controller(tmp_path)
+    chosen = tmp_path / "history" / "20261001" / "20261001120000_s1.wav"
+    dialog = MagicMock(return_value=(str(chosen), "音声ファイル"))
+    monkeypatch.setattr(QFileDialog, "getOpenFileName", dialog)
+
+    # 実行
+    parts.controller.on_audio_file_requested()
+
+    # 検証
+    parts.deps.start_audio_file.assert_called_once_with(chosen)
+    assert str(parts.deps.history_dir) in [str(arg) for arg in dialog.call_args.args] + [
+        str(value) for value in dialog.call_args.kwargs.values()
+    ]
+
+
+def test_on_audio_file_requested_when_cancelled(
+    qapp: QApplication, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """ダイアログを取り消したら何もしない（正常系）。"""
+    # 準備
+    parts = _make_controller(tmp_path)
+    monkeypatch.setattr(QFileDialog, "getOpenFileName", MagicMock(return_value=("", "")))
+
+    # 実行
+    parts.controller.on_audio_file_requested()
+
+    # 検証
+    parts.deps.start_audio_file.assert_not_called()
 
 
 # === on_copied ===

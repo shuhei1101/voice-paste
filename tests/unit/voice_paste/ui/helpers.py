@@ -92,15 +92,27 @@ def make_ui_deps(
         fields["reset_settings"] = MagicMock(return_value=(load_test_default_settings(), False))
     if "default_settings" in {field.name for field in dataclasses.fields(UiDepsModel)}:
         fields["default_settings"] = MagicMock(return_value=load_test_default_settings())
+    if "start_audio_file" in {field.name for field in dataclasses.fields(UiDepsModel)}:
+        fields["start_audio_file"] = MagicMock(return_value=None)
+    if "history_dir" in {field.name for field in dataclasses.fields(UiDepsModel)}:
+        fields["history_dir"] = tmp_path / "history"
     fields.update(overrides)
     return UiDepsModel(**fields)
 
 
 def make_tray(tmp_path: Path) -> Tray:
-    """設定とログのフォルダを一時フォルダの下にしたトレイを作る。"""
+    """設定・ログ・履歴のフォルダを一時フォルダの下にしたトレイを作る。"""
+    import inspect
+
     from voice_paste.ui.tray import Tray as TrayWidget
 
-    return TrayWidget(settings_dir=tmp_path, log_dir=tmp_path / "log")
+    # 履歴のフォルダは、トレイが受け取るときだけ渡す
+    extra = (
+        {"history_dir": tmp_path / "history"}
+        if "history_dir" in inspect.signature(TrayWidget).parameters
+        else {}
+    )
+    return TrayWidget(settings_dir=tmp_path, log_dir=tmp_path / "log", **extra)
 
 
 def make_session(

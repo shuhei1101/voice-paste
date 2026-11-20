@@ -1362,6 +1362,91 @@ def test_start_local_session_when_unexpected_error(caplog: pytest.LogCaptureFixt
     assert len([record for record in caplog.records if record.levelno == logging.ERROR]) == 1
 
 
+# === start_audio_file_session ===
+
+
+def test_start_audio_file_session_when_started(
+    tmp_path: Path, default_settings: Settings, make_settings: Callable[..., Settings]
+) -> None:
+    """設定でオンの固定の出力先の最初のもので始める（正常系）。"""
+    from voice_paste.main import start_audio_file_session
+
+    # 準備: 貼り付けのみとコピーのみだけをオンにする
+    outputs = [
+        {**output, "enabled": output["id"] in ("paste_only", "copy_only")}
+        for output in default_settings.model_dump(mode="json")["outputs"]
+    ]
+    settings = make_settings({"outputs": outputs})
+    session_manager = MagicMock()
+    notify = MagicMock()
+    chosen = tmp_path / "20261001120000_s1.wav"
+
+    # 実行
+    start_audio_file_session(
+        chosen, session_manager=session_manager, notify=notify, get_settings=lambda: settings
+    )
+
+    # 検証
+    session_manager.start_audio_file.assert_called_once_with(chosen, "paste_only")
+    notify.assert_not_called()
+
+
+def test_start_audio_file_session_when_unreadable(tmp_path: Path, default_settings: Settings) -> None:
+    """読めない音声ファイルはファイル名を添えて知らせる（正常系）。"""
+    from voice_paste.main import start_audio_file_session
+    from voice_paste.shared.errors import AudioUnreadableError
+
+    # 準備
+    settings = default_settings
+    session_manager = MagicMock()
+    session_manager.start_audio_file.side_effect = AudioUnreadableError("音声のストリームが無い")
+    notify = MagicMock()
+    chosen = tmp_path / "memo.txt"
+
+    # 実行
+    start_audio_file_session(
+        chosen, session_manager=session_manager, notify=notify, get_settings=lambda: settings
+    )
+
+    # 検証
+    assert [c.args for c in notify.call_args_list] == [("audio_file_unsupported", "memo.txt")]
+
+
+@pytest.mark.parametrize(
+    ("entry", "reason_name"),
+    [
+        pytest.param("api", "BUSY_REASON_API", id="api"),
+        pytest.param("audio_file", "BUSY_REASON_AUDIO_FILE", id="audio_file"),
+        pytest.param("hotkey", "BUSY_REASON_FINISHING", id="hotkey"),
+    ],
+)
+def test_start_audio_file_session_when_busy(
+    tmp_path: Path, default_settings: Settings, entry: str, reason_name: str
+) -> None:
+    """処理中なら、今の録音セッションの入口に応じた理由で busy を通知する（正常系）。"""
+    from voice_paste.main import start_audio_file_session
+    from voice_paste.shared.errors import SessionBusyError
+    from voice_paste.ui.windows import busy_dialog
+
+    # 準備
+    settings = default_settings
+    session_manager = MagicMock()
+    session_manager.start_audio_file.side_effect = SessionBusyError("処理中")
+    session_manager.current.return_value = make_session(entry, "transcribing")
+    notify = MagicMock()
+
+    # 実行
+    start_audio_file_session(
+        tmp_path / "20261001120000_s1.wav",
+        session_manager=session_manager,
+        notify=notify,
+        get_settings=lambda: settings,
+    )
+
+    # 検証
+    assert [c.args for c in notify.call_args_list] == [("busy", getattr(busy_dialog, reason_name))]
+
+
 # === _pin_settings_while_recording ===
 
 

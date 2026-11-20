@@ -30,7 +30,7 @@ request:
     default: なし（層のフォルダの全件を回す）
     location: argument
     description: 回すテストのパス（ファイル・フォルダ・pytest のノード ID）を空白で区切って並べる
-    constraints: 各パスが `tests/{layer}/` で始まり、`..` を含まない
+    constraints: 各パスが `tests/{layer}` と一致するか `tests/{layer}/` で始まり、`..` を含まない
     notes: '`on.workflow_dispatch.inputs.paths` の `type: string`'
 constraints:
   - item: ランナー
@@ -48,7 +48,7 @@ constraints:
   - item: 層とテストのフォルダ
     constraint: '`unit` は `tests/unit/`、`integration` は `tests/integration/`'
   - item: テストのパス
-    constraint: '`paths` の各パスが `tests/{layer}/` で始まり `..` を含まないかを確認し、満たさないパスが 1 つでもあれば pytest を実行せず、満たさないパスを `test.log` に記載して step を失敗にする'
+    constraint: '`paths` の各パスが `tests/{layer}` と一致するか `tests/{layer}/` で始まり、`..` を含まないかを確認し、満たさないパスが 1 つでもあれば pytest を実行せず、満たさないパスを `test.log` に記載して step を失敗にする'
     notes: テスト 1 件の上限の時間とジョブのタイムアウトを層の値で決めているため、層の外のテストを回させない
 overall_flow: |-
   <!-- map -->
@@ -93,20 +93,20 @@ flows:
       - 実行の結論が `success`
       - 成果物 `test-log` があり、pytest の集計の行を持つ
   - name: 正常系（結合テストの層）
-    summary: 結合テストの層の全件が pass して成功で終わる
+    summary: 結合テストの層のフォルダを指定し、層の全件が pass して成功で終わる
     test: test_normal_when_integration
     setup:
       - name: Mock
         description: なし（本物の GitHub Actions で回す）
       - name: ブランチ
         description: '`tests/integration/` の中身を pass するテスト 1 件だけに差し替えたブランチ'
-        notes: '`layer: integration`'
+        notes: '`layer: integration`・`paths: tests/integration`'
     flow: |-
       <!-- map -->
 
       ```mermaid
       flowchart TD
-        s([layer: integration で起動]) --> a[ブランチを取得する] --> b1[uv を入れる] --> b2[Python の依存を入れる]
+        s([layer: integration と paths: tests/integration で起動]) --> a[ブランチを取得する] --> b1[uv を入れる] --> b2[Python の依存を入れる]
         b2 --> c[テストを回す]
         c -- 全件 pass --> d[ログを成果物に上げる] --> e([成功])
       ```
@@ -207,14 +207,14 @@ flows:
       - 実行の結論が `failure`
       - step「テストを回す」の結論が `skipped`
   - name: 異常系（層の外のパス・failure）
-    summary: 層のフォルダの外のパスを指定され、テストを回さずにログを上げて失敗で終わる
+    summary: 層のフォルダの外のパスを含めて指定され、テストを回さずにログを上げて失敗で終わる
     test: test_error_when_path_outside_layer
     setup:
       - name: Mock
         description: なし（本物の GitHub Actions で回す）
       - name: ブランチ
         description: '`tests/integration/` の中身を pass するテスト 1 件だけに差し替えたブランチ'
-        notes: '`layer: integration`・`paths: tests/unit`'
+        notes: '`layer: integration`・`paths: tests/integration/test_e2e_workflow.py tests/integration/../unit`'
     flow: |-
       <!-- map -->
 
@@ -229,7 +229,7 @@ flows:
     expected:
       - 実行の結論が `failure`
       - step「テストを回す」の結論が `failure`
-      - 成果物 `test-log` があり、層のフォルダの外のパス `tests/unit` を挙げた行を持ち、pytest の集計の行を持たない
+      - 成果物 `test-log` があり、条件を満たさないパス `tests/integration/../unit` を挙げた行を持ち、pytest の集計の行を持たない
 refs:
   - to: TP-1
     item: "layers[単体テスト（バック）]"

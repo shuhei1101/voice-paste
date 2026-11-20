@@ -1,0 +1,23 @@
+# CI
+
+## 現状
+
+| 分類 | ページ / ファイル | 概要 | 補足 |
+| --- | --- | --- | --- |
+| ドキュメント | [docs/interface/IF-15.yaml](https://github.com/shuhei1101/voice-paste/blob/e317d0118be7ad9370447451743c3e7b5c414c08/docs/interface/IF-15.yaml) | テストの全件実行の workflow の入力・制約・フロー | 入力は `layer` だけ。更新対象 |
+| ドキュメント | [docs/test-procedure/TP-1.yaml](https://github.com/shuhei1101/voice-paste/blob/e317d0118be7ad9370447451743c3e7b5c414c08/docs/test-procedure/TP-1.yaml) | テストの層ごとの実行コマンド | TL-2 の `run_runner` は `-f layer=integration` だけ。更新対象 |
+| 実装 | [.github/workflows/test.yml](https://github.com/shuhei1101/voice-paste/blob/e317d0118be7ad9370447451743c3e7b5c414c08/.github/workflows/test.yml) | テストの全件実行の workflow | step「層の全件を回す」は `pytest "tests/$LAYER"` だけ |
+| テスト | [tests/e2e/workflow/test_test_yml.py](https://github.com/shuhei1101/voice-paste/blob/e317d0118be7ad9370447451743c3e7b5c414c08/tests/e2e/workflow/test_test_yml.py) | IF-15 の対応テスト | パスを指定したフローのテストを追加する |
+
+## 変更方針
+
+| 対象 | 方針 | 補足 |
+| --- | --- | --- |
+| workflow の入力 | `workflow_dispatch.inputs` に、実行するテストのパスを空白区切りで受ける任意の文字列の入力を追加する | 入力名・パスの検証はインターフェース定義設計で決める |
+| テストの実行 | 入力が空なら `tests/{層}`、空でなければ入力のパスを pytest へ指定する。入力の値は `env` で受けて step に展開する | 上限の時間・タイムアウト・成果物は層の値のまま |
+| テスト実行方法 | TL-2 の `run_runner` を、`{結合テストのパス}` を入力に指定して起動するコマンドにする | TL-1 は変えない |
+| 対応テスト | IF-15 に追加するフローの対応テストを `tests/e2e/workflow/test_test_yml.py` に追加する | workflow が develop へ入った後に回す |
+
+## テスト結果
+
+なし

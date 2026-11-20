@@ -1,0 +1,13 @@
+docs:
+  - page: docs/interface/IF-15.yaml
+    new: false
+    change: request に実行するテストのパスの入力を追加し、指定したときは層のフォルダの代わりにそのパスだけを回す制約・フロー・step の中身を追加する
+    status: todo
+  - page: docs/test-procedure/TP-1.yaml
+    new: false
+    change: TL-2 の run_runner を、{結合テストのパス} を workflow の入力に指定して起動するコマンドにする
+    status: todo
+scope_out:
+  - item: TL-1（単体テスト）の run_runner にパスを渡す形
+    reason: 単体テストは全件を回す決まりのため、層の全件を回す今の run_runner のまま変えない
+    plan: none

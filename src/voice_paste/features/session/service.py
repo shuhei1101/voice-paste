@@ -15,6 +15,7 @@ from typing import Any, Literal
 
 from voice_paste.features.session.types import ContinuousEnd, Session, SessionDeps, SessionState
 from voice_paste.shared.errors import (
+    AudioUnreadableError,
     DeliveryError,
     SessionBusyError,
     SessionConflictError,
@@ -129,6 +130,50 @@ class SessionManager:
             # 連続録音: 区間を起こして返すワーカースレッドを始める
             if segments is not None:
                 self._start_worker(self._run_segments, session, segments)
+            self._deps.notify("state_changed", str(session.state))
+            return session
+
+    def start_audio_file(self, audio_path: Path, output_id: str | None) -> Session:
+        """待機中なら、指定した音声ファイルを入力にした録音セッションを作り、文字起こしを始める（録音はしない）。"""
+        with self._lock:
+            # 1. 取り消しの猶予中の録音セッションが残っていれば、内部の録音を捨てる
+            pending = self._session
+            if pending is not None and pending.state == SessionState.CANCEL_PENDING:
+                self._drop_cancel_timer()
+                self._deps.discard_recording()
+                self._session = None
+                logger.info(f"猶予の間に音声ファイルの開始が来たため録音を取り消した（{pending.id}）")
+
+            # 2. 録音セッションが残っていれば断る（処理中）
+            if self._session is not None:
+                logger.info(
+                    f"処理中のため開始を断った（入口: {Entry.AUDIO_FILE}・処理中の録音セッション: {self._session.id}）"
+                )
+                raise SessionBusyError("ほかの録音か文字起こしを処理中です")
+
+            # 3. 音声ファイルを確かめる（読めなければ例外のまま伝え、録音セッションは作らない）
+            try:
+                self._deps.probe_audio_file(audio_path)
+            except AudioUnreadableError as error:
+                logger.info(f"音声ファイルを読めないため開始を断った（{audio_path}・{error}）")
+                raise
+
+            # 4. 録音セッションを作り、状態を transcribing にする
+            session = Session(
+                id=str(uuid.uuid4()),
+                entry=Entry.AUDIO_FILE,
+                state=SessionState.TRANSCRIBING,
+                started_at=self._deps.now(),
+                callback_url=None,
+                output_id=output_id,
+                output_preset=None,
+                audio_path=audio_path,
+            )
+            self._session = session
+            logger.info(f"録音セッションを始めた（{session.id}・入口: {session.entry}・{audio_path}）")
+
+            # 5〜6. 文字起こしから届けるまでを確定後と同じ流れで始め、状態の変化を知らせる
+            self._start_worker(self._run_after_confirm, session, audio_path)
             self._deps.notify("state_changed", str(session.state))
             return session
 
@@ -406,6 +451,7 @@ class SessionManager:
     def _run_after_confirm(self, session: Session, audio_path: Path) -> None:
         """文字起こし → 補正 → 履歴への追記 → 届けるを行い、待機中に戻す。"""
         is_api = session.entry == Entry.API
+        is_audio_file = session.entry == Entry.AUDIO_FILE
         # どこで失敗したかを知らせの種類に使う（届ける前か後か）
         stage = "transcription"
         try:
@@ -419,9 +465,10 @@ class SessionManager:
                 self._report_failure(session, str(error), stage)
                 return
 
-            # 2〜3. 用語集で補正し、履歴に追記する
+            # 2〜3. 用語集で補正し、履歴に追記する（指定した音声ファイルは履歴に残さない）
             corrected = self._deps.correct(text, session.glossary_preset)
-            self._deps.append_text(audio_path, corrected)
+            if not is_audio_file:
+                self._deps.append_text(audio_path, corrected)
 
             # 4. 結果が空で入口が api でなければ、届けずに終える
             if not corrected and not is_api:
@@ -438,7 +485,9 @@ class SessionManager:
                 self._deps.deliver(delivering, outcome)
             except DeliveryError as error:
                 logger.error(f"出力先へ届けられなかった（{session.id}・{error}）")
-                self._deps.notify("delivery_failed", str(error))
+                self._deps.notify(
+                    "audio_file_delivery_failed" if is_audio_file else "delivery_failed", str(error)
+                )
         except Exception as error:  # noqa: BLE001 どの経路でも録音セッションを空にして待機中へ戻すため
             logger.exception(f"確定後の流れで想定外の例外（{session.id}）")
             self._report_failure(session, str(error), stage)
@@ -476,15 +525,24 @@ class SessionManager:
                 self._deps.deliver(session, outcome)
             except Exception:  # noqa: BLE001 失敗の返送の失敗でワーカースレッドを落とさないため
                 logger.exception(f"失敗を届けられなかった（{session.id}）")
+        elif session.entry == Entry.AUDIO_FILE:
+            # audio_file: 指定した音声ファイルの種類で、文字起こしの前か後かを分ける
+            event = (
+                "audio_file_transcription_failed"
+                if stage == "transcription"
+                else "audio_file_delivery_failed"
+            )
+            self._deps.notify(event, reason)
         else:
             # hotkey・tray: 文字起こしの前か後かで知らせの種類を分ける
             event = "transcription_failed" if stage == "transcription" else "delivery_failed"
             self._deps.notify(event, reason)
 
     def _finish(self, session: Session, audio_path: Path) -> None:
-        """一時の音声を削除し、録音セッションを空にして待機中を知らせる。"""
+        """一時の音声を削除し（指定した音声ファイルは削除しない）、録音セッションを空にして待機中を知らせる。"""
         try:
-            self._deps.discard_temporary(audio_path)
+            if session.entry != Entry.AUDIO_FILE:
+                self._deps.discard_temporary(audio_path)
         finally:
             with self._lock:
                 self._session = None

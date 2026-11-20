@@ -82,6 +82,9 @@ class Session:
     glossary_preset: str | None = None
     """API の開始で指定した用語集のプリセットの名前。None は設定で選んでいるプリセットで補正する（ホットキー・トレイの録音は常に None）。"""
 
+    audio_path: Path | None = None
+    """入口が audio_file のときに指定した音声ファイルのパス（元の場所のまま。履歴へコピーしない）。それ以外は None。"""
+
 
 type StartRecordingFn = Callable[[], None]
 """音量を下げてマイクを開く。開けなければ音量を戻して MicrophoneUnavailableError を送出する。"""
@@ -119,6 +122,9 @@ type NotifyFn = Callable[
             "engine_fallback",
             "engine_settings_mismatch",
             "output_changed",
+            "audio_file_unsupported",
+            "audio_file_transcription_failed",
+            "audio_file_delivery_failed",
         ],
         str | None,
     ],
@@ -193,6 +199,9 @@ class SessionDeps:
 
     stop_continuous_recording: Callable[[], None]
     """連続録音を止めて音量を戻し、区間に切り出していない話し声を最後の区間として渡し終えてから戻る。"""
+
+    probe_audio_file: Callable[[Path], None]
+    """指定した音声ファイルを PyAV で開き、音声のストリームを読めることを確かめる。読めなければ AudioUnreadableError。"""
 
 
 @dataclass(frozen=True, slots=True, kw_only=True)

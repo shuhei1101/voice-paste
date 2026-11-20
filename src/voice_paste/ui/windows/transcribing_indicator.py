@@ -8,7 +8,15 @@ from typing import TYPE_CHECKING
 
 from PySide6.QtCore import QEvent, QPoint, QPointF, QRectF, Qt, QTimer, Signal
 from PySide6.QtGui import QPaintEvent, QPainter, QPen, QResizeEvent
-from PySide6.QtWidgets import QFrame, QHBoxLayout, QLabel, QProgressBar, QVBoxLayout, QWidget
+from PySide6.QtWidgets import (
+    QFrame,
+    QHBoxLayout,
+    QLabel,
+    QProgressBar,
+    QSizePolicy,
+    QVBoxLayout,
+    QWidget,
+)
 
 from voice_paste.shared.settings import Settings
 from voice_paste.ui.placement import move_to_configured_position
@@ -65,6 +73,32 @@ CHECK_BADGE_PEN_PX: float = 1.6
 
 CHECK_POINTS: tuple[tuple[float, float], ...] = ((4.5, 8.5), (7.0, 11.0), (11.5, 5.5))
 """丸いマーカーの中のチェックの折れ線の 3 点（直径 16 の円の左上を原点とした座標）。"""
+
+
+class ElidedLabel(QLabel):
+    """幅に収まらない文字を末尾で「…」に省いて 1 行で出し、ヒントに全体を出すラベル。窓の幅を広げない。"""
+
+    def __init__(self) -> None:
+        super().__init__()
+        self._full_text = ""
+        self.setSizePolicy(QSizePolicy.Policy.Ignored, QSizePolicy.Policy.Preferred)
+
+    def set_full_text(self, text: str) -> None:
+        """出す文字の全体を替え、今の幅で省き直す。"""
+        self._full_text = text
+        self.setToolTip(text)
+        self._elide()
+
+    def resizeEvent(self, event: QResizeEvent) -> None:  # noqa: N802 Qt の名前
+        """幅が変わるたびに省き直す。"""
+        super().resizeEvent(event)
+        self._elide()
+
+    def _elide(self) -> None:
+        """全体の文字を今の幅で末尾から省いて出す。"""
+        self.setText(
+            self.fontMetrics().elidedText(self._full_text, Qt.TextElideMode.ElideRight, self.width())
+        )
 
 
 def hint_text(output_id: str | None) -> str:
@@ -218,6 +252,13 @@ class TranscribingIndicator(QWidget):
         header.addStretch(1)
         layout.addWidget(head_row)
 
+        # 見出しの下: トレイから指定した音声ファイルの名前（音声ファイルの回だけ出す）
+        self._audio_file_label = ElidedLabel()
+        self._audio_file_label.setObjectName("audio_file_name")
+        self._audio_file_label.setProperty("role", "muted")
+        self._audio_file_label.hide()
+        layout.addWidget(self._audio_file_label)
+
         self._progress_bar = QProgressBar()
         self._progress_bar.setObjectName("progress_bar")
         self._progress_bar.setRange(0, PERCENT)
@@ -344,8 +385,9 @@ class TranscribingIndicator(QWidget):
         at: QPoint | None = None,
         output_id: str | None = None,
         preset_title: str | None = None,
+        audio_file_name: str | None = None,
     ) -> None:
-        """経過を 0 にして進みを隠し、出力先の並び（かプリセットの名前）と貼り付けの案内を組み直し、at の座標（録音の画面の最後の位置）か、渡されなければ設定の位置に出す。"""
+        """経過を 0 にして進みを隠し、出力先の並び（かプリセットの名前）と貼り付けの案内と音声ファイルの名前を組み直し、at の座標（録音の画面の最後の位置）か、渡されなければ設定の位置に出す。"""
         settings = self._deps.get_settings()
         flags = Qt.WindowType.Tool | Qt.WindowType.FramelessWindowHint
         flags |= Qt.WindowType.WindowDoesNotAcceptFocus
@@ -355,6 +397,9 @@ class TranscribingIndicator(QWidget):
 
         self._output_id = output_id
         self._rebuild_outputs(settings, preset_title)
+        # 音声ファイルの名前: 渡されたら見出しの下に出し、渡されなければ行を隠す
+        self._audio_file_label.set_full_text(audio_file_name or "")
+        self._audio_file_label.setVisible(audio_file_name is not None)
         self._started_at = self._clock()
         self._ratio = None
         self._progress_bar.setValue(0)

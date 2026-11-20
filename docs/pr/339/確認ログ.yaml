@@ -1,0 +1,7 @@
+confirmations:
+  - topic: 画面一覧と画面遷移の置き方
+    decision: 計画書の画面一覧・画面遷移の置き方でモック作成へ進む（推奨案 A）
+    decided_by: thumbs_up
+    approver: shuhei1101
+    commit:
+    thread: https://github.com/shuhei1101/voice-paste/pull/339#discussion_r4640593934

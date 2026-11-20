@@ -1,0 +1,106 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<!-- viewport: 狭い幅でも見本を縦に積んで読めるようにする -->
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>トレイ | voice-paste のモック</title>
+<!-- 採用スタイルの部品は #37、音声ファイルを選ぶダイアログの見立ては #339 の共有 CSS に置く -->
+<link rel="stylesheet" href="../../../../refs/37/assets/style.css">
+<link rel="stylesheet" href="../../../../refs/339/assets/style.css">
+</head>
+<body>
+<main>
+<!-- パンくず -->
+<nav class="crumb" aria-label="パンくず"><a href="../../../">pages</a> / <a href="../../">tray</a> / <a href="../">339</a> / <span>a-file-items</span></nav>
+<!-- 画面の説明 -->
+<header class="intro">
+<h1>トレイ</h1>
+<p>#291 のメニューの「録音の画面を表示」の下に「音声ファイルを文字に起こす…」、「ログフォルダを開く」の下に「履歴フォルダを開く」を追加したもの。「音声ファイルを文字に起こす…」は待機中だけ押せる。</p>
+</header>
+<div class="desk">
+<!-- 場面: 待機中 -->
+<section class="specimen" aria-labelledby="h-idle">
+<h2 id="h-idle">待機中</h2>
+<ul class="win menu" role="menu" aria-label="トレイのメニュー（待機中）">
+<li role="none"><a role="menuitem" class="menu__item menu__item--default" href="../../../recording-window/48/a-head-controls/index.html">録音を開始 <kbd>Ctrl+Alt+D</kbd></a></li>
+<li role="none"><span role="menuitem" class="menu__item" aria-disabled="true">録音の画面を表示（録音していません）</span></li>
+<li role="none"><a role="menuitem" class="menu__item" href="#h-dialog">音声ファイルを文字に起こす…</a></li>
+<li role="separator" class="menu__sep"></li>
+<li role="none"><a role="menuitem" class="menu__item" href="../../../settings/274/a-engine-tabs/index.html">設定…</a></li>
+<li role="none"><a role="menuitem" class="menu__item" href="../../../settings/173/b-picked-list/index.html">用語集の設定…</a></li>
+<li role="none"><a role="menuitem" class="menu__item" href="../../../settings/291/a-shortcuts-first/index.html">ショートカットの設定…</a></li>
+<li role="none"><span role="menuitem" class="menu__item" tabindex="-1">設定フォルダを開く</span></li>
+<li role="none"><span role="menuitem" class="menu__item" tabindex="-1">ログフォルダを開く</span></li>
+<li role="none"><span role="menuitem" class="menu__item" tabindex="-1">履歴フォルダを開く</span></li>
+<li role="separator" class="menu__sep"></li>
+<li role="none"><span role="menuitem" class="menu__item" tabindex="-1">再起動</span></li>
+<li role="none"><span role="menuitem" class="menu__item" tabindex="-1">終了</span></li>
+</ul>
+<p class="scene-note">「履歴フォルダを開く」は履歴の配置先（<code>%LOCALAPPDATA%\voice-paste\history\</code>）が無ければ作ってからエクスプローラーで開く。履歴を残さない設定でも押せる。</p>
+</section>
+<!-- 場面: 録音中 -->
+<section class="specimen" aria-labelledby="h-rec">
+<h2 id="h-rec">録音中</h2>
+<ul class="win menu" role="menu" aria-label="トレイのメニュー（録音中）">
+<li role="none"><span role="menuitem" class="menu__item" aria-disabled="true">録音を開始（処理中） <kbd>Ctrl+Alt+D</kbd></span></li>
+<li role="none"><a role="menuitem" class="menu__item" href="../../../recording-window/48/a-head-controls/index.html#h-restored">録音の画面を表示</a></li>
+<li role="none"><span role="menuitem" class="menu__item" aria-disabled="true">音声ファイルを文字に起こす…（処理中）</span></li>
+<li role="separator" class="menu__sep"></li>
+<li role="none"><a role="menuitem" class="menu__item" href="../../../settings/274/a-engine-tabs/index.html">設定…</a></li>
+<li role="none"><a role="menuitem" class="menu__item" href="../../../settings/173/b-picked-list/index.html">用語集の設定…</a></li>
+<li role="none"><a role="menuitem" class="menu__item" href="../../../settings/291/a-shortcuts-first/index.html">ショートカットの設定…</a></li>
+<li role="none"><span role="menuitem" class="menu__item" tabindex="-1">設定フォルダを開く</span></li>
+<li role="none"><span role="menuitem" class="menu__item" tabindex="-1">ログフォルダを開く</span></li>
+<li role="none"><span role="menuitem" class="menu__item" tabindex="-1">履歴フォルダを開く</span></li>
+<li role="separator" class="menu__sep"></li>
+<li role="none"><span role="menuitem" class="menu__item" tabindex="-1">再起動</span></li>
+<li role="none"><span role="menuitem" class="menu__item" tabindex="-1">終了</span></li>
+</ul>
+<p class="scene-note">録音から届けるまでの間（API から始めた録音の間を含む）は「録音を開始」と同じく押せず、項目名に理由を添える。</p>
+</section>
+<!-- 場面: 音声ファイルの文字起こし中 -->
+<section class="specimen" aria-labelledby="h-file">
+<h2 id="h-file">音声ファイルの文字起こし中</h2>
+<ul class="win menu" role="menu" aria-label="トレイのメニュー（音声ファイルの文字起こし中）">
+<li role="none"><span role="menuitem" class="menu__item" aria-disabled="true">録音を開始（処理中） <kbd>Ctrl+Alt+D</kbd></span></li>
+<li role="none"><span role="menuitem" class="menu__item" aria-disabled="true">録音の画面を表示（録音していません）</span></li>
+<li role="none"><span role="menuitem" class="menu__item" aria-disabled="true">音声ファイルを文字に起こす…（処理中）</span></li>
+<li role="separator" class="menu__sep"></li>
+<li role="none"><a role="menuitem" class="menu__item" href="../../../settings/274/a-engine-tabs/index.html">設定…</a></li>
+<li role="none"><a role="menuitem" class="menu__item" href="../../../settings/173/b-picked-list/index.html">用語集の設定…</a></li>
+<li role="none"><a role="menuitem" class="menu__item" href="../../../settings/291/a-shortcuts-first/index.html">ショートカットの設定…</a></li>
+<li role="none"><span role="menuitem" class="menu__item" tabindex="-1">設定フォルダを開く</span></li>
+<li role="none"><span role="menuitem" class="menu__item" tabindex="-1">ログフォルダを開く</span></li>
+<li role="none"><span role="menuitem" class="menu__item" tabindex="-1">履歴フォルダを開く</span></li>
+<li role="separator" class="menu__sep"></li>
+<li role="none"><span role="menuitem" class="menu__item" tabindex="-1">再起動</span></li>
+<li role="none"><span role="menuitem" class="menu__item" tabindex="-1">終了</span></li>
+</ul>
+<p class="scene-note">音声ファイルの文字起こしから届けるまでの間は録音を始められない。ホットキーを押したときは<a href="../../../busy-dialog/339/a-file-busy/index.html">処理中のダイアログ</a>を出す。</p>
+</section>
+<!-- 場面: 音声ファイルを選ぶダイアログ（OS 標準のダイアログの見立て） -->
+<section class="specimen" aria-labelledby="h-dialog">
+<h2 id="h-dialog">「音声ファイルを文字に起こす…」を選んだ後</h2>
+<div class="win dialog filedlg" role="dialog" aria-labelledby="d-file">
+<div class="titlebar"><span class="titlebar__app" id="d-file">文字に起こす音声ファイルを選ぶ</span><svg class="titlebar__close" viewBox="0 0 16 16" aria-hidden="true"><path d="M4 4l8 8M12 4l-8 8"/></svg></div>
+<div class="dialog__main" style="display:grid;gap:8px">
+<p class="filedlg__path">C:\Users\user\AppData\Local\voice-paste\history\2026-11-20\</p>
+<ul class="filedlg__list" role="listbox" aria-label="ファイル">
+<li role="option" aria-selected="false">20261120-083012.wav</li>
+<li role="option" aria-selected="false">20261120-083012.txt</li>
+<li role="option" aria-selected="true">20261120-091544.wav</li>
+</ul>
+<p class="filedlg__filter">ファイルの種類: 音声ファイル (*.wav;*.mp3;*.m4a;*.mp4;*.ogg;*.webm;*.flac) ／ すべてのファイル (*.*)</p>
+</div>
+<div class="dialog__actions">
+<a class="btn btn--primary" href="../../../transcribing-indicator/339/a-file-name/index.html">開く</a>
+<a class="btn" href="#h-idle">キャンセル</a>
+</div>
+</div>
+<p class="scene-note">OS 標準のファイルを開くダイアログを、履歴のフォルダを最初に開いた状態で出す（この枠は見立てで、見た目は OS が決める）。開くと形式を確かめて文字起こしを始め、読めない形式なら<a href="../../../tray-notification/339/a-file-failures/index.html#h-format">トレイの通知</a>で知らせる。キャンセルでは何もしない。</p>
+</section>
+</div>
+</main>
+</body>
+</html>

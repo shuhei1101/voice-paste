@@ -1,0 +1,53 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<!-- viewport: 狭い幅でも見本を縦に積んで読めるようにする -->
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>トレイの通知 | voice-paste のモック</title>
+<link rel="stylesheet" href="../../../../refs/37/assets/style.css">
+</head>
+<body>
+<main>
+<!-- パンくず -->
+<nav class="crumb" aria-label="パンくず"><a href="../../../">pages</a> / <a href="../../">tray-notification</a> / <a href="../">339</a> / <span>a-file-failures</span></nav>
+<!-- 画面の説明 -->
+<header class="intro">
+<h1>トレイの通知</h1>
+<p>トレイから指定した音声ファイルで起きた失敗の通知。指定したファイルは履歴に残さないため、録音の失敗の「録音は履歴に残っています。」に代えて、ファイルが元の場所に残っていることを添える。押すとログフォルダを開く。</p>
+</header>
+<div class="desk">
+<!-- 場面: 読めない形式のファイルを選んだ -->
+<section class="specimen" aria-labelledby="h-format">
+<h2 id="h-format">読めない形式のファイルを選んだ</h2>
+<div class="win toast" role="status" aria-labelledby="t-format">
+<p class="toast__meta">voice-paste</p>
+<p class="toast__title" id="t-format"><span class="ticon ticon--error" aria-hidden="true"><svg viewBox="0 0 16 16"><rect x="5.5" y="1.5" width="5" height="8" rx="2.5"/><path d="M3 7.5a5 5 0 0 0 10 0M8 12.5v2"/><path d="M2 2l12 12"/></svg></span>音声ファイルを開けませんでした</p>
+<p class="toast__body">「議事録.txt」は音声として読めない形式です。WAV・MP3・M4A などの音声ファイルを選んでください。</p>
+</div>
+<p class="scene-note">録音セッションは作らず、トレイは待機中のまま。</p>
+</section>
+<!-- 場面: 音声ファイルの文字起こしに失敗 -->
+<section class="specimen" aria-labelledby="h-failed">
+<h2 id="h-failed">音声ファイルの文字起こしに失敗</h2>
+<div class="win toast" role="status" aria-labelledby="t-failed">
+<p class="toast__meta">voice-paste</p>
+<p class="toast__title" id="t-failed"><span class="ticon ticon--error" aria-hidden="true"><svg viewBox="0 0 16 16"><rect x="5.5" y="1.5" width="5" height="8" rx="2.5"/><path d="M3 7.5a5 5 0 0 0 10 0M8 12.5v2"/><path d="M2 2l12 12"/></svg></span>文字起こしできませんでした</p>
+<p class="toast__body">音声ファイルを読み込めませんでした。指定したファイルは元の場所に残っています。</p>
+</div>
+<p class="scene-note">ヘッダーは読めるが音声のデータが壊れたファイルなど、文字起こしの途中で失敗したとき。</p>
+</section>
+<!-- 場面: OpenAI API へ送信できない音声ファイル -->
+<section class="specimen" aria-labelledby="h-openai">
+<h2 id="h-openai">OpenAI API へ送信できない音声ファイル</h2>
+<div class="win toast" role="status" aria-labelledby="t-openai">
+<p class="toast__meta">voice-paste</p>
+<p class="toast__title" id="t-openai"><span class="ticon ticon--error" aria-hidden="true"><svg viewBox="0 0 16 16"><rect x="5.5" y="1.5" width="5" height="8" rx="2.5"/><path d="M3 7.5a5 5 0 0 0 10 0M8 12.5v2"/><path d="M2 2l12 12"/></svg></span>文字起こしできませんでした</p>
+<p class="toast__body">OpenAI API へ送信できる大きさ（25 MB）か形式を外れています。指定したファイルは元の場所に残っています。</p>
+</div>
+<p class="scene-note">設定のエンジンが OpenAI API のときだけ。選ぶ時点では断らず、文字起こしの失敗として知らせる。</p>
+</section>
+</div>
+</main>
+</body>
+</html>

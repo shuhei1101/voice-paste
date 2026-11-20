@@ -28,4 +28,28 @@
 
 ## テスト結果
 
-なし
+### 単体
+
+なし。
+変更したファイルは workflow・設計書・PR ドキュメント・`files.yml` だけで、規約『V字モデル』の対応表で対応する単体テストが無い。
+
+### lint
+
+| コマンド | 結果 | 補足 |
+| --- | --- | --- |
+| `uv lock --check`・`actionlint` | ✅ | `テスト結果/20261120211237_ee690b1_lint.log`<br>`lint-imports`・`npm run typecheck`・`npm run lint`・`app.js` の再生成の確認は、変更したファイルが Python のコードと画面のスクリプトに触れないため回していない |
+
+### 結合テストの実行範囲
+
+| 変更したファイル | 結果 | 実行する結合テスト | 結合テストが無いエントリーポイント |
+| --- | --- | --- | --- |
+| `.github/workflows/test.yml` | R7 | - | テストの全件実行（IF-15）。対応テストは E2E テスト（TL-6）の `tests/e2e/workflow/test_test_yml.py` で確認する |
+| `docs/interface/IF-15.yaml` | R7 | - | - |
+| `docs/test-procedure/TP-1.yaml` | R7 | - | - |
+| `files.yml` | R7 | - | - |
+| `docs/pr/341/` の各ファイル | R7 | - | - |
+
+結合テスト（TL-2）は実行しない。
+
+- 影響しない: `tests/integration/` に、変更したファイルを参照する結合テストは無い（`test.yml`・`IF-15` で検索して 0 件）
+- 結合テストが無い: IF-15 の対応テストは E2E テストの層にあり、結合テスト作成の工程で `tests/e2e/workflow/test_test_yml.py` に追加したフローのテストを足して回す

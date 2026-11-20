@@ -1063,11 +1063,16 @@ functions:
         required: true
         passing: positional
         description: SettingsStore.get の ui.theme で画面の明暗を当て直す（apply_theme に QApplication と paths.ui_image_dir を部分適用したもの）
+      - name: notify
+        type: NotifyFn
+        required: true
+        passing: keyword
+        description: ユーザーへの通知（UiBridge を部分適用した notify）。start_audio_file_session に部分適用する
     returns:
       type: UiDeps
       description: 画面の依存
     process: |-
-      1. start に start_local_session(tray)、start_audio_file に SessionManager・notify・SettingsStore.latest を部分適用した start_audio_file_session（エンジンを準備できなかった起動の UiDeps では何もしない関数）、pause・resume・cancel・current_session・switch_output に SessionManager のメソッド、complete に output_id・preset で SessionManager.complete を呼ぶ関数、level に recorder_level、get_settings に SettingsStore.latest を引き渡す（エンジンを準備できなかった起動の UiDeps の switch_output は、ほかの録音の関数と同じく何もしない関数）
+      1. start に start_local_session(tray)、start_audio_file に SessionManager・引数の notify・SettingsStore.latest を部分適用した start_audio_file_session（エンジンを準備できなかった起動の UiDeps では何もしない関数）、pause・resume・cancel・current_session・switch_output に SessionManager のメソッド、complete に output_id・preset で SessionManager.complete を呼ぶ関数、level に recorder_level、get_settings に SettingsStore.latest を引き渡す（エンジンを準備できなかった起動の UiDeps の switch_output は、ほかの録音の関数と同じく何もしない関数）
       2. set_hotkey_capturing に hotkey_listener.set_suspended、reload_hotkeys に SettingsStore.latest の設定と show_recording_window と request_glossary_preset_switch（UiBridge を部分適用したもの）で build_hotkey_bindings して hotkey_listener.start を呼ぶ関数、switch_glossary_preset に paths と SettingsStore を部分適用した switch_glossary_preset を引き渡す（エンジンを準備できなかった起動の UiDeps の switch_glossary_preset は False を返却する関数）（Wayland のセッションの GnomeShortcutListener では、入力待ちの間だけカスタムショートカットの登録を解除する）
       3. settings_dir に settings.yaml のフォルダ、log_dir にログのフォルダ、history_dir に履歴の配置先を引き渡す
       4. output_titles に、OUTPUTS のうち api_only でない出力先の ID → title を引き渡す（エンジンを準備できなかった起動の UiDeps も同じ）

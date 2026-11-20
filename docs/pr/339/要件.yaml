@@ -47,11 +47,15 @@ docs:
   - page: docs/guide/録音して貼り付ける.md
     new: false
     change: トレイのメニューから音声ファイルを指定して文字に起こし、出力先へ届ける操作を追加する
-    status: todo
+    status: done
+    updated_by: planner
+    updated_at: '2026-11-20T10:26:43.684047+00:00'
   - page: docs/guide/起動と設定.md
     new: false
     change: 履歴の配置先の説明に、トレイのメニューから履歴のフォルダを開けることを追加する
-    status: todo
+    status: done
+    updated_by: planner
+    updated_at: '2026-11-20T10:26:43.684047+00:00'
   - page: docs/scenario/index.yaml
     new: false
     change: 新設する複合ユースケース（SC-14）と単一ユースケース（SC-15）の行を追加する（README.md の目次の行も手で追加）

@@ -7,7 +7,7 @@ version:
   current: 3.1.6
   latest: 3.1.6
   checked_on: '2026-11-21'
-  source: PyPI の最新版
+  source: pyproject.toml と uv.lock のバージョン
   pinning: マイナーバージョンの中で固定（~=3.1.6）
 catalogs:
   - name: API
@@ -32,8 +32,9 @@ used_in:
   - src/voice_paste/shared/prompts.py
 upstream: pallets/jinja
 verification:
-  state: 未確認
-  detail: 実装の工程で、StrictUndefined の環境で未定義の変数が UndefinedError（TemplateError の子）になることを単体テストで確認する
+  state: 済
+  detail: WSL（Linux・Python 3.14.3、jinja2 3.1.6）で、StrictUndefined の Environment で未定義の変数を描くと UndefinedError（TemplateError の子）が送出されることと、from_string で描いた when の式が False を文字列の False にすることを、shared/prompts.py の単体テストで確認した
+  date: '2026-11-21'
 license: BSD-3-Clause（商用利用可）
 official_url: https://github.com/pallets/jinja
 docs_url: https://jinja.palletsprojects.com/

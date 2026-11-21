@@ -32,7 +32,7 @@ functions:
     process: |-
       1. `PROMPTS_DIR / f"{prompt_id}.yaml"` が無ければ PromptError を送出する
       2. read_yaml_mapping で読み込む
-         - SettingsError の場合、PromptError を送出する（`raise ... from`）
+         - SettingsError・OSError の場合、PromptError を送出する（`raise ... from`）
       3. jinja2.Environment（undefined=StrictUndefined・autoescape=False）を作る
       4. parts を並び順に確認し、when があればその式を values で描いた結果が空・`False` でない部品だけを使用する
       5. 使用する部品ごとに、texts からトップレベルの lang と同じ lang の本文を選び、values で描く
@@ -79,7 +79,7 @@ functions:
       - to: LIB-39
         type: requires
         when: 『jinja2』の使い方と制約を確認するとき。
-    status: planned
+    status: implemented
 constants:
   - name: PROMPTS_DIR
     title: プロンプトファイルのフォルダ
@@ -87,7 +87,7 @@ constants:
     usecase: 録音を文字に起こす
     summary: プロンプトファイルを配置するリポジトリの直下の content/prompts/
     value: REPO_ROOT / "content" / "prompts"
-    status: planned
+    status: implemented
 tags:
   - name: topic:プロンプト
     main: true

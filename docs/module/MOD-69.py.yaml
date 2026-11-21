@@ -73,7 +73,7 @@ classes:
           1. 音声の大きさが OPENAI_MAX_AUDIO_BYTES 以下で、拡張子（小文字）が OPENAI_AUDIO_SUFFIXES にあるかを確認する
              - 除外される場合、送信せずに EngineError を送出する（理由は「音声が OpenAI API の上限（25 MB）を超えています」か「OpenAI API が受けられない形式です（{拡張子}）」）
                - `[WARNING]` OpenAI API へ送信しない音声（大きさ・拡張子）
-          2. httpx.Client（timeout=OPENAI_TIMEOUT_SEC、follow_redirects=False、transport=_transport）で `{base_url}/audio/transcriptions` へ POST する。ヘッダーは `Authorization: Bearer {API キー}`、本文は multipart の file（音声）・model・response_format=json と、_build_form が返却する言語と手がかりの項目
+          2. httpx.Client（timeout=httpx.Timeout(OPENAI_TIMEOUT_SEC, connect=OPENAI_CONNECT_TIMEOUT_SEC)、follow_redirects=False、transport=_transport）で `{base_url}/audio/transcriptions` へ POST する。ヘッダーは `Authorization: Bearer {API キー}`、本文は multipart の file（音声）・model・response_format=json と、_build_form が返却する言語と手がかりの項目
           3. 応答を確認する
              - 200 の場合、JSON の text の前後の空白を除き、空でなければ [text]、空なら [] を返却する
                - `[INFO]` OpenAI API で起こした（モデル・音声のバイト数・かかった秒・試した回数）
@@ -155,10 +155,10 @@ classes:
             expected: 届いた本文に keywords[] のパートが voice-paste・Whisper の 2 つ、languages[] のパートが ja の 1 つあり、language・prompt のパートが無い
           - name: test_transcribe_when_timeout
             case: 正常
-            summary: 待つ上限を OPENAI_TIMEOUT_SEC にして送信する
+            summary: 待つ上限を OPENAI_TIMEOUT_SEC、接続の上限を OPENAI_CONNECT_TIMEOUT_SEC にして送信する
             condition: 'エンドポイントが 200 と {"text": "今日は晴れ"} を返却する'
             mock: httpx.MockTransport
-            expected: 届いた要求の extensions["timeout"] の connect・read・write・pool が全て OPENAI_TIMEOUT_SEC（httpx の既定の 5 秒が掛かっていない）
+            expected: 届いた要求の extensions["timeout"] の connect が OPENAI_CONNECT_TIMEOUT_SEC、read・write・pool が OPENAI_TIMEOUT_SEC
         connectivity_tests:
           - name: test_ext_transcribe
             api: OpenAI API POST /v1/audio/transcriptions
@@ -259,8 +259,15 @@ constants:
     title: OpenAI API を待つ上限
     container: integrations/openai/transcriber.py
     usecase: 録音を文字に起こす
-    summary: 1 回の送信で接続・読み込み・書き込み・接続のプールからの取得のそれぞれを待つ上限（秒）。OpenAI の公式の SDK の既定と同じ値
+    summary: 1 回の送信で読み込み・書き込み・接続のプールからの取得のそれぞれを待つ上限（秒）。OpenAI の公式の SDK の既定と同じ値
     value: '600.0'
+    status: planned
+  - name: OPENAI_CONNECT_TIMEOUT_SEC
+    title: OpenAI API へ接続するのを待つ上限
+    container: integrations/openai/transcriber.py
+    usecase: 録音を文字に起こす
+    summary: 1 回の送信で接続を待つ上限（秒）。OpenAI の公式の SDK の既定と同じ値
+    value: '5.0'
     status: planned
   - name: OPENAI_PROMPT_ID
     title: 手がかりのプロンプトの ID

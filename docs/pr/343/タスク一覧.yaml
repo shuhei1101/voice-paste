@@ -1,0 +1,96 @@
+tasks:
+  - process: 初期構築
+    status: skipped
+    reason: 既存リポジトリのため対象外
+    updated_by: planner
+    updated_at: '2026-11-21T09:14:33.338295+00:00'
+  - process: リバースエンジニアリング
+    status: skipped
+    reason: 設計書の起こし元の実装は transcriber.py 1 枚で、設計の工程の中で読む
+    updated_by: planner
+    updated_at: '2026-11-21T09:14:33.338295+00:00'
+  - process: 方針決め
+    status: skipped
+    reason: 方針決めの依頼ではない
+    updated_by: planner
+    updated_at: '2026-11-21T09:14:33.338295+00:00'
+  - process: PoC 検証
+    status: skipped
+    reason: 既に動いている実装の設計書を起こすため、未検証の技術機構に依存しない
+    updated_by: planner
+    updated_at: '2026-11-21T09:14:33.338295+00:00'
+  - process: 複合ユースケース設計
+    status: skipped
+    reason: ユースケースの流れを変えない
+    updated_by: planner
+    updated_at: '2026-11-21T09:14:33.338295+00:00'
+  - process: デザインスタイル選定
+    status: skipped
+    reason: 画面を変えない
+    updated_by: planner
+    updated_at: '2026-11-21T09:14:33.338295+00:00'
+  - process: 画面一覧・画面遷移
+    status: skipped
+    reason: 画面を変えない
+    updated_by: planner
+    updated_at: '2026-11-21T09:14:33.338295+00:00'
+  - process: 単一ユースケース設計
+    status: skipped
+    reason: ユースケースの流れを変えない
+    updated_by: planner
+    updated_at: '2026-11-21T09:14:33.338295+00:00'
+  - process: モック作成
+    status: skipped
+    reason: 画面を変えない
+    updated_by: planner
+    updated_at: '2026-11-21T09:14:33.338295+00:00'
+  - process: データ設計
+    status: skipped
+    reason: データの構造を変えない
+    updated_by: planner
+    updated_at: '2026-11-21T09:14:33.338295+00:00'
+  - process: インターフェース定義設計
+    status: skipped
+    reason: 操作の入出力を変えない
+    updated_by: planner
+    updated_at: '2026-11-21T09:14:33.338295+00:00'
+  - process: エージェント・MCP サーバー設計
+    status: skipped
+    reason: エージェント・MCP サーバー・起動の構成がリポジトリに無い
+    updated_by: planner
+    updated_at: '2026-11-21T09:14:33.338295+00:00'
+  - process: エージェントフロー・LLM 呼び出し設計
+    status: todo
+    note: 先に dev-docs.yaml へ種類の行を追加してから、docs/llm-call/ に OpenAI API の文字起こしの設計書を作成する。スキルは無いためエージェントフローは作らない
+  - process: 精度評価設計
+    status: skipped
+    reason: 起点 Issue で精度評価は対象外と指定（判定フローチャート『精度評価をするか』でも、モデル・プロンプトを差し替える見込みが無く精度評価をしない）
+    updated_by: planner
+    updated_at: '2026-11-21T09:14:33.338295+00:00'
+  - process: 部品設計
+    status: skipped
+    reason: 画面の部品を変えない
+    updated_by: planner
+    updated_at: '2026-11-21T09:14:33.338295+00:00'
+  - process: 画面設計
+    status: skipped
+    reason: 画面を変えない
+    updated_by: planner
+    updated_at: '2026-11-21T09:14:33.338295+00:00'
+  - process: モジュール構成設計
+    status: todo
+    note: 設計書と実装が食い違い、transcriber.py を直すときだけ MOD-69 を合わせる。食い違いが無ければ skipped にする
+  - process: ドキュメント修正
+    status: todo
+    note: 更新ドキュメントの行を設計の段で反映し終えたら done にする
+  - process: 単体テスト作成
+    status: todo
+    note: transcriber.py を直すときだけ。食い違いが無ければ skipped にする
+  - process: 実装
+    status: todo
+    note: 設計書と食い違う箇所だけ transcriber.py を直す。食い違いが無ければ skipped にする
+  - process: 結合テスト作成
+    status: skipped
+    reason: OpenAI API の文字起こしは単体テストと外部の疎通テストで検証しており、結合テストの対象にしていない
+    updated_by: planner
+    updated_at: '2026-11-21T09:14:33.338295+00:00'

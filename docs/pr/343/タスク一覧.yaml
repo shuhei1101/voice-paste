@@ -95,8 +95,10 @@ tasks:
     updated_by: planner
     updated_at: '2026-11-21T09:51:03.919746+00:00'
   - process: 実装
-    status: todo
+    status: done
     note: 設計書と食い違う箇所だけ transcriber.py を直す。食い違いが無ければ skipped にする
+    updated_by: planner
+    updated_at: '2026-11-21T10:05:49.732001+00:00'
   - process: 結合テスト作成
     status: skipped
     reason: OpenAI API の文字起こしは単体テストと外部の疎通テストで検証しており、結合テストの対象にしていない

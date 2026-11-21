@@ -28,6 +28,9 @@ content_types:
   - name: config
     group: role
     summary: アプリの設定と、その既定値・見本
+  - name: prompt
+    group: role
+    summary: LLM の呼び出しのプロンプトファイル
   - name: tool_config
     group: role
     summary: 開発の道具（Git・Python・Node.js・エディタ・dev-docs・rule-inject・Pages・GitHub Actions）の設定
@@ -221,6 +224,12 @@ entries:
         contents: 画面の色・書体・余白のデザイントークン
         content_types:
           - design_token
+      - type: folder
+        name: prompts
+        contents: LLM の呼び出しのプロンプトファイル
+        content_types:
+          - prompt
+        convention: prompt-file
   - type: folder
     name: src
     contents: 常駐アプリのコード
@@ -974,6 +983,13 @@ entries:
           - design_doc
         naming:
           - LAY-{number}.yaml
+      - type: folder
+        name: llm-call
+        contents: LLM の呼び出しの設計書
+        content_types:
+          - design_doc
+        naming:
+          - LLM-{number}.yaml
       - type: folder
         name: library
         contents: 外部ライブラリの設計書

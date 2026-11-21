@@ -1,0 +1,43 @@
+id: LLM-1
+title: OpenAI API の文字起こし
+lead: 確定した録音を OpenAI API の文字起こしへ送信し、手がかりの単語を添えて起こした文字を受け取る。
+component: ARCH-1#subsystems[常駐アプリ]
+type: extract
+model:
+  name: gpt-transcribe
+  reason: 設定 transcription.openai.model で利用者が選ぶ。既定は設定の既定値に従う
+prompt: openai-transcribe
+inputs:
+  - name: hint
+    from: CFG-1#keys[hint_presets[].words]
+  - name: language
+    from: CFG-1#keys[transcription.openai.language]
+timeout:
+  seconds: 600
+  basis: published_spec
+retry:
+  max: 2
+  backoff: exponential_jitter
+refs:
+  - to: MOD-69
+    type: references
+    when: 送信・再送・応答の読み取りの実装を確認するとき。
+  - to: API-2
+    type: references
+    when: 文字起こしのエンドポイントの引数と制約を確認するとき。
+  - to: NFR-1
+    item: requirements[OpenAIの文字起こしのタイムアウトと再送]
+    type: references
+    when: 待つ上限と再送の値を変えるとき。
+notes:
+  手がかりの渡し方: モデルの ID が `gpt-transcribe` で始まるときは、`hint` を語に分けて `keywords[]`、`language` を `languages[]` で渡し、プロンプトは使用しない。それ以外のモデルは、`language` を `language`、プロンプトを描いた本文を `prompt` で渡す。
+  出力: 応答の JSON の `text` の前後の空白を除いた文字を 1 区間として返却する。空なら区間を返却しない。
+  手がかりの指定方法: モデルの ID が `gpt-transcribe` で始まるときは、`hint` を単語に分けて `keywords[]`、`language` を `languages[]` に指定し、プロンプトは使用しない。それ以外のモデルは、`language` を `language`、プロンプトを描いた本文を `prompt` に指定する。
+tags:
+  - name: topic:llm
+    main: true
+  - name: topic:文字起こし
+  - name: tool:openai
+  - name: topic:リトライ
+  - name: topic:タイムアウト
+  - name: action:送信

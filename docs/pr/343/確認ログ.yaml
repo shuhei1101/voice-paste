@@ -1,0 +1,7 @@
+confirmations:
+  - topic: OpenAI API の文字起こしで待つ上限（タイムアウト）
+    decision: OpenAI の公式の SDK の既定の 600 秒にし、設計書・実装・非機能要件 NFR-1 をそろえる（推奨案 A）
+    decided_by: thumbs_up
+    approver: shuhei1101
+    commit: e9c816f9fff77333fa81352833d0d26317d82e97
+    thread: https://github.com/shuhei1101/voice-paste/pull/343#discussion_r4651801010

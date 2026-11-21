@@ -80,8 +80,10 @@ tasks:
     updated_by: planner
     updated_at: '2026-11-21T09:14:33.338295+00:00'
   - process: モジュール構成設計
-    status: todo
+    status: done
     note: MOD-69 を、プロンプトファイルを Jinja2 で描いて prompt に指定する処理と、待つ上限（承認確認の結果）に合わせる。jinja2 の外部ライブラリの設計書を追加する
+    updated_by: planner
+    updated_at: '2026-11-21T09:42:36.798563+00:00'
   - process: ドキュメント修正
     status: todo
     note: 更新ドキュメントの行を設計の段で反映し終えたら done にする

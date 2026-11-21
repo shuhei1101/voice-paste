@@ -1,0 +1,21 @@
+# yaml-language-server: $schema=https://raw.githubusercontent.com/shuhei1101/knowledge/design-schemas/v9.5.0/schemas/prompt.schema.yaml
+id: openai-transcribe
+name: OpenAI API の文字起こしのプロンプト
+kind: llm
+lang: ja
+description: keywords[] を受けない文字起こしのモデルへ、利用者の手がかりの単語を prompt として指定する
+vars:
+  hint:
+    type: string
+    required: true
+    description: 有効な手がかりのプリセットの単語を区切り文字でつないだ文字列
+    example: voice-paste、Haas、OpenAI
+    source: CFG-1#settings[hint_presets[].words]
+output: 起こした文字（応答の JSON の text）
+parts:
+  - id: hint
+    role: user
+    texts:
+      - lang: ja
+        text: |-
+          {{ hint }}

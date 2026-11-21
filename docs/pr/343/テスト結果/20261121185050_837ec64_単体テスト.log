@@ -1,0 +1,107 @@
+$ .venv/bin/python -m pytest tests/unit/voice_paste/shared/test_prompts.py tests/unit/voice_paste/integrations/openai/test_transcriber.py -p no:cacheprovider --basetemp=/tmp/vp343-pt/bt -rfE
+# 実装の前（Red）。WSL の Linux の .venv で回した（単体テストの層の実行場所は runner で、Red の確認だけ手元で回した）
+# pass した 17 件は、test_transcriber.py の既存のテスト（作業ブランチの transcriber.py に既にある振る舞い。develop から入っている）
+============================= test session starts ==============================
+platform linux -- Python 3.14.3, pytest-9.1.1, pluggy-1.7.0
+rootdir: /home/shuhei2441/repo/voice-paste/.claude/worktrees/docs-llm-call-openai-transcriber-design
+configfile: pyproject.toml
+plugins: anyio-4.15.1, platformdirs-4.13.3, timeout-2.4.0
+collected 24 items
+
+tests/unit/voice_paste/shared/test_prompts.py FEEFE                      [ 20%]
+tests/unit/voice_paste/integrations/openai/test_transcriber.py ......... [ 58%]
+..F......F                                                               [100%]
+
+==================================== ERRORS ====================================
+____________ ERROR at setup of test_render_prompt_when_part_skipped ____________
+
+tmp_path = PosixPath('/tmp/vp343-pt/bt/test_render_prompt_when_part_s0')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x7cbeca457490>
+
+    @pytest.fixture
+    def prompts_dir(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Path:
+        """PROMPTS_DIR を一時フォルダに差し替えて、そのフォルダを返す。"""
+>       from voice_paste.shared import prompts
+E       ImportError: cannot import name 'prompts' from 'voice_paste.shared' (/home/shuhei2441/repo/voice-paste/.claude/worktrees/docs-llm-call-openai-transcriber-design/src/voice_paste/shared/__init__.py)
+
+tests/unit/voice_paste/shared/test_prompts.py:61: ImportError
+______________ ERROR at setup of test_render_prompt_when_missing _______________
+
+tmp_path = PosixPath('/tmp/vp343-pt/bt/test_render_prompt_when_missin0')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x7cbeca457bb0>
+
+    @pytest.fixture
+    def prompts_dir(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Path:
+        """PROMPTS_DIR を一時フォルダに差し替えて、そのフォルダを返す。"""
+>       from voice_paste.shared import prompts
+E       ImportError: cannot import name 'prompts' from 'voice_paste.shared' (/home/shuhei2441/repo/voice-paste/.claude/worktrees/docs-llm-call-openai-transcriber-design/src/voice_paste/shared/__init__.py)
+
+tests/unit/voice_paste/shared/test_prompts.py:61: ImportError
+____________ ERROR at setup of test_render_prompt_when_lang_missing ____________
+
+tmp_path = PosixPath('/tmp/vp343-pt/bt/test_render_prompt_when_lang_m0')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x7cbeca375490>
+
+    @pytest.fixture
+    def prompts_dir(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Path:
+        """PROMPTS_DIR を一時フォルダに差し替えて、そのフォルダを返す。"""
+>       from voice_paste.shared import prompts
+E       ImportError: cannot import name 'prompts' from 'voice_paste.shared' (/home/shuhei2441/repo/voice-paste/.claude/worktrees/docs-llm-call-openai-transcriber-design/src/voice_paste/shared/__init__.py)
+
+tests/unit/voice_paste/shared/test_prompts.py:61: ImportError
+=================================== FAILURES ===================================
+______________________________ test_render_prompt ______________________________
+
+    def test_render_prompt() -> None:
+        """変数を入れた本文を返却する（正常系）。"""
+>       from voice_paste.shared.prompts import render_prompt
+E       ModuleNotFoundError: No module named 'voice_paste.shared.prompts'
+
+tests/unit/voice_paste/shared/test_prompts.py:69: ModuleNotFoundError
+____________________ test_render_prompt_when_undefined_var _____________________
+
+    def test_render_prompt_when_undefined_var() -> None:
+        """足りない変数は PromptError（異常系）。"""
+>       from voice_paste.shared.errors import PromptError
+E       ImportError: cannot import name 'PromptError' from 'voice_paste.shared.errors' (/home/shuhei2441/repo/voice-paste/.claude/worktrees/docs-llm-call-openai-transcriber-design/src/voice_paste/shared/errors.py)
+
+tests/unit/voice_paste/shared/test_prompts.py:104: ImportError
+_________________________ test_transcribe_when_timeout _________________________
+
+audio_path = PosixPath('/tmp/vp343-pt/bt/test_transcribe_when_timeout0/recording.wav')
+make_transcriber = <function make_transcriber.<locals>._make at 0x7cbec7536770>
+
+    def test_transcribe_when_timeout(
+        audio_path: Path, make_transcriber: Callable[[FakeEndpoint], Any]
+    ) -> None:
+        """待つ上限を OPENAI_TIMEOUT_SEC、接続の上限を OPENAI_CONNECT_TIMEOUT_SEC にして送信する（正常系）。"""
+>       from voice_paste.integrations.openai.transcriber import (
+            OPENAI_CONNECT_TIMEOUT_SEC,
+            OPENAI_TIMEOUT_SEC,
+        )
+E       ImportError: cannot import name 'OPENAI_CONNECT_TIMEOUT_SEC' from 'voice_paste.integrations.openai.transcriber' (/home/shuhei2441/repo/voice-paste/.claude/worktrees/docs-llm-call-openai-transcriber-design/src/voice_paste/integrations/openai/transcriber.py)
+
+tests/unit/voice_paste/integrations/openai/test_transcriber.py:316: ImportError
+______________________ test_build_form_when_prompt_broken ______________________
+
+make_transcriber = <function make_transcriber.<locals>._make at 0x7cbec6f10300>
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x7cbec75f0270>
+
+    def test_build_form_when_prompt_broken(
+        make_transcriber: Callable[..., Any], monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        """プロンプトを描けなければ EngineError（異常系）。"""
+        from voice_paste.integrations.openai import transcriber as transcriber_module
+>       from voice_paste.shared.errors import PromptError
+E       ImportError: cannot import name 'PromptError' from 'voice_paste.shared.errors' (/home/shuhei2441/repo/voice-paste/.claude/worktrees/docs-llm-call-openai-transcriber-design/src/voice_paste/shared/errors.py)
+
+tests/unit/voice_paste/integrations/openai/test_transcriber.py:423: ImportError
+=========================== short test summary info ============================
+FAILED tests/unit/voice_paste/shared/test_prompts.py::test_render_prompt - Mo...
+FAILED tests/unit/voice_paste/shared/test_prompts.py::test_render_prompt_when_undefined_var
+FAILED tests/unit/voice_paste/integrations/openai/test_transcriber.py::test_transcribe_when_timeout
+FAILED tests/unit/voice_paste/integrations/openai/test_transcriber.py::test_build_form_when_prompt_broken
+ERROR tests/unit/voice_paste/shared/test_prompts.py::test_render_prompt_when_part_skipped
+ERROR tests/unit/voice_paste/shared/test_prompts.py::test_render_prompt_when_missing
+ERROR tests/unit/voice_paste/shared/test_prompts.py::test_render_prompt_when_lang_missing
+==================== 4 failed, 17 passed, 3 errors in 0.26s ====================

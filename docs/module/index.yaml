@@ -150,6 +150,8 @@ items:
     summary: 常駐アプリ / 共通 / settings.py
   - page: MOD-48.py.yaml
     summary: 常駐アプリ / 共通 / types.py
+  - page: MOD-105.py.yaml
+    summary: 常駐アプリ / 共通 / prompts.py
   - page: MOD-2.py.yaml
     summary: コメントを保った YAML の読み書き（ruamel.yaml）と、キーの追加・削除でのコメントの付け替え・レイヤーの重ね合わせを持つ。設定の読み書き（共通 の shared/settings.py）が使用する。
   - page: MOD-32.py.yaml

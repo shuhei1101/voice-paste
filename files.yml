@@ -60,6 +60,17 @@ files:
     tags:
       - topic:用語集
       - tool:csv
+  - path: "content/prompts/openai-transcribe.yaml"
+    name: "OpenAI API の文字起こしのプロンプト"
+    description: "keywords[] を受けない OpenAI API の文字起こしのモデルへ指定する手がかりの単語のプロンプトを受け持ち、手がかりの指定方法を変えるときに参照する。"
+    tags:
+      - topic:llm
+      - topic:文字起こし
+      - tool:openai
+    related:
+      - to: LLM-1
+        type: references
+        when: "プロンプトの変数と呼び出しの入力を合わせるとき。"
   - path: "content/tokens.toml"
     name: "画面の見た目の値"
     description: "常駐アプリの画面の書体・色・余白など QSS を組み立てる値を受け持ち、画面の見た目を変えるときに参照する。"

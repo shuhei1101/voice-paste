@@ -99,3 +99,7 @@ class HotkeyError(AppError):
 
 class GlossaryReadError(AppError):
     """用語集の CSV を読めない（開けない・UTF-8 でない・見出しの列が無い・csv が解釈できない）。メッセージが設定画面に出す理由になる。"""
+
+
+class PromptError(AppError):
+    """プロンプトファイルを描けない（ファイルが無い・読めない・注入する言語の本文が無い・変数が足りない）。"""

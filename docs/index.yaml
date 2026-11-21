@@ -23,6 +23,8 @@ items:
     summary: 外部の制約から逆算したアプリ側の決定値（非機能要件テストの元）
   - page: external-api/
     summary: 採用済みの外部 API のリファレンス
+  - page: llm-call/
+    summary: LLM・文字起こしのモデルを 1 回呼ぶ処理のモデル・プロンプト・入力・待つ上限・失敗したときの扱い
   - page: library/
     summary: 採用済みの外部ライブラリ / 外部ツールのリファレンス
   - page: dev-command/

@@ -293,6 +293,119 @@ documents:
       ref: design-schemas/v9.5.0
     records: files
     body_file: path
+  - id: agent
+    title: エージェントの定義
+    paths: ["docs/agent/*.yaml"]
+    exclude: [index.yaml]
+    schema:
+      source: knowledge
+      path: schemas/design/agent.schema.yaml
+      ref: design-schemas/v9.5.0
+    metadata:
+      name: title
+      description: lead
+      visibility: visibility
+      tags: tags[].name
+      main_tags: tags[main].name
+      related: "**.refs[]"
+  - id: mcp_server
+    title: MCP サーバーの定義
+    paths: ["docs/mcp-server/*.yaml"]
+    exclude: [index.yaml]
+    schema:
+      source: knowledge
+      path: schemas/design/mcp_server.schema.yaml
+      ref: design-schemas/v9.5.0
+    metadata:
+      name: title
+      description: lead
+      visibility: visibility
+      tags: tags[].name
+      main_tags: tags[main].name
+      related: "**.refs[]"
+  - id: launch
+    title: 起動の構成
+    paths: ["docs/launch/*.yaml"]
+    exclude: [index.yaml]
+    schema:
+      source: knowledge
+      path: schemas/design/launch.schema.yaml
+      ref: design-schemas/v9.5.0
+    metadata:
+      name: title
+      description: lead
+      visibility: visibility
+      tags: tags[].name
+      main_tags: tags[main].name
+      related: "**.refs[]"
+  - id: agent_flow
+    title: エージェントフロー
+    paths: ["docs/agent-flow/*.yaml"]
+    exclude: [index.yaml]
+    schema:
+      source: knowledge
+      path: schemas/design/agent_flow.schema.yaml
+      ref: design-schemas/v9.5.0
+    metadata:
+      name: title
+      description: summary
+      visibility: visibility
+      tags: tags
+      related: "**.refs[]"
+  - id: llm_call
+    title: LLM の呼び出し
+    paths: ["docs/llm-call/*.yaml"]
+    exclude: [index.yaml]
+    schema:
+      source: knowledge
+      path: schemas/design/llm_call.schema.yaml
+      ref: design-schemas/v9.5.0
+    metadata:
+      name: title
+      description: lead
+      visibility: visibility
+      tags: tags[].name
+      main_tags: tags[main].name
+      related: "**.refs[]"
+  - id: evaluation
+    title: 精度評価のスイート
+    paths: ["docs/evaluation/**/*.yaml"]
+    exclude: [index.yaml, "**/criteria/*.yaml", "**/cases/*.yaml"]
+    schema:
+      source: knowledge
+      path: schemas/design/evaluation.schema.yaml
+      ref: design-schemas/v9.5.0
+    metadata:
+      name: title
+      description: lead
+      visibility: visibility
+      tags: tags[].name
+      main_tags: tags[main].name
+      related: "**.refs[]"
+  - id: eval_criterion
+    title: 精度評価の観点
+    paths: ["docs/evaluation/**/criteria/*.yaml"]
+    exclude: [index.yaml]
+    schema:
+      source: knowledge
+      path: schemas/design/eval_criterion.schema.yaml
+      ref: design-schemas/v9.5.0
+    metadata:
+      name: title
+      visibility: visibility
+      tags: tags
+  - id: eval_case
+    title: 精度評価のケース
+    paths: ["docs/evaluation/**/cases/*.yaml"]
+    exclude: [index.yaml]
+    schema:
+      source: knowledge
+      path: schemas/design/eval_case.schema.yaml
+      ref: design-schemas/v9.5.0
+    metadata:
+      name: summary
+      visibility: visibility
+      tags: tags
 nav:
   tabs:
     - title: はじめに

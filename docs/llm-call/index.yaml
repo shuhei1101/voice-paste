@@ -1,0 +1,4 @@
+summary: LLM・文字起こしのモデルを 1 回呼ぶ処理の設計書
+items:
+- page: LLM-1.yaml
+  summary: 録音を OpenAI API で文字に起こす

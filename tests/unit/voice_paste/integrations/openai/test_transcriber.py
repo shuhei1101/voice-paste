@@ -309,10 +309,15 @@ def test_transcribe_when_keywords_model(
     assert dict(parts)["model"] == KEYWORDS_MODEL.encode()
 
 
-def test_transcribe_when_no_timeout(
+def test_transcribe_when_timeout(
     audio_path: Path, make_transcriber: Callable[[FakeEndpoint], Any]
 ) -> None:
-    """待つ時間の上限を設けずに送信する（正常系）。"""
+    """待つ上限を OPENAI_TIMEOUT_SEC、接続の上限を OPENAI_CONNECT_TIMEOUT_SEC にして送信する（正常系）。"""
+    from voice_paste.integrations.openai.transcriber import (
+        OPENAI_CONNECT_TIMEOUT_SEC,
+        OPENAI_TIMEOUT_SEC,
+    )
+
     # 準備
     endpoint = FakeEndpoint(_ok("今日は晴れ"))
     transcriber = make_transcriber(endpoint)
@@ -320,12 +325,12 @@ def test_transcribe_when_no_timeout(
     # 実行
     transcriber.transcribe(audio_path)
 
-    # 検証: httpx の既定の 5 秒が掛かっていない
+    # 検証: 接続だけ公式の SDK の既定の 5 秒、ほかは 600 秒
     assert endpoint.requests[0].extensions["timeout"] == {
-        "connect": None,
-        "read": None,
-        "write": None,
-        "pool": None,
+        "connect": OPENAI_CONNECT_TIMEOUT_SEC,
+        "read": OPENAI_TIMEOUT_SEC,
+        "write": OPENAI_TIMEOUT_SEC,
+        "pool": OPENAI_TIMEOUT_SEC,
     }
 
 
@@ -408,3 +413,23 @@ def test_build_form_when_previous_model(make_transcriber: Callable[..., Any]) ->
 
     # 検証: languages[]・keywords[] は入らない
     assert form == {"language": "ja", "prompt": HINT}
+
+
+def test_build_form_when_prompt_broken(
+    make_transcriber: Callable[..., Any], monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """プロンプトを描けなければ EngineError（異常系）。"""
+    from voice_paste.integrations.openai import transcriber as transcriber_module
+    from voice_paste.shared.errors import PromptError
+
+    # 準備: render_prompt が PromptError を送出する
+    def broken(prompt_id: str, values: Any) -> str:
+        raise PromptError(f"プロンプトを描けない（{prompt_id}）")
+
+    monkeypatch.setattr(transcriber_module, "render_prompt", broken)
+    transcriber = make_transcriber(FakeEndpoint(), "gpt-4o-mini-transcribe")
+
+    # 実行・検証: 原因に PromptError がつながっている
+    with pytest.raises(EngineError, match="プロンプト") as raised:
+        transcriber._build_form("voice-paste")
+    assert isinstance(raised.value.__cause__, PromptError)

@@ -642,6 +642,15 @@ files:
     related:
       - to: MOD-48
         type: implements
+  - path: voice_paste/shared/prompts.py
+    description: "プロンプトファイルを読み込み、変数を入れて注入する本文を描く処理を受け持ち、LLM の呼び出しのプロンプトの描き方を変えるときに参照する。"
+    tags:
+      - topic:プロンプト
+      - topic:llm
+      - tool:jinja2
+    related:
+      - to: MOD-105
+        type: implements
   - path: voice_paste/shared/yaml_document.py
     description: "コメントを保った YAML の読み書きと、キーの追加・削除・レイヤーの重ね合わせを受け持ち、設定ファイルの読み書きを変えるときに参照する。"
     tags:

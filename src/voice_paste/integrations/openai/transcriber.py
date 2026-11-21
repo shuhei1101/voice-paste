@@ -12,11 +12,21 @@ from typing import NoReturn
 import httpx
 from pydantic import SecretStr
 
-from voice_paste.shared.errors import EngineError
+from voice_paste.shared.errors import EngineError, PromptError
+from voice_paste.shared.prompts import render_prompt
 from voice_paste.shared.settings import HINT_SEPARATOR, OpenAISettings
 from voice_paste.shared.types import ProgressFn
 
 logger = logging.getLogger(__name__)
+
+OPENAI_TIMEOUT_SEC: float = 600.0
+"""1 回の送信で読み込み・書き込み・接続のプールからの取得のそれぞれを待つ上限（公式の SDK の既定と同じ）。"""
+
+OPENAI_CONNECT_TIMEOUT_SEC: float = 5.0
+"""1 回の送信で接続を待つ上限（公式の SDK の既定と同じ）。"""
+
+OPENAI_PROMPT_ID: str = "openai-transcribe"
+"""keywords[] を受けないモデルへ prompt で渡す手がかりのプロンプトファイルの ID。"""
 
 OPENAI_MAX_RETRIES: int = 2
 """429・5xx・タイムアウト・接続できないときに送信し直す上限（最初の 1 回を含まない）。"""
@@ -102,9 +112,10 @@ class OpenAITranscriber:
 
         started = time.perf_counter()
         attempt = 0
-        # アプリ側では待つ時間の上限を設けない（省くと httpx の既定の 5 秒が掛かるため None を明示する）
+        # 待つ上限は公式の SDK の既定にそろえる（省くと httpx の既定の 5 秒が掛かる）
+        timeout = httpx.Timeout(OPENAI_TIMEOUT_SEC, connect=OPENAI_CONNECT_TIMEOUT_SEC)
         with httpx.Client(
-            timeout=None, follow_redirects=False, transport=self._transport
+            timeout=timeout, follow_redirects=False, transport=self._transport
         ) as client:
             while True:
                 try:
@@ -153,10 +164,14 @@ class OpenAITranscriber:
                 if keywords:
                     form["keywords[]"] = keywords
             return form
-        # 受けない: 言語は language、手がかりがあれば prompt にそのまま入れる
+        # 受けない: 言語は language、手がかりがあればプロンプトファイルで描いた本文を prompt に入れる
         form = {"language": self._settings.language}
         if hint is not None:
-            form["prompt"] = hint
+            try:
+                form["prompt"] = render_prompt(OPENAI_PROMPT_ID, {"hint": hint})
+            except PromptError as error:
+                logger.error(f"OpenAI API のプロンプトを描けなかった（{OPENAI_PROMPT_ID}）")
+                raise EngineError("OpenAI API のプロンプトを描けません") from error
         return form
 
     @staticmethod

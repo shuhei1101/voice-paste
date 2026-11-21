@@ -1,0 +1,95 @@
+id: MOD-105
+visibility: internal
+title: 常駐アプリ / 共通 / prompts.py
+lead: content/prompts/ のプロンプトファイルを読み込み、変数を入れて注入する本文を描く処理を受け持ち、LLM の呼び出しのプロンプトの描き方を変えるときに参照する。
+test_files:
+  - tests/unit/voice_paste/shared/test_prompts.py
+functions:
+  - name: render_prompt
+    title: プロンプトの描画
+    kind: 関数
+    container: shared/prompts.py
+    usecase: 録音を文字に起こす
+    scope: public
+    summary: プロンプトファイルを ID で読み込み、使用する部品の注入する言語の本文に変数を入れて、改行でつないだ本文を返却する
+    args:
+      - name: prompt_id
+        type: str
+        required: true
+        passing: positional
+        description: プロンプトファイルの ID（PROMPTS_DIR からのパスから .yaml を除いたもの）
+      - name: values
+        type: Mapping[str, object]
+        required: true
+        passing: positional
+        description: 変数名 → 値
+    returns:
+      type: str
+      description: 使用する部品の本文を並び順に改行でつないだ文字列
+    exceptions:
+      - name: PromptError
+        condition: ファイルが無い・読み込めない・部品が注入する言語の本文を持たない・本文が values に無い変数を使用する
+    process: |-
+      1. `PROMPTS_DIR / f"{prompt_id}.yaml"` が無ければ PromptError を送出する
+      2. read_yaml_mapping で読み込む
+         - SettingsError・OSError の場合、PromptError を送出する（`raise ... from`）
+      3. jinja2.Environment（undefined=StrictUndefined・autoescape=False）を作る
+      4. parts を並び順に確認し、when があればその式を values で描いた結果が空・`False` でない部品だけを使用する
+      5. 使用する部品ごとに、texts からトップレベルの lang と同じ lang の本文を選び、values で描く
+         - 選べない場合と jinja2.TemplateError（未定義の変数を含む）の場合、PromptError を送出する（理由にプロンプトの ID と部品の ID を含める）
+      6. 描いた本文を改行でつないで返却する
+    unit_tests:
+      - name: test_render_prompt
+        case: 正常
+        summary: 変数を入れた本文を返却する
+        condition: 'prompt_id="openai-transcribe"・values={"hint": "voice-paste、Whisper"}'
+        mock: なし
+        expected: '"voice-paste、Whisper" が返る'
+      - name: test_render_prompt_when_part_skipped
+        case: 正常
+        summary: when が偽の部品を使用しない
+        condition: 'when が "{{ flag }}" の部品を持つ一時のプロンプトファイル・values={"flag": False}'
+        mock: PROMPTS_DIR（一時フォルダ）
+        expected: その部品の本文が含まれない
+      - name: test_render_prompt_when_missing
+        case: 異常
+        summary: ファイルが無ければ PromptError
+        condition: prompt_id="missing"
+        mock: PROMPTS_DIR（一時フォルダ）
+        expected: PromptError
+        exception: ファイルが無い・読み込めない・部品が注入する言語の本文を持たない・本文が values に無い変数を使用する
+      - name: test_render_prompt_when_undefined_var
+        case: 異常
+        summary: 足りない変数は PromptError
+        condition: prompt_id="openai-transcribe"・values={}
+        mock: なし
+        expected: PromptError。メッセージに openai-transcribe と hint の部品の ID を含む
+        exception: ファイルが無い・読み込めない・部品が注入する言語の本文を持たない・本文が values に無い変数を使用する
+      - name: test_render_prompt_when_lang_missing
+        case: 異常
+        summary: 注入する言語の本文が無い部品は PromptError
+        condition: lang が en で、部品が ja の本文だけを持つ一時のプロンプトファイル
+        mock: PROMPTS_DIR（一時フォルダ）
+        expected: PromptError
+        exception: ファイルが無い・読み込めない・部品が注入する言語の本文を持たない・本文が values に無い変数を使用する
+    refs:
+      - to: MOD-2
+        type: requires
+        when: プロンプトファイルを読み込む read_yaml_mapping の例外を確認するとき。
+      - to: LIB-39
+        type: requires
+        when: 『jinja2』の使い方と制約を確認するとき。
+    status: implemented
+constants:
+  - name: PROMPTS_DIR
+    title: プロンプトファイルのフォルダ
+    container: shared/prompts.py
+    usecase: 録音を文字に起こす
+    summary: プロンプトファイルを配置するリポジトリの直下の content/prompts/
+    value: REPO_ROOT / "content" / "prompts"
+    status: implemented
+tags:
+  - name: topic:プロンプト
+    main: true
+  - name: topic:llm
+  - name: tool:jinja2

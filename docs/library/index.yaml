@@ -76,3 +76,5 @@ items:
     summary: lint で GitHub Actions の workflow のファイルを検査する
   - page: LIB-38.yaml
     summary: ランナーでの全件実行で、テスト 1 件の上限の時間を設ける
+  - page: LIB-39.yaml
+    summary: プロンプトファイルの部品の本文に変数を入れて描く

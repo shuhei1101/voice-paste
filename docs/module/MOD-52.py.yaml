@@ -35,6 +35,7 @@ classes:
       | `StartupError` | 起動に失敗した（エンジンを準備できない・前のプロセスが排他を放さない） | - |
       | `HotkeyError` | ホットキーの書式を pynput が読み込めない | - |
       | `GlossaryReadError` | 用語集の CSV を読み込めない（開けない・UTF-8 でない・見出しの列が無い・csv が解釈できない。メッセージが設定画面に出す理由になる） | - |
+      | `PromptError` | プロンプトファイルを描けない（ファイルが無い・読み込めない・注入する言語の本文が無い・変数が足りない。呼び出し側が自分の例外に変える） | - |
 
       全ての例外は docstring だけを持つクラス（`SettingsError` の `paths` を除く）で `shared/errors.py` に配置し、親は表に書き込まない限り `AppError`。
     status: implemented

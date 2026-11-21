@@ -1,0 +1,43 @@
+id: LIB-39
+visibility: internal
+title: jinja2
+kind: ライブラリ
+lead: テンプレートに値を入れて文字列を描くライブラリ。
+version:
+  current: 3.1.6
+  latest: 3.1.6
+  checked_on: '2026-11-21'
+  source: PyPI の最新版
+  pinning: マイナーバージョンの中で固定（~=3.1.6）
+catalogs:
+  - name: API
+    version: 3.1.6
+    entries:
+      - name: Environment
+        kind: クラス
+        purpose: StrictUndefined・autoescape=False でプロンプトの部品の本文と when を描く環境を作る
+      - name: StrictUndefined
+        kind: クラス
+        purpose: values に無い変数を本文が使用したら描画で例外にする
+      - name: Environment.from_string
+        kind: メソッド
+        purpose: 部品の本文と when を描くテンプレートにする
+      - name: TemplateError
+        kind: 例外
+        purpose: 描けない本文・未定義の変数で送出される（PromptError に変える）
+purl: pkg:pypi/jinja2
+dependency_scope: 必須
+adoption: 採用
+used_in:
+  - src/voice_paste/shared/prompts.py
+upstream: pallets/jinja
+verification:
+  state: 未確認
+  detail: 実装の工程で、StrictUndefined の環境で未定義の変数が UndefinedError（TemplateError の子）になることを単体テストで確認する
+license: BSD-3-Clause（商用利用可）
+official_url: https://github.com/pallets/jinja
+docs_url: https://jinja.palletsprojects.com/
+tags:
+  - name: tool:jinja2
+    main: true
+  - name: topic:プロンプト

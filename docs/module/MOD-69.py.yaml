@@ -231,7 +231,7 @@ classes:
             mock: render_prompt
             expected: EngineError が送出され、原因に PromptError がつながっている
             exception: プロンプトファイルを描けない
-        status: planned
+        status: implemented
     refs:
       - to: API-2
         type: references
@@ -253,7 +253,7 @@ classes:
         item: "requirements[OpenAIへ送信する音声の上限]"
         type: requires
         when: "『非機能要件』の要件「OpenAIへ送信する音声の上限」の決定値を確認するとき。"
-    status: planned
+    status: implemented
 constants:
   - name: OPENAI_TIMEOUT_SEC
     title: OpenAI API を待つ上限
@@ -261,70 +261,70 @@ constants:
     usecase: 録音を文字に起こす
     summary: 1 回の送信で読み込み・書き込み・接続のプールからの取得のそれぞれを待つ上限（秒）。OpenAI の公式の SDK の既定と同じ値
     value: '600.0'
-    status: planned
+    status: implemented
   - name: OPENAI_CONNECT_TIMEOUT_SEC
     title: OpenAI API へ接続するのを待つ上限
     container: integrations/openai/transcriber.py
     usecase: 録音を文字に起こす
     summary: 1 回の送信で接続を待つ上限（秒）。OpenAI の公式の SDK の既定と同じ値
     value: '5.0'
-    status: planned
+    status: implemented
   - name: OPENAI_PROMPT_ID
     title: 手がかりのプロンプトの ID
     container: integrations/openai/transcriber.py
     usecase: 録音を文字に起こす
     summary: keywords[] を受けないモデルへ prompt で指定する手がかりのプロンプトファイルの ID
     value: '"openai-transcribe"'
-    status: planned
+    status: implemented
   - name: OPENAI_MAX_RETRIES
     title: OpenAI API へ送信し直す回数
     container: integrations/openai/transcriber.py
     usecase: 録音を文字に起こす
     summary: 429・5xx・タイムアウト・接続できないときに送信し直す上限（最初の 1 回を含まない）
     value: '2'
-    status: planned
+    status: implemented
   - name: OPENAI_RETRY_BASE_SEC
     title: 送信し直しの待ちの基数
     container: integrations/openai/transcriber.py
     usecase: 録音を文字に起こす
     summary: 指数バックオフの基数。n 回目の待ちは 0 から基数 × 2^n の間の一様な乱数
     value: '0.5'
-    status: planned
+    status: implemented
   - name: OPENAI_RETRY_MAX_SEC
     title: 送信し直しの待ちの上限
     container: integrations/openai/transcriber.py
     usecase: 録音を文字に起こす
     summary: 送信し直す前に待つ秒数の上限（Retry-After にもかける）
     value: '8.0'
-    status: planned
+    status: implemented
   - name: OPENAI_MAX_AUDIO_BYTES
     title: OpenAI API へ送信できる音声の大きさ
     container: integrations/openai/transcriber.py
     usecase: 録音を文字に起こす
     summary: 送信する前に確認する音声の上限（25 MB から要求の本文の固定の消費分を差し引いた値。非機能要件の OpenAIへ送信する音声の上限）
     value: '26_204_569'
-    status: planned
+    status: implemented
   - name: OPENAI_AUDIO_SUFFIXES
     title: OpenAI API が受ける音声の拡張子
     container: integrations/openai/transcriber.py
     usecase: 録音を文字に起こす
     summary: 送信する前に確認する拡張子（公式のリファレンスの file の形式）
     value: frozenset({".mp3", ".mp4", ".mpeg", ".mpga", ".m4a", ".wav", ".webm"})
-    status: planned
+    status: implemented
   - name: OPENAI_KEYWORDS_MODEL_PREFIX
     title: keywords[] と languages[] で渡すモデルの名前の頭
     container: integrations/openai/transcriber.py
     usecase: 録音を文字に起こす
     summary: 設定のモデルの名前がこれで始まれば、手がかりを keywords[]、言語を languages[] で引き渡す（スナップショットの名前も含める）
     value: '"gpt-transcribe"'
-    status: planned
+    status: implemented
   - name: OPENAI_KEYWORD_FORBIDDEN_CHARS
     title: keywords[] に入れられない文字
     container: integrations/openai/transcriber.py
     usecase: 録音を文字に起こす
     summary: 含むと OpenAI API が要求ごと拒む文字。改行は手がかりの単語に入らない（HINT_WORD_FORBIDDEN_CHARS）ため持たない
     value: ("<", ">")
-    status: planned
+    status: implemented
 aliases:
   - OpenAITranscriber
 lead: 録音を OpenAI API の文字起こしへ送信し、一時的な失敗を再送する処理を受け持ち、OpenAI での文字起こしを変えるときに参照する。

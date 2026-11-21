@@ -8,22 +8,48 @@ docs:
   - page: dev-docs.yaml
     new: false
     change: documents[] に llm_call などの種類の行を、shuhei1101/ai-monitor の反映作業『配布先の配信元の設定への種類の行の追加』の実行スクリプトで追加する
-    status: todo
+    status: done
+    updated_by: planner
+    updated_at: '2026-11-21T09:22:08.817938+00:00'
   - page: docs/llm-call/LLM-1.yaml
     new: true
     change: OpenAI API の文字起こしの LLM の呼び出しの設計書を template-llm-call に沿って作成する
-    status: todo
+    status: done
+    updated_by: planner
+    updated_at: '2026-11-21T09:22:08.817938+00:00'
   - page: docs/llm-call/index.yaml
     new: true
     change: docs/llm-call/ の目次を作成する
-    status: todo
+    status: done
+    updated_by: planner
+    updated_at: '2026-11-21T09:22:08.817938+00:00'
   - page: docs/index.yaml
     new: false
     change: llm-call/ の行を追加する
-    status: todo
+    status: done
+    updated_by: planner
+    updated_at: '2026-11-21T09:22:08.817938+00:00'
   - page: docs/layout/LAY-1.yaml
     new: false
-    change: docs/llm-call/ のエントリを追加する
+    change: docs/llm-call/ と content/prompts/ のエントリと、中身の種類 prompt を追加する
+    status: done
+    updated_by: planner
+    updated_at: '2026-11-21T09:22:08.817938+00:00'
+  - page: content/prompts/openai-transcribe.yaml
+    new: true
+    change: keywords[] を受けないモデルへ指定する手がかりの単語のプロンプトファイルを作成する
+    status: done
+    updated_by: planner
+    updated_at: '2026-11-21T09:22:13.084935+00:00'
+  - page: files.yml
+    new: false
+    change: content/prompts/openai-transcribe.yaml の行を追加する
+    status: done
+    updated_by: planner
+    updated_at: '2026-11-21T09:22:13.084935+00:00'
+  - page: docs/nonfunctional/NFR-1.yaml
+    new: false
+    change: OpenAIの文字起こしのタイムアウトと再送の決定値・根拠を、待つ上限の確認の結果（案 A なら 600 秒）に合わせる
     status: todo
 scope_out:
   - item: 'スキルのエージェントフロー（type: skill）の設計書'

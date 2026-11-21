@@ -60,8 +60,10 @@ tasks:
     updated_by: planner
     updated_at: '2026-11-21T09:14:33.338295+00:00'
   - process: エージェントフロー・LLM 呼び出し設計
-    status: todo
+    status: done
     note: 先に dev-docs.yaml へ種類の行を追加してから、docs/llm-call/ に OpenAI API の文字起こしの設計書を作成する。スキルは無いためエージェントフローは作らない
+    updated_by: planner
+    updated_at: '2026-11-21T09:22:00.320135+00:00'
   - process: 精度評価設計
     status: skipped
     reason: 起点 Issue で精度評価は対象外と指定（判定フローチャート『精度評価をするか』でも、モデル・プロンプトを差し替える見込みが無く精度評価をしない）
@@ -79,7 +81,7 @@ tasks:
     updated_at: '2026-11-21T09:14:33.338295+00:00'
   - process: モジュール構成設計
     status: todo
-    note: 設計書と実装が食い違い、transcriber.py を直すときだけ MOD-69 を合わせる。食い違いが無ければ skipped にする
+    note: MOD-69 を、プロンプトファイルを Jinja2 で描いて prompt に指定する処理と、待つ上限（承認確認の結果）に合わせる。jinja2 の外部ライブラリの設計書を追加する
   - process: ドキュメント修正
     status: todo
     note: 更新ドキュメントの行を設計の段で反映し終えたら done にする

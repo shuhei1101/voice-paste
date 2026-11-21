@@ -10,7 +10,7 @@ vars:
     required: true
     description: 有効な手がかりのプリセットの単語を区切り文字でつないだ文字列
     example: voice-paste、Haas、OpenAI
-    source: CFG-1#keys[hint_presets[].words]
+    source: CFG-1#settings[hint_presets[].words]
 output: 起こした文字（応答の JSON の text）
 parts:
   - id: hint

@@ -1,7 +1,7 @@
 id: LLM-1
 title: OpenAI API の文字起こし
 lead: 確定した録音を OpenAI API の文字起こしへ送信し、手がかりの単語を添えて起こした文字を受け取る。
-component: ARCH-1#subsystems[常駐アプリ]
+component: ARCH-1#subsystems[desktop-app]
 type: extract
 model:
   name: gpt-transcribe
@@ -9,7 +9,7 @@ model:
 prompt: openai-transcribe
 inputs:
   - name: hint
-    from: CFG-1#keys[hint_presets[].words]
+    from: CFG-1#settings[hint_presets[].words]
 timeout:
   seconds: 600
   basis: published_spec
@@ -29,7 +29,7 @@ refs:
     when: 待つ上限と再送の値を変えるとき。
 notes:
   出力: 応答の JSON の `text` の前後の空白を除いた文字を 1 区間として返却する。空なら区間を返却しない。
-  手がかりの指定方法: モデルの ID が `gpt-transcribe` で始まるときは、`hint` を単語に分けて `keywords[]`、`language`（取得元は `CFG-1#keys[transcription.openai.language]`）を `languages[]` に指定し、プロンプトは使用しない。それ以外のモデルは、`language` を `language`、プロンプトを描いた本文を `prompt` に指定する。
+  手がかりの指定方法: モデルの ID が `gpt-transcribe` で始まるときは、`hint` を単語に分けて `keywords[]`、`language`（取得元は `CFG-1#settings[transcription.openai.language]`）を `languages[]` に指定し、プロンプトは使用しない。それ以外のモデルは、`language` を `language`、プロンプトを描いた本文を `prompt` に指定する。
 tags:
   - name: topic:llm
     main: true

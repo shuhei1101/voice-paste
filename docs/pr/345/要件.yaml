@@ -21,6 +21,12 @@ use_cases:
     impact: run_only
     detail: 連続録音でない録音の受け取りは変わらないが、届ける本文の組み立てを共有するため壊れないかを確かめる
     depends_on: []
+  - kind: single
+    scenario: docs/scenario/SC-9.yaml
+    impact: changed
+    detail: 区間を区切った順に起こす・区間の文字起こしに失敗のシナリオで、区間の話し始めと話し終わりの時刻を結果に写して起こした文字を届けるへ引き渡す
+    depends_on:
+      - docs/scenario/SC-10.yaml
 docs:
   - page: docs/guide/API.md
     new: false

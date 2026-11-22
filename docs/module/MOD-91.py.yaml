@@ -75,7 +75,8 @@ classes:
       - name: _now
         type: Callable[[], datetime]
         access: 内部 (_)
-        description: 今の時刻（UTC の aware な datetime）を返却する。録音の始めの時刻を決めるときに呼ぶ
+        description: 今の時刻（UTC の aware な datetime）を返却する（コンストラクタのキーワード引数 now。省くと datetime.now(UTC) を返却する関数）。録音の始めの時刻を決めるときに呼ぶ
+        default: datetime.now(UTC) を返却する関数
       - name: _origin
         type: datetime | None
         access: 内部 (_)

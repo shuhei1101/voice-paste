@@ -193,7 +193,9 @@ API から始めた録音の結果を、開始で指定した `callback_url` へ
   "text": "今日の会議は 15 時からです。",
   "error": null,
   "segment_number": null,
-  "segment_count": null
+  "segment_count": null,
+  "started_at": null,
+  "ended_at": null
 }
 ```
 
@@ -207,20 +209,22 @@ API から始めた録音の結果を、開始で指定した `callback_url` へ
 | `error` | str または null | `failed` のときの理由。それ以外は `null` |
 | `segment_number` | int または null | 連続録音の区間の通し番号（1 から 1 ずつ増える）。連続録音の `transcribed` と、区間の `failed` のときだけ入る。それ以外は `null` |
 | `segment_count` | int または null | 連続録音で区切った区間の数（届かなかった区間も含む。区間が無ければ 0）。連続録音の終わり（`completed`・`truncated`、区切りの失敗で止まったときの `failed`）だけに入る。それ以外は `null` |
+| `started_at` | str または null | その区間で話し声と判定した最初の時刻（UTC の ISO 8601。ミリ秒までで末尾は `Z`。区間の前の余白を含まない）。`segment_number` を持つときだけ入る。それ以外は `null` |
+| `ended_at` | str または null | その区間で話し声と判定した最後の時刻（`started_at` と同じ形式。区間の後ろの余白を含まない）。区間の最大の長さで区切った区間は区切った時刻、話し声の途中で完了したときの最後の区間は録音を停止した時刻。`started_at` を持つときだけ入る。それ以外は `null` |
 
 <!-- /table -->
 
-`continuous` を指定しない開始では、`segment_number` と `segment_count` は常に `null` で、それ以外の中身は変わらない。
+`continuous` を指定しない開始では、`segment_number`・`segment_count`・`started_at`・`ended_at` は常に `null` で、それ以外の中身は変わらない。
 
 連続録音では、区間の返送と終わりの返送を、次のように見分ける。
 
-| 返送 | `result` | `segment_number` | `segment_count` |
-| --- | --- | --- | --- |
-| 区間の文字 | `transcribed` | 通し番号 | `null` |
-| 区間の文字起こしの失敗。次の区間へ進む | `failed` | 通し番号 | `null` |
-| 完了による終わり | `completed` | `null` | 区間の数 |
-| 上限での終わり | `truncated` | `null` | 区間の数 |
-| 区切りの失敗で録音が止まった終わり | `failed` | `null` | 区間の数 |
+| 返送 | `result` | `segment_number` | `segment_count` | `started_at`・`ended_at` |
+| --- | --- | --- | --- | --- |
+| 区間の文字 | `transcribed` | 通し番号 | `null` | 区間の時刻 |
+| 区間の文字起こしの失敗。次の区間へ進む | `failed` | 通し番号 | `null` | 区間の時刻 |
+| 完了による終わり | `completed` | `null` | 区間の数 | `null` |
+| 上限での終わり | `truncated` | `null` | 区間の数 | `null` |
+| 区切りの失敗で録音が止まった終わり | `failed` | `null` | 区間の数 | `null` |
 
 区間の返送と終わりの返送の例。
 
@@ -231,7 +235,9 @@ API から始めた録音の結果を、開始で指定した `callback_url` へ
   "text": "今日の会議は 15 時からです。",
   "error": null,
   "segment_number": 1,
-  "segment_count": null
+  "segment_count": null,
+  "started_at": "2026-11-21T12:00:03.120Z",
+  "ended_at": "2026-11-21T12:00:05.480Z"
 }
 ```
 
@@ -242,7 +248,9 @@ API から始めた録音の結果を、開始で指定した `callback_url` へ
   "text": "",
   "error": null,
   "segment_number": null,
-  "segment_count": 3
+  "segment_count": 3,
+  "started_at": null,
+  "ended_at": null
 }
 ```
 

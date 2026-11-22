@@ -31,7 +31,9 @@ docs:
   - page: docs/guide/API.md
     new: false
     change: 連続録音の区間ごとの返送の本文に、話し始めと話し終わりの時刻のキーと、区間の結果でないときの値を追加する
-    status: todo
+    status: done
+    updated_by: planner
+    updated_at: '2026-11-22T02:17:40.042602+00:00'
 scope_out:
   - item: 録音の開始で、用語の補正に使用する用語を呼び出し元が指定できるようにする機能
     reason: 起点 Issue の決定（D-842）で見送った。指定の方法が未検討で、必要と分かったら起票する

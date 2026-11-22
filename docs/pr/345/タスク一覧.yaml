@@ -77,7 +77,9 @@ tasks:
     updated_by: planner
     updated_at: '2026-11-22T01:51:36.786219+00:00'
   - process: モジュール構成設計
-    status: todo
+    status: done
+    updated_by: planner
+    updated_at: '2026-11-22T02:17:17.034078+00:00'
   - process: ドキュメント修正
     status: todo
     note: docs/guide/API.md の区間の返送の本文の説明

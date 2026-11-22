@@ -3,6 +3,8 @@
 from __future__ import annotations
 
 import logging
+from collections.abc import Callable
+from datetime import UTC, datetime, timedelta
 from typing import Literal
 
 import numpy as np
@@ -38,6 +40,11 @@ type SegmentReason = Literal["silence", "max_length", "flush"]
 """区間を区切った理由。"""
 
 
+def _utc_now() -> datetime:
+    """今の時刻を UTC の aware な datetime で返す。"""
+    return datetime.now(UTC)
+
+
 class Segmenter:
     """届いた音を VAD_WINDOW サンプルの窓に組み直し、窓ごとの話し声の確率から区間を切り出して区切った順に渡す。
 
@@ -52,10 +59,14 @@ class Segmenter:
         detect_speech: SpeechProbabilityFn,
         on_segment: OnSegmentFn,
         min_silence_sec: float,
+        now: Callable[[], datetime] = _utc_now,
     ) -> None:
-        """話し声の判定・区間の渡し先・区切る無音の長さ（秒）を受ける。"""
+        """話し声の判定・区間の渡し先・区切る無音の長さ（秒）・今の時刻を返す関数（省くと UTC の今）を受ける。"""
         self._detect_speech = detect_speech
         self._on_segment = on_segment
+        self._now = now
+        # 録音の始め（0 サンプル目）の時刻。最初の feed で決める
+        self._origin: datetime | None = None
         self._min_silence_samples = int(min_silence_sec * SAMPLE_RATE)
         self._pad_samples = int(SEGMENT_PAD_SEC * SAMPLE_RATE)
         self._max_samples = int(MAX_SEGMENT_SEC * SAMPLE_RATE)
@@ -77,12 +88,16 @@ class Segmenter:
 
     def feed(self, block: np.ndarray) -> None:
         """届いた音（int16）を貯め、1 窓ずつ話し声の確率を求めて区切りの状態を進める。"""
-        # 1. 1 次元にして、前の区切り以降の音と、窓に組み直す音に追加する
+        # 1. 1 次元にして、最初の音なら、今からその長さを引いた時刻を録音の始めにする
         samples = np.asarray(block).reshape(-1)
+        if self._origin is None:
+            self._origin = self._now() - timedelta(seconds=samples.size / SAMPLE_RATE)
+
+        # 2. 前の区切り以降の音と、窓に組み直す音に追加する
         self._audio = np.concatenate([self._audio, samples.astype(np.int16)])
         self._pending = np.concatenate([self._pending, samples.astype(np.float32) / INT16_SCALE])
 
-        # 2. 窓に満たなくなるまで、先頭の 1 窓ずつ判定して状態を進める
+        # 3. 窓に満たなくなるまで、先頭の 1 窓ずつ判定して状態を進める
         while self._pending.size >= VAD_WINDOW:
             window = self._pending[:VAD_WINDOW]
             self._pending = self._pending[VAD_WINDOW:]
@@ -94,7 +109,10 @@ class Segmenter:
         """話し声の途中なら、そこまでを最後の区間として渡す（窓に満たない末尾の音も含める）。"""
         if not self._triggered:
             return
-        self._emit(self._audio_start + self._audio.size, "flush")
+        # 話し終えた後の無音の途中なら無音の始まり、話し声の途中なら届いた音の末尾を話し声の終わりにする
+        end = self._audio_start + self._audio.size
+        speech_end = self._temp_end or end
+        self._emit(end, "flush", speech_end)
         self._triggered = False
 
     def _discard_idle_audio(self) -> None:
@@ -130,7 +148,7 @@ class Segmenter:
         if position + VAD_WINDOW - self._speech_start > self._max_samples:
             has_short_silence = self._last_short_silence > self._speech_start
             cut = self._last_short_silence if has_short_silence else position
-            self._emit(cut, "max_length")
+            self._emit(cut, "max_length", cut)
             self._speech_start = cut
             self._last_short_silence = 0
             self._temp_end = 0
@@ -146,13 +164,13 @@ class Segmenter:
                 self._last_short_silence = self._temp_end + silence_samples // 2
             # 区切る無音の長さに達したら、無音の始まりの余白の後ろで区切る
             if silence_samples >= self._min_silence_samples:
-                self._emit(self._temp_end + self._pad_samples, "silence")
+                self._emit(self._temp_end + self._pad_samples, "silence", self._temp_end)
                 self._triggered = False
                 self._temp_end = 0
                 self._last_short_silence = 0
 
-    def _emit(self, cut: int, reason: SegmentReason) -> None:
-        """前の区切り（か話し声の始まり − 余白の遅い方）から cut までを区間にして渡し、cut より前の音を手放す。"""
+    def _emit(self, cut: int, reason: SegmentReason, speech_end: int) -> None:
+        """前の区切り（か話し声の始まり − 余白の遅い方）から cut までを、話し声の始まりと speech_end の時刻を付けた区間にして渡し、cut より前の音を手放す。"""
         # 1. 区間の始まりを決め、貯めた音から切り出す
         start = max(self._previous_cut, self._speech_start - self._pad_samples)
         samples = self._audio[start - self._audio_start : cut - self._audio_start].copy()
@@ -160,11 +178,23 @@ class Segmenter:
             samples=samples, sample_rate=SAMPLE_RATE, duration_sec=samples.size / SAMPLE_RATE
         )
 
-        # 2. 区間を渡す
+        # 2. 話し声の始まりと終わりを時刻にして、区間を渡す
+        segment = Segment(
+            recording=recording,
+            reason=reason,
+            started_at=self._time_at(self._speech_start),
+            ended_at=self._time_at(speech_end),
+        )
         logger.info(f"区間を区切った（{reason}・{recording.duration_sec:.1f} 秒）")
-        self._on_segment(Segment(recording=recording, reason=reason))
+        self._on_segment(segment)
 
         # 3. cut を前の区切りにして、それより前の音を手放す
         self._previous_cut = cut
         self._audio = self._audio[cut - self._audio_start :]
         self._audio_start = cut
+
+    def _time_at(self, position: int) -> datetime:
+        """録音の始めから position サンプル目の時刻を返す。区間は feed の後にだけ区切るので、録音の始めは決まっている。"""
+        if self._origin is None:
+            raise RuntimeError("音を受ける前に区間の時刻を求めました")
+        return self._origin + timedelta(seconds=position / SAMPLE_RATE)

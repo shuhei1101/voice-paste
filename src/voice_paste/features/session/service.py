@@ -688,6 +688,8 @@ class SessionManager:
                     text=corrected,
                     error=None,
                     segment_number=number,
+                    started_at=segment.started_at,
+                    ended_at=segment.ended_at,
                 )
             except Exception as error:  # noqa: BLE001 どの失敗もこの区間の failed として返し、次の区間へ進むため
                 logger.exception(f"区間の文字起こしに失敗した（{session.id}・{number}）")
@@ -697,6 +699,8 @@ class SessionManager:
                     text="",
                     error=str(error),
                     segment_number=number,
+                    started_at=segment.started_at,
+                    ended_at=segment.ended_at,
                 )
 
             # 4. 届ける（結果が空でも届ける。届けられなければログに書いて次の区間へ進む）

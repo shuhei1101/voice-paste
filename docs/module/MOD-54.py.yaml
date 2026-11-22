@@ -140,7 +140,7 @@ data_models:
     container: features/outputs/types.py
     usecase: 起こした文字を届ける
     role: スキーマ
-    summary: 呼び出し元へ返却するが送信する JSON。送信する内容に、連続録音の区間の通し番号と区間の数を追加する
+    summary: 呼び出し元へ返却するが送信する JSON。送信する内容に、連続録音の区間の通し番号・区間の数・区間の話し始めと話し終わりの時刻を追加する
     description: 設定のエンドポイントへ送信する中身（ResultPayload）は変えないため、呼び出し元へ返却するときだけこの子を使用する。
     inherits: ResultPayload
     properties:
@@ -153,6 +153,12 @@ data_models:
       - name: segment_count
         type: int | None
         description: 連続録音の終わり（completed・truncated）の区間の数。それ以外は None
+      - name: started_at
+        type: datetime | None
+        description: 連続録音の区間の話し始めの時刻。それ以外は None。field_serializer で UTC の ISO 8601（ミリ秒までで末尾は Z。例 2026-11-21T12:00:03.120Z）にして送信する
+      - name: ended_at
+        type: datetime | None
+        description: 連続録音の区間の話し終わりの時刻。それ以外は None。started_at と同じ形式で送信する
     methods:
       - name: from_outcome
         title: 結果から作る
@@ -166,20 +172,26 @@ data_models:
             description: 届ける結果
         returns:
           type: CallbackPayload
-          description: outcome の session_id・result・text・error・segment_number・segment_count をコピーした内容
+          description: outcome の session_id・result・text・error・segment_number・segment_count・started_at・ended_at をコピーした内容
         unit_tests:
           - name: test_callback_payload_from_outcome
             case: 正常
             summary: 区間の結果をコピーする
             condition: session_id が s1・result が transcribed・text が「テスト」・segment_number が 2 の outcome
             mock: なし
-            expected: 'model_dump() が {session_id: s1, result: transcribed, text: テスト, error: None, segment_number: 2, segment_count: None}'
+            expected: 'model_dump() が {session_id: s1, result: transcribed, text: テスト, error: None, segment_number: 2, segment_count: None, started_at: None, ended_at: None}'
           - name: test_callback_payload_from_outcome_when_single
             case: 正常
             summary: 1 回の録音の結果は通し番号と区間の数が None
             condition: segment_number・segment_count を持たない transcribed の outcome
             mock: なし
-            expected: segment_number・segment_count が None
+            expected: segment_number・segment_count・started_at・ended_at が None
+          - name: test_callback_payload_serializes_times
+            case: 正常
+            summary: 区間の時刻を UTC の ISO 8601（ミリ秒まで・末尾 Z）で送信する
+            condition: started_at が 2026-11-21T21:00:03.120456+09:00・ended_at が 2026-11-21T12:00:05.48+00:00 の transcribed の outcome
+            mock: なし
+            expected: model_dump(mode="json") の started_at が 2026-11-21T12:00:03.120Z、ended_at が 2026-11-21T12:00:05.480Z
     refs:
       - to: IF-3
         type: requires
@@ -263,3 +275,4 @@ tags:
   - name: topic:型
   - name: topic:プリセット
   - name: topic:コールバック
+  - name: topic:時刻

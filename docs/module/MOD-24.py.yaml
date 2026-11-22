@@ -910,8 +910,8 @@ classes:
           1. 区間の音を保存する（録音の保存。segment_number に通し番号）
           2. 文字に起こす（文字起こし。進みを通知する関数は None）
           3. 録音セッションの glossary_preset を引き渡して用語集で補正し、区間の録音と同じ履歴に追記する
-          4. result=transcribed・segment_number=通し番号で届ける（結果が空でも届ける）
-             - 1〜3 で例外（TranscriptionError を含む）が出た場合、result=failed・segment_number=通し番号・理由で届ける
+          4. result=transcribed・segment_number=通し番号・started_at・ended_at=区間の時刻で届ける（結果が空でも届ける）
+             - 1〜3 で例外（TranscriptionError を含む）が出た場合、result=failed・segment_number=通し番号・started_at・ended_at=区間の時刻・理由で届ける
                - `[ERROR]` 区間の文字起こしに失敗した（録音セッションの ID・通し番号・理由）
              - 届けるときの例外の場合、ログに書き込んで次の区間へ進む
                - `[ERROR]` 区間を届けられなかった（logger.exception）
@@ -1087,3 +1087,4 @@ tags:
   - name: topic:状態遷移
   - name: action:排他
   - name: action:キャンセル
+  - name: topic:時刻

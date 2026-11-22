@@ -72,6 +72,15 @@ classes:
         access: 内部 (_)
         default: '0'
         description: 前の区切りの位置
+      - name: _now
+        type: Callable[[], datetime]
+        access: 内部 (_)
+        description: 今の時刻（UTC の aware な datetime）を返却する。録音の始めの時刻を決めるときに呼ぶ
+      - name: _origin
+        type: datetime | None
+        access: 内部 (_)
+        default: None
+        description: 録音の始め（0 サンプル目）の時刻。最初の feed で決め、それまでは None
     methods:
       - name: feed
         title: 音を流す
@@ -87,9 +96,10 @@ classes:
           type: None
           description: なし
         process: |-
-          1. block を 1 次元にして _audio に追加し、INT16_SCALE で割った float32 を _pending に追加する
-          2. _pending が VAD_WINDOW 以上ある間、先頭の 1 窓を取り出して話し声の確率を求め、_step で状態を進めて _position を VAD_WINDOW 進める
-          3. 1 窓進めるたびに _discard_idle_audio で話し声の無い間の音を手放す
+          1. 最初の feed なら、_now() から block の長さ（block のサンプル数 ÷ SAMPLE_RATE 秒）を差し引いた時刻を _origin にする（block の先頭が録音の始め）
+          2. block を 1 次元にして _audio に追加し、INT16_SCALE で割った float32 を _pending に追加する
+          3. _pending が VAD_WINDOW 以上ある間、先頭の 1 窓を取り出して話し声の確率を求め、_step で状態を進めて _position を VAD_WINDOW 進める
+          4. 1 窓進めるたびに _discard_idle_audio で話し声の無い間の音を手放す
         unit_tests:
           - name: test_feed_cuts_at_silence
             case: 正常
@@ -145,6 +155,18 @@ classes:
             condition: 確率を 30 秒分 0.0、1 秒分 0.9、続いて 2.5 秒分 0.0 にする。min_silence_sec=2.0。音には位置が分かる連番の値を入れる
             mock: detect_speech・on_segment
             expected: on_segment に reason=silence の区間が 1 つ渡り、長さが「SEGMENT_PAD_SEC + 1 秒 + SEGMENT_PAD_SEC」に 1 窓の誤差で合い、話し声の窓の値が全て区間に含まれる
+          - name: test_feed_sets_segment_times
+            case: 正常
+            summary: 区間に話し声の最初と最後の時刻を付ける
+            condition: now が 2026-11-21T12:00:00Z を返却する。確率を 0.5 秒分 0.0、1 秒分 0.9、続いて 2.5 秒分 0.0 にする。min_silence_sec=2.0。最初の feed は 1024 フレーム
+            mock: detect_speech・on_segment・now
+            expected: reason=silence の区間の started_at が「12:00:00 − 1024 / 16000 秒 + 0.5 秒」、ended_at が「started_at + 1 秒」に 1 窓の誤差で合い、どちらも余白を含まない
+          - name: test_feed_sets_times_at_max_length
+            case: 正常
+            summary: 最大の長さで区切った区間の話し終わりと次の区間の話し始めが区切った位置で一致する
+            condition: 確率を常に 0.9 にして MAX_SEGMENT_SEC + 1 秒分を feed してから flush
+            mock: detect_speech・on_segment・now
+            expected: reason=max_length の区間の ended_at と、続く reason=flush の区間の started_at が等しい
       - name: flush
         title: 残りを区切る
         kind: メソッド
@@ -155,7 +177,7 @@ classes:
           description: なし
         process: |-
           1. 窓に満たない末尾の音も判定せずに区間に含める
-          2. 話し声の途中なら、前の区切りから末尾までを reason=flush の区間として引き渡す
+          2. 話し声の途中なら、前の区切りから末尾までを reason=flush の区間として引き渡す。話し声の終わりは、無音の候補が続いている（_temp_end が 0 でない）なら _temp_end、それ以外は末尾の位置にする
              - 話し声の途中でなければ何も引き渡さない
         unit_tests:
           - name: test_flush_when_speaking
@@ -176,6 +198,18 @@ classes:
             condition: 区切った直後に flush
             mock: detect_speech・on_segment
             expected: flush では on_segment が呼ばれない
+          - name: test_flush_sets_speech_end_when_silent
+            case: 正常
+            summary: 話し終えた後の無音の間に止めたら、話し声の最後を話し終わりにする
+            condition: 確率 0.9 を 1 秒、0.0 を 1 秒分 feed して flush（min_silence_sec=2.0）
+            mock: detect_speech・on_segment・now
+            expected: reason=flush の区間の ended_at が、無音が始まった位置の時刻で、末尾の無音を含まない
+          - name: test_flush_sets_end_of_audio_when_speaking
+            case: 正常
+            summary: 話し声の途中で止めたら、届いた音の末尾を話し終わりにする
+            condition: 確率 0.9 を 1 秒と、窓に満たない 100 サンプルを feed して flush
+            mock: detect_speech・on_segment・now
+            expected: reason=flush の区間の ended_at が、末尾の 100 サンプルまでを含めた位置の時刻
       - name: _discard_idle_audio
         title: 話し声の無い間の音を手放す
         kind: メソッド
@@ -203,15 +237,15 @@ classes:
         process: |-
           1. 確率が SPEECH_THRESHOLD 以上なら、続いている無音の候補を取り消す。話し声の途中でなければ、ここを話し声の始まりにして終える
           2. 話し声の途中でなければ何もしない
-          3. 話し声の始まりから MAX_SEGMENT_SEC に達したら、直近の短い無音の中ほど（無ければ今の位置）で reason=max_length で区切り、そこを次の話し声の始まりにして終える
+          3. 話し声の始まりから MAX_SEGMENT_SEC に達したら、直近の短い無音の中ほど（無ければ今の位置）で reason=max_length で区切り（話し声の終わりは区切った位置）、そこを次の話し声の始まりにして終える
           4. 確率が NEG_THRESHOLD 未満なら無音の候補として続いた長さを数える
              - SHORT_SILENCE_SEC 以上続いたら、その無音の中ほどを短い無音として記録する
-             - 区切る無音の長さ以上続いたら、無音の始まり + SEGMENT_PAD_SEC で reason=silence で区切り、話し声の途中でなくする
+             - 区切る無音の長さ以上続いたら、無音の始まり + SEGMENT_PAD_SEC で reason=silence で区切り（話し声の終わりは無音の始まり _temp_end）、話し声の途中でなくする
       - name: _emit
         title: 区間を渡す
         kind: メソッド
         scope: internal
-        summary: 前の区切り（か話し声の始まり − SEGMENT_PAD_SEC の遅い方）から区切りまでの音を Segment にして on_segment へ引き渡し、区切りより前の音を手放す
+        summary: 前の区切り（か話し声の始まり − SEGMENT_PAD_SEC の遅い方）から区切りまでの音を、話し声の始まりと終わりの時刻を付けた Segment にして on_segment へ引き渡し、区切りより前の音を手放す
         args:
           - name: cut
             type: int
@@ -221,12 +255,16 @@ classes:
             type: Literal["silence", "max_length", "flush"]
             required: true
             description: 区切った理由
+          - name: speech_end
+            type: int
+            required: true
+            description: 区間の話し声の終わりの位置（録音の始めからのサンプル数。後ろの余白を含まない）
         returns:
           type: None
           description: なし
         process: |-
           1. 区間の始まりを「前の区切り」と「話し声の始まり − SEGMENT_PAD_SEC」の遅い方にし、_audio から始まりから cut までを切り出して Recording（16 kHz）にする
-          2. Segment（recording・reason）を on_segment へ引き渡す
+          2. 話し声の始まり（_speech_start）と speech_end を、_origin に「位置 ÷ SAMPLE_RATE 秒」を加えた時刻にし、Segment（recording・reason・started_at・ended_at）を on_segment へ引き渡す
           3. cut を前の区切りにし、_audio から cut より前を捨てる
              - `[INFO]` 区間を区切った（理由・長さ）
     refs:
@@ -304,3 +342,4 @@ tags:
   - name: topic:無音
   - name: action:分割
   - name: action:判定
+  - name: topic:時刻

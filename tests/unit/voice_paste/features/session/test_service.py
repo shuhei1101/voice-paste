@@ -21,6 +21,8 @@ from tests.unit.voice_paste.features.session.helpers import (
     CALLBACK_URL,
     CONTINUOUS_LIMIT,
     LIMIT,
+    SEGMENT_ENDED_AT,
+    SEGMENT_STARTED_AT,
     START,
     Harness,
     defer_workers,
@@ -1492,6 +1494,17 @@ def test_run_segments_when_transcription_failed(continuous_harness: Harness) -> 
         ("completed", None, 3),
     ]
     assert "二つ目は失敗" in h.deliver.call_args_list[1].args[1].error
+    # 区間の結果（transcribed・failed）は区間の時刻を写し、終わりの結果は時刻を持たない
+    times = [
+        (outcome.started_at, outcome.ended_at)
+        for outcome in (call.args[1] for call in h.deliver.call_args_list)
+    ]
+    assert times == [
+        (SEGMENT_STARTED_AT, SEGMENT_ENDED_AT),
+        (SEGMENT_STARTED_AT, SEGMENT_ENDED_AT),
+        (SEGMENT_STARTED_AT, SEGMENT_ENDED_AT),
+        (None, None),
+    ]
 
 
 def test_run_segments_when_deliver_blocks(continuous_harness: Harness) -> None:

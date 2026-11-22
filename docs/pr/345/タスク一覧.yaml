@@ -81,8 +81,10 @@ tasks:
     updated_by: planner
     updated_at: '2026-11-22T02:17:17.034078+00:00'
   - process: ドキュメント修正
-    status: todo
-    note: docs/guide/API.md の区間の返送の本文の説明
+    status: done
+    note: docs/guide/API.md の区間の返送の本文の説明（モジュール構成設計の工程で反映し、合格済み）
+    updated_by: planner
+    updated_at: '2026-11-22T02:20:17.917148+00:00'
   - process: 単体テスト作成
     status: todo
   - process: 実装

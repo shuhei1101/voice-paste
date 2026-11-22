@@ -7,6 +7,8 @@ API の開始・停止・完了を本物の app へ呼んで、起こした文�
 from __future__ import annotations
 
 import logging
+import re
+from datetime import datetime
 
 import pytest
 
@@ -50,6 +52,8 @@ def test_normal(stack: Stack) -> None:
             "error": None,
             "segment_number": None,
             "segment_count": None,
+            "started_at": None,
+            "ended_at": None,
         }
     ]
 
@@ -72,6 +76,8 @@ def test_normal_when_empty(stack: Stack) -> None:
             "error": None,
             "segment_number": None,
             "segment_count": None,
+            "started_at": None,
+            "ended_at": None,
         }
     ]
 
@@ -114,8 +120,25 @@ def test_normal_when_truncated(stack: Stack) -> None:
             "error": None,
             "segment_number": None,
             "segment_count": None,
+            "started_at": None,
+            "ended_at": None,
         }
     ]
+
+
+TIME_PATTERN = re.compile(r"\A\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z\Z")
+"""区間の時刻の形式（UTC の ISO 8601。ミリ秒までで末尾は Z）。"""
+
+
+def _times(payload: dict[str, object]) -> tuple[datetime, datetime]:
+    """区間の返送の started_at・ended_at が決めた形式であることを確かめ、datetime にして返す。"""
+    started_at = payload["started_at"]
+    ended_at = payload["ended_at"]
+    assert isinstance(started_at, str)
+    assert isinstance(ended_at, str)
+    assert TIME_PATTERN.match(started_at)
+    assert TIME_PATTERN.match(ended_at)
+    return datetime.fromisoformat(started_at), datetime.fromisoformat(ended_at)
 
 
 def _rows(stack: Stack) -> list[tuple[str, int | None, int | None]]:
@@ -139,6 +162,11 @@ def test_normal_when_continuous_segment(stack: Stack) -> None:
     assert stack.wait_for_received(2)
     assert _rows(stack) == [("transcribed", 1, None), ("transcribed", 2, None)]
     assert [payload["text"] for payload in stack.receiver.received] == ["てすと", "てすと"]
+    first_start, first_end = _times(stack.receiver.received[0])
+    second_start, second_end = _times(stack.receiver.received[1])
+    assert first_start < first_end
+    assert second_start < second_end
+    assert first_end <= second_start
     assert stack.state() == "recording"
 
 
@@ -162,6 +190,8 @@ def test_normal_when_continuous_segment_failed(stack: Stack) -> None:
     failed = stack.receiver.received[1]
     assert failed["text"] == ""
     assert "失敗" in failed["error"]
+    failed_start, failed_end = _times(failed)
+    assert failed_start < failed_end
     assert stack.state() == "recording"
 
 
@@ -185,6 +215,8 @@ def test_normal_when_continuous_completed(stack: Stack) -> None:
     ]
     assert stack.receiver.received[2]["session_id"] == session_id
     assert stack.receiver.received[2]["text"] == ""
+    assert stack.receiver.received[2]["started_at"] is None
+    assert stack.receiver.received[2]["ended_at"] is None
 
 
 def test_normal_when_continuous_segmenter_failed(stack: Stack) -> None:

@@ -418,7 +418,7 @@ classes:
           description: なし
         process: |-
           1. start と同じく、録音中なら RuntimeError を送出し、設定を読み込んで音量を下げ、画面の消灯を抑止する
-          2. 新しい話し声の判定（_create_speech_detector）と on_segment・min_silence_sec で Segmenter を作り、音の待ち行列を空で作る
+          2. 新しい話し声の判定（_create_speech_detector）と on_segment・min_silence_sec で Segmenter を作り（時刻は Segmenter の既定の now を使用する）、音の待ち行列を空で作る
           3. 区切りのスレッドを始める（待ち行列から音を取り出して Segmenter.feed へ引き渡し、終わりのマーカーで Segmenter.flush を呼んで終える。捨てるマーカーでは flush せずに終える）
              - feed・flush の例外の場合、そこで連続録音を終える。入力を閉じて音量と抑止を戻し（_close。入力は待ち行列へ積めなくなり、音は貯まらない）、待ち行列を空にして、on_failed に理由を引き渡してスレッドを終える（それまでに引き渡した区間はそのまま）
                - `[ERROR]` 連続録音の区切りに失敗したため録音を止めた（logger.exception）

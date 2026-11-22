@@ -150,6 +150,8 @@ def test_deliver_to_caller() -> None:
             "error": None,
             "segment_number": None,
             "segment_count": None,
+            "started_at": None,
+            "ended_at": None,
         },
     )
     sleep.assert_not_called()
@@ -175,6 +177,8 @@ def test_deliver_to_caller_when_segment() -> None:
             "error": None,
             "segment_number": 3,
             "segment_count": None,
+            "started_at": None,
+            "ended_at": None,
         },
     )
 

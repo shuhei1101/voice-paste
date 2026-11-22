@@ -4,9 +4,10 @@ from __future__ import annotations
 
 from collections.abc import Callable, Mapping
 from dataclasses import dataclass, field
+from datetime import UTC, datetime
 from typing import Literal, Self
 
-from pydantic import BaseModel
+from pydantic import BaseModel, field_serializer
 
 from voice_paste.integrations.http.types import PostJsonFn
 from voice_paste.shared.settings import OutputSettingsBase, Preset, Settings
@@ -121,7 +122,7 @@ class ResultPayload(BaseModel):
 
 
 class CallbackPayload(ResultPayload):
-    """呼び出し元へ返す JSON。ResultPayload に、連続録音の区間の通し番号と区間の数を追加する。
+    """呼び出し元へ返す JSON。ResultPayload に、連続録音の区間の通し番号・区間の数・区間の話し始めと話し終わりの時刻を追加する。
 
     設定のエンドポイントへ送信する内容（ResultPayload）は変えないため、呼び出し元へ返すときだけこの子を使う。
     """
@@ -135,9 +136,20 @@ class CallbackPayload(ResultPayload):
     segment_count: int | None
     """連続録音の終わり（completed・truncated・区切りの失敗の failed）の区間の数。それ以外は None。"""
 
+    started_at: datetime | None
+    """連続録音の区間の話し始めの時刻。それ以外は None。UTC の ISO 8601（ミリ秒までで末尾は Z）にして送信する。"""
+
+    ended_at: datetime | None
+    """連続録音の区間の話し終わりの時刻。それ以外は None。started_at と同じ形式で送信する。"""
+
+    @field_serializer("started_at", "ended_at", when_used="unless-none")
+    def _serialize_time(self, value: datetime) -> str:
+        """時刻を UTC の ISO 8601（ミリ秒までで末尾は Z。例 2026-11-21T12:00:03.120Z）にする。"""
+        return value.astimezone(UTC).isoformat(timespec="milliseconds").replace("+00:00", "Z")
+
     @classmethod
     def from_outcome(cls, outcome: TranscriptionOutcome) -> Self:
-        """結果の session_id・result・text・error・segment_number・segment_count をコピーした中身を作る。"""
+        """結果の session_id・result・text・error・segment_number・segment_count・started_at・ended_at をコピーした中身を作る。"""
         return cls(
             session_id=outcome.session_id,
             result=outcome.result,
@@ -145,4 +157,6 @@ class CallbackPayload(ResultPayload):
             error=outcome.error,
             segment_number=outcome.segment_number,
             segment_count=outcome.segment_count,
+            started_at=outcome.started_at,
+            ended_at=outcome.ended_at,
         )

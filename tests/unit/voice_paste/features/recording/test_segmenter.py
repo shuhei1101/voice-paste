@@ -6,6 +6,7 @@
 
 from __future__ import annotations
 
+from datetime import UTC, datetime, timedelta
 from typing import TYPE_CHECKING
 
 import numpy as np
@@ -37,15 +38,45 @@ PAUSE_END_SAMPLES = 195200
 MAX_SEGMENT_SAMPLES = 320000
 # 1 秒の話し声（31 窓）に、窓に満たない末尾の 100 サンプルを追加したサンプル数
 SPEECH_AND_TAIL_SAMPLES = 15972
+SAMPLE_RATE = 16000
+BLOCK_FRAMES = 1024
+# 偽物の時計が返す、最初の feed の時刻
+FIRST_FEED_AT = datetime(2026, 11, 21, 12, 0, 0, tzinfo=UTC)
+# 1 窓の長さ（時刻の誤差の許容）
+WINDOW_DELTA = timedelta(seconds=WINDOW_SAMPLES / SAMPLE_RATE)
 
 
 def _make_segmenter(
     detector: ScriptedDetector, sink: SegmentSink, *, min_silence_sec: float
 ) -> Segmenter:
-    """偽物の判定と区間の渡し先で Segmenter を作る。"""
+    """偽物の判定と区間の渡し先で Segmenter を作る（時計は既定のまま）。"""
     from voice_paste.features.recording.segmenter import Segmenter
 
     return Segmenter(detect_speech=detector, on_segment=sink, min_silence_sec=min_silence_sec)
+
+
+def _make_timed_segmenter(
+    detector: ScriptedDetector, sink: SegmentSink, *, min_silence_sec: float
+) -> Segmenter:
+    """偽物の判定と区間の渡し先と、常に FIRST_FEED_AT を返す時計で Segmenter を作る。"""
+    from voice_paste.features.recording.segmenter import Segmenter
+
+    return Segmenter(
+        detect_speech=detector,
+        on_segment=sink,
+        min_silence_sec=min_silence_sec,
+        now=lambda: FIRST_FEED_AT,
+    )
+
+
+def _origin() -> datetime:
+    """最初の feed（BLOCK_FRAMES フレーム）の先頭、つまり録音の始めの時刻を返す。"""
+    return FIRST_FEED_AT - timedelta(seconds=BLOCK_FRAMES / SAMPLE_RATE)
+
+
+def _at(samples: int) -> datetime:
+    """録音の始めから samples サンプル目の時刻を返す。"""
+    return _origin() + timedelta(seconds=samples / SAMPLE_RATE)
 
 
 # === feed ===
@@ -155,6 +186,41 @@ def test_feed_does_not_drop_samples() -> None:
     assert shared_values(sink.segments) == set()
 
 
+def test_feed_sets_segment_times() -> None:
+    """区間に話し声の最初と最後の時刻を付ける（正常系）。"""
+    # 準備: 0.5 秒の無音、1 秒の話し声、2.5 秒の無音（区切る長さは 2 秒）。最初の feed は 1024 フレーム
+    phases = [(0.0, windows(0.5)), (0.9, windows(1.0)), (0.0, windows(2.5))]
+    sink = SegmentSink()
+    segmenter = _make_timed_segmenter(ScriptedDetector(phases), sink, min_silence_sec=2.0)
+
+    # 実行
+    feed_all(segmenter, phases_audio(phases))
+
+    # 検証: 話し始めは「録音の始め + 0.5 秒」、話し終わりは「話し始め + 1 秒」に 1 窓の誤差で合い、余白を含まない
+    assert sink.reasons() == ["silence"]
+    segment = sink.segments[0]
+    expected_start = _origin() + timedelta(seconds=0.5)
+    assert abs(segment.started_at - expected_start) <= WINDOW_DELTA
+    assert abs(segment.ended_at - (segment.started_at + timedelta(seconds=1.0))) <= WINDOW_DELTA
+    assert segment.started_at.tzinfo is not None
+
+
+def test_feed_sets_times_at_max_length() -> None:
+    """最大の長さで区切った区間の話し終わりと次の区間の話し始めが区切った位置で一致する（正常系）。"""
+    # 準備: 常に話し声と判定し、最大の長さ（20 秒）より 1 秒長く流す
+    phases = [(0.9, windows(21.0))]
+    sink = SegmentSink()
+    segmenter = _make_timed_segmenter(ScriptedDetector(phases), sink, min_silence_sec=2.0)
+    feed_all(segmenter, phases_audio(phases))
+
+    # 実行
+    segmenter.flush()
+
+    # 検証
+    assert sink.reasons() == ["max_length", "flush"]
+    assert sink.segments[0].ended_at == sink.segments[1].started_at
+
+
 def test_feed_trims_audio_when_silence_only() -> None:
     """話し声を含まない間は、貯める音を余白 + 窓 1〜2 つ分に収める（正常系）。"""
     # 準備: 常に無音と判定し、60 秒流す
@@ -252,3 +318,37 @@ def test_flush_when_idle() -> None:
 
     # 検証: 区切りで渡した 1 つだけで、flush では増えない
     assert sink.reasons() == ["silence"]
+
+
+def test_flush_sets_speech_end_when_silent() -> None:
+    """話し終えた後の無音の間に止めたら、話し声の最後を話し終わりにする（正常系）。"""
+    # 準備: 1 秒の話し声の後に 1 秒の無音を流す（区切る長さは 2 秒）
+    speech_windows = windows(1.0)
+    phases = [(0.9, speech_windows), (0.0, windows(1.0))]
+    sink = SegmentSink()
+    segmenter = _make_timed_segmenter(ScriptedDetector(phases), sink, min_silence_sec=2.0)
+    feed_all(segmenter, phases_audio(phases))
+
+    # 実行
+    segmenter.flush()
+
+    # 検証: 話し終わりは無音が始まった位置で、末尾の無音を含まない
+    assert sink.reasons() == ["flush"]
+    assert sink.segments[0].ended_at == _at(speech_windows * WINDOW_SAMPLES)
+
+
+def test_flush_sets_end_of_audio_when_speaking() -> None:
+    """話し声の途中で止めたら、届いた音の末尾を話し終わりにする（正常系）。"""
+    # 準備: 1 秒の話し声の後に、窓に満たない 100 サンプルを流す
+    phases = [(0.9, windows(1.0))]
+    sink = SegmentSink()
+    segmenter = _make_timed_segmenter(ScriptedDetector(phases), sink, min_silence_sec=2.0)
+    tail = np.full(100, 9999, dtype=np.int16)
+    feed_all(segmenter, np.concatenate([phases_audio(phases), tail]))
+
+    # 実行
+    segmenter.flush()
+
+    # 検証: 話し終わりは末尾の 100 サンプルまでを含めた位置
+    assert sink.reasons() == ["flush"]
+    assert sink.segments[0].ended_at == _at(SPEECH_AND_TAIL_SAMPLES)

@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from collections.abc import Callable, Sequence
 from dataclasses import dataclass
+from datetime import datetime
 from enum import StrEnum
 from typing import Literal, Protocol
 
@@ -79,6 +80,12 @@ class TranscriptionOutcome:
     segment_count: int | None = None
     """連続録音で区切った区間の数。連続録音の終わり（completed・truncated、区切りに失敗して止めたときの failed）だけが持つ。"""
 
+    started_at: datetime | None = None
+    """連続録音の区間の話し始めの時刻（UTC の aware な datetime）。segment_number を持つときだけ持ち、区間の started_at を写す。"""
+
+    ended_at: datetime | None = None
+    """連続録音の区間の話し終わりの時刻（UTC の aware な datetime）。started_at と同じく区間の ended_at を写す。"""
+
 
 @dataclass(frozen=True, slots=True, kw_only=True)
 class GlossaryEntry:
@@ -117,6 +124,12 @@ class Segment:
 
     reason: Literal["silence", "max_length", "flush"]
     """区切った理由。silence: 話し声の後の無音、max_length: 区間の最大の長さ、flush: 録音を止めたときの残り。"""
+
+    started_at: datetime
+    """話し声と判定した最初の時刻（UTC の aware な datetime。前の余白を含まない。最大の長さで区切った次の区間は区切った時刻）。"""
+
+    ended_at: datetime
+    """話し声と判定した最後の時刻（UTC の aware な datetime。後ろの余白を含まない。max_length は区切った時刻、話し声の途中の flush は届いた音の末尾の時刻）。"""
 
 
 type OnSegmentFn = Callable[[Segment], None]

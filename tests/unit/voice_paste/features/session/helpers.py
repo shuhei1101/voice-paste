@@ -249,6 +249,13 @@ def make_harness(audio_path: Path, *, report_progress: MagicMock | None = None) 
     )
 
 
+SEGMENT_STARTED_AT = datetime(2026, 11, 21, 12, 0, 3, 120000, tzinfo=UTC)
+"""make_segment の区間の話し始めの時刻。"""
+
+SEGMENT_ENDED_AT = datetime(2026, 11, 21, 12, 0, 4, 120000, tzinfo=UTC)
+"""make_segment の区間の話し終わりの時刻。"""
+
+
 def make_segment(reason: Literal["silence", "max_length", "flush"] = "silence") -> Segment:
     """連続録音の区間（1 秒の無音の音）を作る。"""
     from voice_paste.shared.types import Recording, Segment
@@ -258,4 +265,9 @@ def make_segment(reason: Literal["silence", "max_length", "flush"] = "silence") 
         sample_rate=SAMPLE_RATE,
         duration_sec=1.0,
     )
-    return Segment(recording=recording, reason=reason)
+    return Segment(
+        recording=recording,
+        reason=reason,
+        started_at=SEGMENT_STARTED_AT,
+        ended_at=SEGMENT_ENDED_AT,
+    )

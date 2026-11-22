@@ -1,0 +1,46 @@
+# TL-2 をランナーで実行（run_runner）。実行範囲の表（照合は食い違い 0）の 4 ファイル
+$ run_url=$(gh workflow run test.yml --ref "$(git branch --show-current)" -f layer=integration -f paths="tests/integration/test_deliver_to_caller.py tests/integration/test_complete_session.py tests/integration/test_stop_session.py tests/integration/test_truncate_session.py" ...)（TP-1 の TL-2 の run_runner のとおり）
+============================= test session starts =============================
+platform win32 -- Python 3.14.10, pytest-9.1.1, pluggy-1.7.0 -- D:\a\voice-paste\voice-paste\.venv\Scripts\python.exe
+rootdir: D:\a\voice-paste\voice-paste
+configfile: pyproject.toml
+plugins: anyio-4.15.1, platformdirs-4.13.3, timeout-2.4.0
+timeout: 110.0s
+timeout method: thread
+timeout func_only: False
+collecting ... collected 31 items
+
+tests/integration/test_deliver_to_caller.py::test_normal PASSED          [  3%]
+tests/integration/test_deliver_to_caller.py::test_normal_when_empty PASSED [  6%]
+tests/integration/test_deliver_to_caller.py::test_normal_when_transcription_failed PASSED [  9%]
+tests/integration/test_deliver_to_caller.py::test_normal_when_truncated PASSED [ 12%]
+tests/integration/test_deliver_to_caller.py::test_normal_when_continuous_segment PASSED [ 16%]
+tests/integration/test_deliver_to_caller.py::test_normal_when_continuous_segment_failed PASSED [ 19%]
+tests/integration/test_deliver_to_caller.py::test_normal_when_continuous_completed PASSED [ 22%]
+tests/integration/test_deliver_to_caller.py::test_normal_when_continuous_segmenter_failed PASSED [ 25%]
+tests/integration/test_deliver_to_caller.py::test_error_when_continuous_segment_unreachable PASSED [ 29%]
+tests/integration/test_deliver_to_caller.py::test_error_when_callback_unreachable PASSED [ 32%]
+tests/integration/test_deliver_to_caller.py::test_normal_when_receiver_waits_one_second PASSED [ 35%]
+tests/integration/test_complete_session.py::test_normal PASSED           [ 38%]
+tests/integration/test_complete_session.py::test_normal_when_recording PASSED [ 41%]
+tests/integration/test_complete_session.py::test_normal_when_continuous PASSED [ 45%]
+tests/integration/test_complete_session.py::test_normal_when_continuous_without_speech PASSED [ 48%]
+tests/integration/test_complete_session.py::test_error_when_token_mismatch[no_authorization] PASSED [ 51%]
+tests/integration/test_complete_session.py::test_error_when_token_mismatch[wrong_token] PASSED [ 54%]
+tests/integration/test_complete_session.py::test_error_when_browser_request[origin] PASSED [ 58%]
+tests/integration/test_complete_session.py::test_error_when_browser_request[host] PASSED [ 61%]
+tests/integration/test_complete_session.py::test_error_when_session_unknown PASSED [ 64%]
+tests/integration/test_stop_session.py::test_normal PASSED               [ 67%]
+tests/integration/test_stop_session.py::test_error_when_continuous PASSED [ 70%]
+tests/integration/test_stop_session.py::test_normal_when_already_stopped PASSED [ 74%]
+tests/integration/test_stop_session.py::test_error_when_token_mismatch[no_authorization] PASSED [ 77%]
+tests/integration/test_stop_session.py::test_error_when_token_mismatch[wrong_token] PASSED [ 80%]
+tests/integration/test_stop_session.py::test_error_when_browser_request[origin] PASSED [ 83%]
+tests/integration/test_stop_session.py::test_error_when_browser_request[host] PASSED [ 87%]
+tests/integration/test_stop_session.py::test_error_when_session_unknown PASSED [ 90%]
+tests/integration/test_truncate_session.py::test_normal PASSED           [ 93%]
+tests/integration/test_truncate_session.py::test_normal_when_stopped PASSED [ 96%]
+tests/integration/test_truncate_session.py::test_normal_when_continuous PASSED [100%]
+
+============================= 31 passed in 19.05s =============================
+exit=0 run=https://github.com/shuhei1101/voice-paste/actions/runs/44979009895

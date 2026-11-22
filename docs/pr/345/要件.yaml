@@ -1,0 +1,38 @@
+use_cases:
+  - kind: composite
+    scenario: docs/scenario/SC-10.yaml
+    impact: changed
+    detail: 区間ごとに受け取る結果に、その区間の話し始めと話し終わりの時刻が加わる
+    depends_on: []
+  - kind: single
+    scenario: docs/scenario/SC-8.yaml
+    impact: changed
+    detail: 連続録音で区切った区間が、話し声と判定した最初と最後の時刻を持つ
+    depends_on:
+      - docs/scenario/SC-10.yaml
+  - kind: single
+    scenario: docs/scenario/SC-7.yaml
+    impact: changed
+    detail: 呼び出し元へ届ける区間の結果に話し始めと話し終わりの時刻を載せ、区間の結果でない通知では空にする
+    depends_on:
+      - docs/scenario/SC-10.yaml
+  - kind: composite
+    scenario: docs/scenario/SC-11.yaml
+    impact: run_only
+    detail: 連続録音でない録音の受け取りは変わらないが、届ける本文の組み立てを共有するため壊れないかを確かめる
+    depends_on: []
+docs:
+  - page: docs/guide/API.md
+    new: false
+    change: 連続録音の区間ごとの返送の本文に、話し始めと話し終わりの時刻のキーと、区間の結果でないときの値を追加する
+    status: todo
+scope_out:
+  - item: 録音の開始で、用語の補正に使用する用語を呼び出し元が指定できるようにする機能
+    reason: 起点 Issue の決定（D-842）で見送った。指定の方法が未検討で、必要と分かったら起票する
+    plan: none
+  - item: 連続録音の録音セッションの間も、ふだんの音声入力を使用できるようにする機能
+    reason: 起点 Issue の決定で、利用者が要ると回答したときだけ別の Issue にすると決めた
+    plan: none
+  - item: 設定の送信先のエンドポイントへ送信する本文（ResultPayload）への時刻の追加
+    reason: 要望は呼び出し元への連続録音の返送だけで、設定の送信先は連続録音を受けない
+    plan: none

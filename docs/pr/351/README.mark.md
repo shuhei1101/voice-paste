@@ -44,7 +44,7 @@ project-index の `nav` の `group` は、子の `items[]` に `group` を持て
 | 設計書 > モジュール構成 > 録音セッション | 1280x800 | [1-design-module_1280x800.png](./画像/1-design-module_1280x800.png) |
 | 設計書 > モジュール構成 > 録音セッション | 768x1024 | [1-design-module_768x1024.png](./画像/1-design-module_768x1024.png) |
 | 設計書 > シナリオ > 常駐アプリで使用する | 1280x800 | [2-design-scenario_1280x800.png](./画像/2-design-scenario_1280x800.png) |
-| 設計書 > インターフェース定義 > 録音の API | 1280x800 | [3-design-interface_1280x800.png](./画像/3-design-interface_1280x800.png) |
+| 設計書 > インターフェース定義 > 常駐アプリの出力先 | 1280x800 | [3-design-interface_1280x800.png](./画像/3-design-interface_1280x800.png) |
 | 設計書 > データ > 外の端末のブラウザ | 1280x800 | [4-design-data_1280x800.png](./画像/4-design-data_1280x800.png) |
 | 設計書 > 外部ライブラリ > Haas の文字起こしのサーバー | 1280x800 | [5-design-library_1280x800.png](./画像/5-design-library_1280x800.png) |
 | コード > 常駐アプリ > features/ | 1280x800 | [6-code_1280x800.png](./画像/6-code_1280x800.png) |

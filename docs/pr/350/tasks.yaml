@@ -85,16 +85,20 @@ tasks:
     updated_by: planner
     updated_at: '2026-11-28T10:21:23.196461+00:00'
   - process: ドキュメント修正
-    status: todo
+    status: done
     note: files.yml の path と docs/layout/LAY-1.yaml の name を project-index.yaml へ書き換える
+    updated_by: planner
+    updated_at: '2026-11-28T10:27:10.329439+00:00'
   - process: 単体テスト作成
     status: skipped
     reason: コードを変えない
     updated_by: planner
     updated_at: '2026-11-28T10:21:23.196461+00:00'
   - process: 実装
-    status: todo
+    status: done
     note: dev-docs.yaml を git mv で project-index.yaml へ改名し、反映作業のスクリプトを記載する
+    updated_by: planner
+    updated_at: '2026-11-28T10:27:10.329439+00:00'
   - process: 結合テスト作成
     status: skipped
     reason: コードを変えない

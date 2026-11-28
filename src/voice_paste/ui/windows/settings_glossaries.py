@@ -31,6 +31,7 @@ from voice_paste.shared.settings import GlossaryPresetSettings, GlossarySettings
 from voice_paste.shared.types import GlossaryEntry
 from voice_paste.ui.windows.settings_edge_phrases import RowGrip
 from voice_paste.ui.windows.settings_fields import set_invalid
+from voice_paste.ui.windows.window_parts import ICON_BUTTON_SIZE_PX, IconButton
 
 logger = logging.getLogger(__name__)
 
@@ -55,10 +56,10 @@ LIST_COLUMN_PADDING_PX: int = 16
 NAME_DISPLAY_MAX_CHARS: int = 20
 """一覧の名前のボタンに出す名前の長さの上限（超えたら末尾を省く）。"""
 
-LAST_GLOSSARY_REMOVE_TOOLTIP: str = "最後の用語集は消せません"
+LAST_GLOSSARY_REMOVE_TOOLTIP: str = "最後の用語集は削除できません"
 """最後の 1 件の用語集の削除ボタンに出すツールチップ。"""
 
-ACTIVE_PRESET_REMOVE_TOOLTIP: str = "補正に使うプリセットは消せません"
+ACTIVE_PRESET_REMOVE_TOOLTIP: str = "補正に使うプリセットは削除できません"
 """補正に使うプリセットの削除ボタンに出すツールチップ。"""
 
 DIMMED_OPACITY: float = 0.4
@@ -161,7 +162,7 @@ class _ListRow:
     pick_button: QPushButton
     using_label: QLabel
     count_label: QLabel
-    remove_button: QPushButton
+    remove_button: IconButton
 
 
 @dataclass
@@ -171,10 +172,10 @@ class _PresetListRow:
     radio: QRadioButton
     pick_button: QPushButton
     count_label: QLabel
-    remove_button: QPushButton
+    remove_button: IconButton
 
 
-class _UsedRemoveButton(QPushButton):
+class _UsedRemoveButton(IconButton):
     """使う用語集の表の外すボタン。フォーカスがあるとき Alt+↑ / Alt+↓ で行を動かす依頼を出す。"""
 
     move_requested = Signal(int)
@@ -234,6 +235,12 @@ def _clear_layout(layout: QLayout) -> None:
         if widget is not None:
             widget.setParent(None)
             widget.deleteLater()
+
+
+def _set_inactive(button: IconButton, *, inactive: bool) -> None:
+    """押しても何もしない扱いのボタンを薄く描く・戻す（フォーカスとツールチップは残す）。"""
+    button.setProperty("inactive", inactive)
+    button.update()
 
 
 def _dim(widget: QWidget, *, dimmed: bool) -> None:
@@ -558,7 +565,7 @@ class GlossaryPanel(QWidget):
         metrics = self.fontMetrics()
         active_width = metrics.horizontalAdvance(PRESET_LIST_HEADINGS[0]) + LIST_COLUMN_PADDING_PX
         count_width = metrics.horizontalAdvance("000 件") + LIST_COLUMN_PADDING_PX
-        remove_width = QPushButton("×").sizeHint().width()
+        remove_width = ICON_BUTTON_SIZE_PX
         self._preset_list_layout.addWidget(
             self._build_heading_row(
                 PRESET_LIST_HEADINGS, (active_width, None, count_width), remove_width
@@ -593,9 +600,7 @@ class GlossaryPanel(QWidget):
             count_label = QLabel()
             count_label.setObjectName(f"glossary_preset_count_{index}")
             count_label.setFixedWidth(count_width)
-            remove_button = QPushButton("×")
-            remove_button.setObjectName(f"glossary_preset_remove_{index}")
-            remove_button.setFixedWidth(remove_width)
+            remove_button = IconButton(f"glossary_preset_remove_{index}", "trash", "")
             remove_button.clicked.connect(
                 lambda _checked=False, position=index: self._remove_preset(position)
             )
@@ -628,12 +633,13 @@ class GlossaryPanel(QWidget):
         font.setBold(index == self._shown_preset)
         row.pick_button.setFont(font)
         row.radio.setAccessibleName(f"{shown_name}を補正に使う")
-        row.remove_button.setAccessibleName(f"{shown_name}を削除")
+        row.remove_button.set_label(f"{shown_name}を削除")
         row.count_label.setText(f"{len(preset.paths)} 件")
         # 補正に使うプリセットの削除ボタンは、フォーカスとツールチップを残すため無効にせず、薄くして押しても削除しない
         is_active = index == self._active_preset
-        row.remove_button.setToolTip(ACTIVE_PRESET_REMOVE_TOOLTIP if is_active else "")
-        _dim(row.remove_button, dimmed=is_active)
+        if is_active:
+            row.remove_button.setToolTip(ACTIVE_PRESET_REMOVE_TOOLTIP)
+        _set_inactive(row.remove_button, inactive=is_active)
 
     def _on_active_preset(self, position: int, checked: bool) -> None:
         """補正に使うプリセットを切り替える（前に選んでいたプリセットの削除ボタンが押せるようになる）。"""
@@ -795,9 +801,9 @@ class GlossaryPanel(QWidget):
         count_label = QLabel(
             UNREADABLE_COUNT_TEXT if glossary.unreadable is not None else f"{len(glossary.rows)} 行"
         )
-        remove_button = _UsedRemoveButton("×")
-        remove_button.setObjectName(f"glossary_preset_glossary_remove_{position}")
-        remove_button.setAccessibleName(f"{shown_name}を外す")
+        remove_button = _UsedRemoveButton(
+            f"glossary_preset_glossary_remove_{position}", "x", f"{shown_name}を外す"
+        )
         line.addWidget(grip)
         line.addWidget(order_label)
         line.addWidget(name_label, 1)
@@ -889,7 +895,7 @@ class GlossaryPanel(QWidget):
         metrics = self.fontMetrics()
         using_width = metrics.horizontalAdvance(USING_COLUMN_SAMPLE)
         count_width = metrics.horizontalAdvance(COUNT_COLUMN_SAMPLE)
-        remove_width = QPushButton("×").sizeHint().width()
+        remove_width = ICON_BUTTON_SIZE_PX
         self._list_layout.addWidget(
             self._build_heading_row(LIST_HEADINGS, (None, using_width, count_width), remove_width)
         )
@@ -911,9 +917,7 @@ class GlossaryPanel(QWidget):
             count_label = QLabel()
             count_label.setObjectName(f"glossary_count_{index}")
             count_label.setFixedWidth(count_width)
-            remove_button = QPushButton("×")
-            remove_button.setObjectName(f"glossary_remove_{index}")
-            remove_button.setFixedWidth(remove_width)
+            remove_button = IconButton(f"glossary_remove_{index}", "trash", "")
             remove_button.clicked.connect(
                 lambda _checked=False, position=index: self._remove_glossary(position)
             )
@@ -959,7 +963,7 @@ class GlossaryPanel(QWidget):
         font = row.pick_button.font()
         font.setBold(index == self._shown)
         row.pick_button.setFont(font)
-        row.remove_button.setAccessibleName(f"{spoken}を削除")
+        row.remove_button.set_label(f"{spoken}を削除")
         using = PRESET_SEPARATOR.join(
             _preset_display_name(preset.name)
             for preset in self._presets
@@ -973,8 +977,9 @@ class GlossaryPanel(QWidget):
             row.count_label.setText(f"{len(glossary.rows)} 行（オン {enabled_count}）")
         # 最後の 1 件の用語集の削除ボタンは、フォーカスとツールチップを残すため無効にせず、薄くして押しても削除しない
         is_last = len(self._glossaries) == 1
-        row.remove_button.setToolTip(LAST_GLOSSARY_REMOVE_TOOLTIP if is_last else "")
-        _dim(row.remove_button, dimmed=is_last)
+        if is_last:
+            row.remove_button.setToolTip(LAST_GLOSSARY_REMOVE_TOOLTIP)
+        _set_inactive(row.remove_button, inactive=is_last)
 
     def _show(self, position: int) -> None:
         """押した用語集の名前の欄と行の表を下に出す（切り替えても入れた値は削除しない）。"""
@@ -1116,9 +1121,9 @@ class GlossaryPanel(QWidget):
         right_edit = QLineEdit(row.right)
         right_edit.setObjectName(f"glossary_entry_right_{position}")
         right_edit.setAccessibleName(f"{position + 1} 行目の正しい表記")
-        remove_button = QPushButton("×")
-        remove_button.setObjectName(f"glossary_entry_remove_{position}")
-        remove_button.setAccessibleName(f"{position + 1} 行目を削除")
+        remove_button = IconButton(
+            f"glossary_entry_remove_{position}", "trash", f"{position + 1} 行目を削除"
+        )
         for widget in (on_box, wrong_edit, right_edit, remove_button):
             line.addWidget(widget, 1 if isinstance(widget, QLineEdit) else 0)
         column.addLayout(line)

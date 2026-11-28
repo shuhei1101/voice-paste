@@ -19,6 +19,7 @@ from PySide6.QtWidgets import (
 from voice_paste.shared.os_kind import OsKind
 from voice_paste.shared.settings import GlossaryPresetHotkeySettings
 from voice_paste.ui.windows.settings_fields import set_invalid
+from voice_paste.ui.windows.window_parts import IconButton
 
 SHORTCUT_DEFAULT_HOTKEYS: dict[OsKind, str] = {
     OsKind.WINDOWS: "<ctrl>+<alt>+s",
@@ -247,10 +248,7 @@ class ShortcutPanel(QWidget):
         combo.setCurrentIndex(combo.findData(row.preset))
         combo.currentIndexChanged.connect(lambda position: self._on_preset(row, combo, position))
 
-        remove_button = QPushButton("×")
-        remove_button.setObjectName(f"shortcut_remove_{index}")
-        remove_button.setAccessibleName(f"{number} 行目を削除")
-        remove_button.setToolTip(f"{number} 行目を削除")
+        remove_button = IconButton(f"shortcut_remove_{index}", "trash", f"{number} 行目を削除")
         remove_button.clicked.connect(lambda: self._remove(row))
 
         line.addWidget(hotkey_edit, 1)

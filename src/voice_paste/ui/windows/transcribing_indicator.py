@@ -282,7 +282,7 @@ class TranscribingIndicator(QWidget):
         layout.addWidget(heading)
         self._switch_layout = QHBoxLayout()
         layout.addLayout(self._switch_layout)
-        self._preset_label = QLabel()
+        self._preset_label = ElidedLabel()
         self._preset_label.setObjectName("preset_label")
         layout.addWidget(self._preset_label)
 
@@ -298,7 +298,7 @@ class TranscribingIndicator(QWidget):
         self._preset_label.setVisible(preset_title is not None)
         # カスタムプリセット: 名前だけを出し、切り替えのボタンと貼り付けの案内は出さない
         if preset_title is not None:
-            self._preset_label.setText(preset_title)
+            self._preset_label.set_full_text(preset_title)
             self._paste_hint.hide()
             self.setMinimumWidth(0)
             return

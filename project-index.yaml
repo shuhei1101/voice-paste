@@ -493,6 +493,8 @@ nav:
                 - page: interface/IF-9
                 - page: interface/IF-2
                 - page: interface/IF-3
+            - group: 常駐アプリの出力先
+              items:
                 - page: interface/IF-7
             - group: ブラウザの文字起こし
               items:

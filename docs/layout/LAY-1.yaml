@@ -97,7 +97,7 @@ entries:
     content_types:
       - version
   - type: file
-    name: dev-docs.yaml
+    name: project-index.yaml
     contents: dev-docs と project-index の配信元の設定（設計書の種類ごとの場所とスキーマ、開発ドキュメントのタブとサイドバーの構成）
     content_types:
       - tool_config

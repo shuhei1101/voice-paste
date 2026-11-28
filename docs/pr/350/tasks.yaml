@@ -1,0 +1,106 @@
+tasks:
+  - process: 初期構築
+    status: skipped
+    reason: 既存リポジトリのため対象外
+    updated_by: planner
+    updated_at: '2026-11-28T10:21:23.196461+00:00'
+  - process: リバースエンジニアリング
+    status: skipped
+    reason: 既存の設計書があり棚卸しは要らない
+    updated_by: planner
+    updated_at: '2026-11-28T10:21:23.196461+00:00'
+  - process: 方針決め
+    status: skipped
+    reason: 方針決めの依頼ではない
+    updated_by: planner
+    updated_at: '2026-11-28T10:21:23.196461+00:00'
+  - process: PoC 検証
+    status: skipped
+    reason: ファイルの改名で未検証の技術機構に依存しない
+    updated_by: planner
+    updated_at: '2026-11-28T10:21:23.196461+00:00'
+  - process: 複合ユースケース設計
+    status: skipped
+    reason: 業務フローは変わらない
+    updated_by: planner
+    updated_at: '2026-11-28T10:21:23.196461+00:00'
+  - process: デザインスタイル選定
+    status: skipped
+    reason: 画面を変えない
+    updated_by: planner
+    updated_at: '2026-11-28T10:21:23.196461+00:00'
+  - process: 画面一覧・画面遷移
+    status: skipped
+    reason: 画面を変えない
+    updated_by: planner
+    updated_at: '2026-11-28T10:21:23.196461+00:00'
+  - process: 単一ユースケース設計
+    status: skipped
+    reason: 利用者の操作は変わらない
+    updated_by: planner
+    updated_at: '2026-11-28T10:21:23.196461+00:00'
+  - process: モック作成
+    status: skipped
+    reason: 画面を変えない
+    updated_by: planner
+    updated_at: '2026-11-28T10:21:23.196461+00:00'
+  - process: データ設計
+    status: skipped
+    reason: データの構造は変わらない
+    updated_by: planner
+    updated_at: '2026-11-28T10:21:23.196461+00:00'
+  - process: インターフェース定義設計
+    status: skipped
+    reason: インターフェースは変わらない
+    updated_by: planner
+    updated_at: '2026-11-28T10:21:23.196461+00:00'
+  - process: エージェント・MCP サーバー設計
+    status: skipped
+    reason: エージェント・MCP サーバーを持たない
+    updated_by: planner
+    updated_at: '2026-11-28T10:21:23.196461+00:00'
+  - process: エージェントフロー・LLM 呼び出し設計
+    status: skipped
+    reason: LLM の呼び出しを変えない
+    updated_by: planner
+    updated_at: '2026-11-28T10:21:23.196461+00:00'
+  - process: 精度評価設計
+    status: skipped
+    reason: 精度評価の対象を変えない
+    updated_by: planner
+    updated_at: '2026-11-28T10:21:23.196461+00:00'
+  - process: 部品設計
+    status: skipped
+    reason: 画面の部品を変えない
+    updated_by: planner
+    updated_at: '2026-11-28T10:21:23.196461+00:00'
+  - process: 画面設計
+    status: skipped
+    reason: 画面を変えない
+    updated_by: planner
+    updated_at: '2026-11-28T10:21:23.196461+00:00'
+  - process: モジュール構成設計
+    status: skipped
+    reason: コードの構成は変わらない
+    updated_by: planner
+    updated_at: '2026-11-28T10:21:23.196461+00:00'
+  - process: ドキュメント修正
+    status: done
+    note: files.yml の path と docs/layout/LAY-1.yaml の name を project-index.yaml へ書き換える
+    updated_by: planner
+    updated_at: '2026-11-28T10:27:10.329439+00:00'
+  - process: 単体テスト作成
+    status: skipped
+    reason: コードを変えない
+    updated_by: planner
+    updated_at: '2026-11-28T10:21:23.196461+00:00'
+  - process: 実装
+    status: done
+    note: dev-docs.yaml を git mv で project-index.yaml へ改名し、反映作業のスクリプトを記載する
+    updated_by: planner
+    updated_at: '2026-11-28T10:27:10.329439+00:00'
+  - process: 結合テスト作成
+    status: skipped
+    reason: コードを変えない
+    updated_by: planner
+    updated_at: '2026-11-28T10:21:23.196461+00:00'

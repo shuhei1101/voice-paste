@@ -1,0 +1,31 @@
+develop の worktree の project-index.yaml: missing
+前提確認: ok
+--- /home/shuhei2441/.config/project-index/settings.yaml (sources[id=voice-input].config)
++++ /home/shuhei2441/.config/project-index/settings.yaml (sources[id=voice-input].config)
+-['/home/shuhei2441/repo/voice-paste/.claude/worktrees/develop/dev-docs.yaml']
++['/home/shuhei2441/repo/voice-paste/.claude/worktrees/develop/project-index.yaml']
+--- /home/shuhei2441/.config/dev-docs/settings.yaml
++++ /home/shuhei2441/.config/dev-docs/settings.yaml
+@@ -35,7 +35,7 @@
+       write: ["/home/shuhei2441/repo/ai-monitor", "/home/shuhei2441/repo/ai-monitor/.claude/worktrees/*"]
+       read: ["/home/shuhei2441/repo/ai-monitor/**"]
+   - id: voice-input
+-    config: /home/shuhei2441/repo/voice-paste/.claude/worktrees/develop/dev-docs.yaml
++    config: /home/shuhei2441/repo/voice-paste/.claude/worktrees/develop/project-index.yaml
+     scope:
+       write: ["/home/shuhei2441/repo/voice-paste", "/home/shuhei2441/repo/voice-paste/.claude/worktrees/**"]
+       read: ["/home/shuhei2441/repo/voice-paste/**"]
+--- /home/shuhei2441/.config/alias-inject/settings.yaml
++++ /home/shuhei2441/.config/alias-inject/settings.yaml
+@@ -7,7 +7,7 @@
+     - config: /home/shuhei2441/repo/ai-monitor/.claude/worktrees/develop/project-index.yaml  # ai-monitor
+     - config: /home/shuhei2441/repo/aituber/.claude/worktrees/develop/dev-docs.yaml  # aituber
+     - config: /home/shuhei2441/repo/gui-support/.claude/worktrees/develop/dev-docs.yaml  # gui-support
+-    - config: /home/shuhei2441/repo/voice-paste/.claude/worktrees/develop/dev-docs.yaml  # voice-input
++    - config: /home/shuhei2441/repo/voice-paste/.claude/worktrees/develop/project-index.yaml  # voice-input
+     - config: /mnt/c/Users/shuhe/repo/text-factory/.claude/worktrees/develop/dev-docs.yaml  # text-factory
+     - config: /mnt/c/Users/shuhe/repo/image-factory/.claude/worktrees/develop/dev-docs.yaml  # image-factory
+     - config: /mnt/c/Users/shuhe/repo/sound-factory/.claude/worktrees/develop/dev-docs.yaml  # sound-factory
+project-index の端末の設定の書き換え: changed
+dev-docs の端末の設定の書き換え: changed
+alias-inject の端末の設定の書き換え: changed

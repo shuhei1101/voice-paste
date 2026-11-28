@@ -86,7 +86,10 @@ tasks:
     updated_by: planner
     updated_at: '2026-11-28T09:35:05.101842+00:00'
   - process: 単体テスト作成
-    status: todo
+    status: skipped
+    reason: 元になるモジュール構成の unit_tests が無いため（画面のスクリプト app.ts のモジュール構成の設計書が無く、Python のモジュール構成は変わらない。既存の tests/unit/voice_paste/server/test_web_page.py は実装で回す）
+    updated_by: planner
+    updated_at: '2026-11-28T09:39:54.660361+00:00'
   - process: 実装
     status: todo
   - process: 結合テスト作成

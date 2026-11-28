@@ -1,13 +1,14 @@
-"""録音の画面と文字起こし中の表示が使う部品（見出しの行・つかむマーカー・名前の下にホットキーを出すボタン）。"""
+"""録音の画面・文字起こし中の表示・設定画面が使用する部品（見出しの行・つかむマーカー・名前の下にホットキーを出すボタン・アイコンのボタン）。"""
 
 from __future__ import annotations
 
-from PySide6.QtCore import QEvent, QPointF, QSize, Qt, Signal
-from PySide6.QtGui import QEnterEvent, QMouseEvent, QPainter
+from typing import Literal
+
+from PySide6.QtCore import QEvent, QLineF, QPointF, QRectF, QSize, Qt, Signal
+from PySide6.QtGui import QEnterEvent, QMouseEvent, QPainter, QPaintEvent, QPen
 from PySide6.QtWidgets import QLabel, QLayout, QPushButton, QSizePolicy, QVBoxLayout, QWidget
 
 from voice_paste.ui.style import theme_color
-from voice_paste.ui.windows.settings_window import format_hotkey
 
 BUTTON_PADDING_PX: tuple[int, int] = (12, 4)
 """ホットキーを持つボタンの、左右と上下の余白。"""
@@ -24,6 +25,18 @@ GRIP_DOT_RADIUS_PX: float = 1.4
 GRIP_COLUMNS: tuple[float, ...] = (3.0, 9.0)
 GRIP_ROWS: tuple[float, ...] = (3.0, 8.0, 13.0)
 """つかむマーカーの点を置く列と行の座標（2 列 3 行）。"""
+
+ICON_BUTTON_SIZE_PX: int = 28
+"""設定画面の行の操作のアイコンのボタンの幅と高さ（同じ行の入力欄の高さにそろえる）。"""
+
+ICON_PEN_PX: float = 1.6
+"""アイコンのボタンに描く線の太さ。"""
+
+ICON_GLYPH_HALF_PX: float = 6.0
+"""アイコンを描く正方形の、中心から端までの長さ。"""
+
+IconName = Literal["trash", "arrow_up", "arrow_down", "x"]
+"""アイコンのボタンが描くアイコンの種類。"""
 
 
 class HeadRow(QWidget):
@@ -107,6 +120,9 @@ class HotkeyButton(QPushButton):
         layout.addWidget(text_label, 0, center)
         # ホットキーが空のときは、名前だけを出す
         if hotkey:
+            # 設定画面の部品もこのファイルを読み込むため、設定画面は使用する時点で読み込む
+            from voice_paste.ui.windows.settings_window import format_hotkey
+
             key_label = QLabel(format_hotkey(hotkey))
             key_label.setProperty("role", "keycap")
             key_label.setAttribute(Qt.WidgetAttribute.WA_TransparentForMouseEvents)
@@ -122,6 +138,61 @@ class HotkeyButton(QPushButton):
     def minimumSizeHint(self) -> QSize:  # noqa: N802 Qt の名前
         """切れないよう、要る大きさを最小の大きさにする。"""
         return self.sizeHint()
+
+
+class IconButton(QPushButton):
+    """設定画面の行の操作（削除・上へ・下へ・外す）に配置する、アイコンだけのボタン。
+
+    アイコンは画像を持たず線で描き、読み上げ名と同じ文言をツールチップに出す。
+    押せないとき（setEnabled(False) か property("inactive") が True）は薄い色で描く。
+    """
+
+    def __init__(self, name: str, icon: IconName, label: str) -> None:
+        super().__init__()
+        self.setObjectName(name)
+        self.setFixedSize(ICON_BUTTON_SIZE_PX, ICON_BUTTON_SIZE_PX)
+        self._icon: IconName = icon
+        self.set_label(label)
+
+    def set_label(self, label: str) -> None:
+        """読み上げ名とツールチップの文言を替える。"""
+        self.setAccessibleName(label)
+        self.setToolTip(label)
+
+    def paintEvent(self, event: QPaintEvent) -> None:  # noqa: N802 Qt の名前
+        """面と枠を描いた後、アイコンの線を描く。"""
+        super().paintEvent(event)
+        muted = not self.isEnabled() or bool(self.property("inactive"))
+        pen = QPen(theme_color("text_muted" if muted else "text"), ICON_PEN_PX)
+        pen.setCapStyle(Qt.PenCapStyle.RoundCap)
+        pen.setJoinStyle(Qt.PenJoinStyle.RoundJoin)
+        painter = QPainter(self)
+        painter.setRenderHint(QPainter.RenderHint.Antialiasing)
+        painter.setPen(pen)
+        painter.setBrush(Qt.BrushStyle.NoBrush)
+        cx, cy, half = self.width() / 2, self.height() / 2, ICON_GLYPH_HALF_PX
+        # アイコンの種類ごとに線を描く
+        if self._icon == "trash":
+            # ごみ箱: ふたの横線・取っ手・下すぼまりの胴・中の縦線 2 本
+            painter.drawLine(QLineF(cx - half, cy - half + 2, cx + half, cy - half + 2))
+            painter.drawRect(QRectF(cx - 2, cy - half, 4, 2))
+            body_top, body_bottom = cy - half + 4, cy + half
+            painter.drawLine(QLineF(cx - half + 1.5, body_top, cx - half + 2.5, body_bottom))
+            painter.drawLine(QLineF(cx - half + 2.5, body_bottom, cx + half - 2.5, body_bottom))
+            painter.drawLine(QLineF(cx + half - 2.5, body_bottom, cx + half - 1.5, body_top))
+            painter.drawLine(QLineF(cx - 1.5, body_top + 2, cx - 1.5, body_bottom - 2))
+            painter.drawLine(QLineF(cx + 1.5, body_top + 2, cx + 1.5, body_bottom - 2))
+        elif self._icon in ("arrow_up", "arrow_down"):
+            # 上下の矢印: 縦の軸と、先端の折れ線
+            tip, tail = (cy - half, cy + half) if self._icon == "arrow_up" else (cy + half, cy - half)
+            wing = tip + (half * 0.8 if self._icon == "arrow_up" else -half * 0.8)
+            painter.drawLine(QLineF(cx, tail, cx, tip))
+            painter.drawLine(QLineF(cx - half * 0.8, wing, cx, tip))
+            painter.drawLine(QLineF(cx, tip, cx + half * 0.8, wing))
+        else:
+            # ×: 斜めの 2 本
+            painter.drawLine(QLineF(cx - half, cy - half, cx + half, cy + half))
+            painter.drawLine(QLineF(cx + half, cy - half, cx - half, cy + half))
 
 
 def clear_layout(layout: QLayout) -> None:

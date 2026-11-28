@@ -1,0 +1,56 @@
+use_cases:
+  - kind: single
+    scenario: docs/scenario/SC-2.yaml
+    impact: run_only
+    detail: トレイ・トレイの通知の画面設計を記載し直し、設計の修正が実装に及ぶとトレイからの操作を壊しうる
+    depends_on: []
+  - kind: single
+    scenario: docs/scenario/SC-3.yaml
+    impact: run_only
+    detail: 外の端末の文字起こしの画面・取り消せない操作の確認の設計の修正が、ブラウザからの音声の送信を壊しうる
+    depends_on: []
+  - kind: single
+    scenario: docs/scenario/SC-4.yaml
+    impact: run_only
+    detail: 外の端末の文字起こしの画面の結果の一覧の設計の修正が、ブラウザでの結果の受け取りを壊しうる
+    depends_on: []
+  - kind: single
+    scenario: docs/scenario/SC-6.yaml
+    impact: run_only
+    detail: 設定画面・変えた値を捨てる確認・既定に戻す確認の設計の修正が、設定の変更を壊しうる
+    depends_on: []
+  - kind: single
+    scenario: docs/scenario/SC-7.yaml
+    impact: run_only
+    detail: 文字起こし中の表示の設計の修正が、出力先の切り替えと届け方を壊しうる
+    depends_on: []
+  - kind: single
+    scenario: docs/scenario/SC-8.yaml
+    impact: run_only
+    detail: 録音の画面・処理中のダイアログの設計の修正が、録音の操作を壊しうる
+    depends_on: []
+  - kind: single
+    scenario: docs/scenario/SC-15.yaml
+    impact: run_only
+    detail: トレイのメニューの設計の修正が、音声ファイルの指定を壊しうる
+    depends_on: []
+docs:
+  - page: project-index.yaml
+    new: false
+    change: documents[].schema の ref を design-schemas/v9.5.0 から design-schemas/v12.0.0 へ上げる
+    status: done
+    updated_by: planner
+    updated_at: '2026-11-28T15:07:47.118986+00:00'
+  - page: content/prompts/openai-transcribe.yaml
+    new: false
+    change: 先頭の $schema の参照を design-schemas/v12.0.0 へ上げる
+    status: done
+    updated_by: planner
+    updated_at: '2026-11-28T15:07:47.118986+00:00'
+scope_out:
+  - item: 部品設計書の記載し直し
+    reason: このプロジェクトは部品設計書の種類（docs/component/）を持たず、記載し直す部品設計書が無い
+    plan: none
+  - item: 過去の PR ドキュメント（docs/pr/337 など）に残る design-schemas/v9.5.0 の記載
+    reason: マージ済みの作業の記録で、検査の対象ではない
+    plan: none

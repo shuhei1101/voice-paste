@@ -21,7 +21,7 @@ classes:
       変えた欄の数えには、種類ごとの PresetListPanel.change_values のキーごとの変更を 1 件として含める。追加・削除した・有効かタイトルか URL かホットキーか種類ごとの欄を変えたプリセット 1 つが 1 件（1 つのプリセットで何度変えても 1 件）、種類のタブごとに、開いたとき・保存したときからあって今も残っているプリセットどうしの順が変わったら並べ替えが 1 件になる（追加・削除だけでは並べ替えに数えない）。
       「ショートカット」のまとまりは GROUP_NAMES の先頭に置き、ShortcutPanel を配置する。ShortcutPanel へは GlossaryPanel.presets_changed で画面の今の用語集のプリセットの一覧を引き渡し、補正に使用するプリセットの選択を行の追加の初期値に使う。変えた欄の数えには ShortcutPanel.change_count を含める。エラーの一覧のショートカットの行は、失敗の場所 `glossary_preset_hotkeys[{n}].hotkey` を「ショートカット {n+1} 行目のキーの組み合わせ」にし、押すと「ショートカット」のまとまりへ切り替えて ShortcutPanel.focus_field で欄へフォーカスを移す。
       ホットキーの欄（ShortcutPanel のキーの欄を含む）が入力待ちに入る・出るたびに hotkey_capturing を emit する。
-      エラーの一覧の表記のヒントの行は、失敗の場所 `hint_presets[{n}].readings[{m}]` を「プリセット {n+1} 件目の {m+1} つ目の語の読み」にし、押すと HintPresetPanel.focus_field で読みの欄へフォーカスを移す（HINT_KEY_PATTERN に readings を加える）。「文字起こし」のまとまりは、`transcription.engine` の欄の下に ENGINE_TAB_LAYOUT のエンジンごとのタブ（_add_engine_tabs）を配置し、エンジンの欄はそのエンジンのタブの中に並べる。欄の名前と補助文は画面設計が持つ。欄は hidden_setting_keys にある OS では出さない。transcription.engine の選択欄は、`transcription.haas.port` が hidden_setting_keys にあるとき選択肢「Haas（WSL）」を出さない（今の値が haas のときだけ出す）。
+      エラーの一覧の表記のヒントの行は、失敗の場所 `hint_presets[{n}].readings[{m}]` を「プリセット {n+1} 件目の {m+1} つ目の単語の読み」にし、押すと HintPresetPanel.focus_field で読みの欄へフォーカスを移す（HINT_KEY_PATTERN に readings を加える）。「文字起こし」のまとまりは、`transcription.engine` の欄の下に ENGINE_TAB_LAYOUT のエンジンごとのタブ（_add_engine_tabs）を配置し、エンジンの欄はそのエンジンのタブの中に並べる。欄の名前と補助文は画面設計が持つ。欄は hidden_setting_keys にある OS では出さない。transcription.engine の選択欄は、`transcription.haas.port` が hidden_setting_keys にあるとき選択肢「Haas（WSL）」を出さない（今の値が haas のときだけ出す）。
       エラーの一覧の文字起こしのエンジンの欄の行は、押すと「文字起こし」のまとまりとその欄のエンジンのタブへ切り替えて欄へフォーカスを移す（_focus_field）。エラーの一覧を出すときは、エンジンのタブごとにそのタブの欄のエラーの件数を「エラー {件数} 件」のラベル（`engine_error_count_{エンジン}`）に出し、_clear_errors で隠す。
       エラーの一覧のプリセットの行は、失敗の場所 `presets[{n}].{項目}` を「プリセット「{タイトル}」の{欄の名前}」（タイトルが空なら「プリセット {そのタブの中の何件目か} 件目の{欄の名前}」）にし、押すとそのタブへ切り替えて PresetListPanel.focus_field で欄へフォーカスを移す。
       ホットキーの欄は押したキーを format_hotkey の形式で出し、parse_hotkey で pynput の書式に戻す。
@@ -178,7 +178,7 @@ classes:
             summary: 空の単語と区切りを含む単語では保存せず、エラーを出す
             condition: プリセット 1 件目の 1 つ目の単語を空にし、2 つ目の単語を「A、B」にして save(restart=False)
             mock: UiDeps.save_settings
-            expected: 'False。save_settings が呼ばれず、エラーの一覧に「プリセット 1 件目の 1 つ目の語: 語を入れるか、この欄を削除してください。」「プリセット 1 件目の 2 つ目の語: 読点（、）・句点（。）・改行は入れられません。語を分けて追加してください。」が出る'
+            expected: 'False。save_settings が呼ばれず、エラーの一覧に「プリセット 1 件目の 1 つ目の単語: 単語を入れるか、この欄を削除してください。」「プリセット 1 件目の 2 つ目の単語: 読点（、）・句点（。）・改行は入れられません。単語を分けて追加してください。」が出る'
             exception: 確認に通らない
           - name: test_save_when_restart
             case: 正常
@@ -424,7 +424,7 @@ classes:
       表記のヒントのまとまり: |-
         「文字起こし」の次、「用語集」の前のまとまり「表記のヒント」に HintPresetPanel を 1 つ配置し、開くときに設定の hint_presets を HintPresetPanel.set_presets に引き渡す。
         収集では `hint_presets` に HintPresetPanel.collect を入れる。変えた欄の数えには、HintPresetPanel.change_values のキーごとの変更を 1 件として含める（反映は immediate）。追加・削除した・名前か単語か有効を変えたプリセット 1 つが 1 件（1 つのプリセットで何度変えても 1 件）、開いたとき・保存したときからあって今も残っているプリセットどうしの順が変わったら並べ替えが 1 件になる（追加・削除だけでは並べ替えに数えない）。
-        エラーの一覧の表記のヒントの行は、失敗の場所 `hint_presets` を「有効なヒントの長さ」、`hint_presets[{n}].name` を「プリセット {n+1} 件目の名前」、`hint_presets[{n}].words[{m}]` を「プリセット {n+1} 件目の {m+1} つ目の語」にし、押すと「表記のヒント」のまとまりへ切り替えて HintPresetPanel.focus_field で欄へフォーカスを移す。長さの失敗は長さの行の下にも出す。
+        エラーの一覧の表記のヒントの行は、失敗の場所 `hint_presets` を「有効なヒントの長さ」、`hint_presets[{n}].name` を「プリセット {n+1} 件目の名前」、`hint_presets[{n}].words[{m}]` を「プリセット {n+1} 件目の {m+1} つ目の単語」にし、押すと「表記のヒント」のまとまりへ切り替えて HintPresetPanel.focus_field で欄へフォーカスを移す。長さの失敗は長さの行の下にも出す。
         既定に戻すと、表記のヒントのプリセットは空になる。
       ハルシネーションのまとまり: |-
         「用語集」の次のまとまり「ハルシネーション」に EdgePhrasePanel を 1 つ配置し、開くときに設定の edge_phrases を EdgePhrasePanel.set_phrases に引き渡す。
@@ -686,12 +686,12 @@ functions:
          | URL の形式が合わない（プリセットの URL） | 空なら「URL を入れてください（例: https://example.com/hook）。」、空でなければ「http:// か https:// で始まる URL を入れてください。」 |
          | URL の形式が合わない（transcription.openai.base_url） | 空なら「API の URL を入れてください（例: https://api.openai.com/v1）。」、空でなければ「http:// か https:// で始まる URL を入れてください。」 |
          | hotkey_overlap（find_hotkey_overlaps） | 重なった先がプリセットなら「プリセット「{タイトル}」と同じキーです。別のキーにしてください。」（もう一方の種類のプリセットなら「「{種類}」のプリセット「{タイトル}」と同じキーです。別のキーにしてください。」）、それ以外は「「{重なった欄の名前}」と同じホットキーです。別のキーにしてください。」 |
-         | hint_too_long | 「有効なヒントが長すぎます（{今の長さ} / 222 バイト）。語を減らすか、プリセットを無効にしてください。」 |
-         | hint_word_empty | 「語を入れるか、この欄を削除してください。」 |
-         | hint_word_separator | 「読点（、）・句点（。）・改行は入れられません。語を分けて追加してください。」 |
+         | hint_too_long | 「有効なヒントが長すぎます（{今の長さ} / 222 バイト）。単語を減らすか、プリセットを無効にしてください。」 |
+         | hint_word_empty | 「単語を入れるか、この欄を削除してください。」 |
+         | hint_word_separator | 「読点（、）・句点（。）・改行は入れられません。単語を分けて追加してください。」 |
          | hint_reading_not_kana | 「読みはひらがなかカタカナで入れてください。」 |
-         | hint_reading_conflict | 「同じ語に違う読みが入っています。読みを揃えるか、語を削除してください。」 |
-         | hint_readings_length | 「読みの数が語の数と合いません。settings.yaml の readings を修正してください。」 |
+         | hint_reading_conflict | 「同じ単語に違う読みが入っています。読みを揃えるか、単語を削除してください。」 |
+         | hint_readings_length | 「読みの数が単語の数と合いません。settings.yaml の readings を修正してください。」 |
          | haas_port_overlap | 「API を待ち受けるポートと同じ番号です。別の番号を入れてください。」 |
          | haas_model_empty | 「モデルの名前かパスを入れてください。」 |
          | haas_device_form | 「cuda・cuda:0 のような番号つきの cuda・cpu のどれかを入れてください。」 |
@@ -759,7 +759,7 @@ functions:
         summary: 同じ単語に違う読みが入っている
         condition: words が 突合・突合、readings が とつごう・とつあわせ の SETTINGS_MODEL.model_validate の失敗を引き渡す
         mock: なし
-        expected: 同じ単語に違う読みが入っています。読みを統一するか、単語を削除してください。（失敗の場所は後ろの単語の readings[1]）
+        expected: 同じ単語に違う読みが入っています。読みを揃えるか、単語を削除してください。（失敗の場所は後ろの単語の readings[1]）
       - name: test_to_field_message_when_haas_port_overlap
         case: 正常
         summary: Haas のポートが API のポートと同じ

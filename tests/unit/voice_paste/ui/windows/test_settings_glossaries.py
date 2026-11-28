@@ -289,7 +289,7 @@ def test_glossary_panel_set_glossaries_when_single_glossary(
 
     # 検証（1 回目は減らず、2 回目は 1 件に減って「既定」の使う用語集からも外れ、残った 1 件は押しても減らない）
     assert after_first_click == 1
-    assert tooltip == "最後の用語集は消せません"
+    assert tooltip == "最後の用語集は削除できません"
     assert after_second_click == 1
     assert len(opened.panel.collect()) == 1
     assert opened.panel.collect_presets() == [{"name": "既定", "glossaries": []}]

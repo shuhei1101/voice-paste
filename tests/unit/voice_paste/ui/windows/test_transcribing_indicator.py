@@ -85,6 +85,26 @@ def test_open_when_preset(qapp: QApplication, tmp_path: Path) -> None:
     assert [hint for hint in paste_hints if hint.isVisible()] == []
 
 
+def test_open_when_long_preset_title(qapp: QApplication, tmp_path: Path) -> None:
+    """長いプリセットの名前は省いて出し、窓の幅を広げない（正常系）。"""
+    from voice_paste.ui.windows.transcribing_indicator import TranscribingIndicator
+
+    # 準備
+    short_indicator = TranscribingIndicator(make_ui_deps(tmp_path), clock=FakeClock(0.0))
+    long_indicator = TranscribingIndicator(make_ui_deps(tmp_path), clock=FakeClock(0.0))
+
+    # 実行
+    short_indicator.open(preset_title="ChatGPT")
+    long_indicator.open(preset_title="A" * 200)
+    qapp.processEvents()
+
+    # 検証
+    long_label = long_indicator.findChild(QLabel, "preset_label")
+    assert long_indicator.width() == short_indicator.width()
+    assert long_label.text().endswith("…")
+    assert long_label.toolTip() == "A" * 200
+
+
 # === 切り替えのボタンの幅 ===
 
 

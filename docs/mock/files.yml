@@ -1,4 +1,61 @@
 files:
+- path: "pages/settings/356/a-noun-labels/hints/index.html"
+  name: "設定画面の案 a-noun-labels / hints（#356）"
+  description: "#356（画面設計書を design-schemas/v12.0.0 で記載し直し、気づいた設計の漏れを実装とテストまで修正する）で作った設定画面の案「表記のヒントの追加のボタンを「プリセット追加」「単語追加」にした」のモックを受け持ち、その変更の設定画面の案を確認するときに参照する。"
+  tags:
+  - topic:モック
+  - topic:画面
+- path: "pages/settings/356/a-noun-labels/hallucination/index.html"
+  name: "設定画面の案 a-noun-labels / hallucination（#356）"
+  description: "#356（画面設計書を design-schemas/v12.0.0 で記載し直し、気づいた設計の漏れを実装とテストまで修正する）で作った設定画面の案「ハルシネーションの追加のボタンを「行追加」にした」のモックを受け持ち、その変更の設定画面の案を確認するときに参照する。"
+  tags:
+  - topic:モック
+  - topic:画面
+- path: "pages/settings/356/a-noun-labels/output-presets/index.html"
+  name: "設定画面の案 a-noun-labels / output-presets（#356）"
+  description: "#356（画面設計書を design-schemas/v12.0.0 で記載し直し、気づいた設計の漏れを実装とテストまで修正する）で作った設定画面の案「ブラウザ添付・エンドポイントへ送信の追加のボタンを「プリセット追加」にした」のモックを受け持ち、その変更の設定画面の案を確認するときに参照する。"
+  tags:
+  - topic:モック
+  - topic:画面
+- path: pages/web-transcription/356/index.md
+  description: '#356（画面設計書を design-schemas/v12.0.0 で記載し直し、気づいた設計の漏れを実装とテストまで修正する）で作った外の端末の文字起こしの画面のモックの案を記載し、その変更の外の端末の文字起こしの画面の案を確認するときに参照する。'
+  tags:
+  - topic:モック
+  - topic:画面
+- path: pages/settings/356/index.md
+  description: '#356（画面設計書を design-schemas/v12.0.0 で記載し直し、気づいた設計の漏れを実装とテストまで修正する）で作った設定画面のモックの案を記載し、その変更の設定画面の案を確認するときに参照する。'
+  tags:
+  - topic:モック
+  - topic:画面
+- path: refs/356/index.md
+  description: '#356（画面設計書を design-schemas/v12.0.0 で記載し直し、気づいた設計の漏れを実装とテストまで修正する）で作った画面のモックへのリンクを記載し、その作業 PR の画面の案を確認するときに参照する。'
+  tags:
+  - topic:モック
+  - topic:画面
+- path: "pages/web-transcription/356/a-copy-icon/index.html"
+  name: "外の端末の文字起こしの画面の案 a-copy-icon（#356）"
+  description: "#356（画面設計書を design-schemas/v12.0.0 で記載し直し、気づいた設計の漏れを実装とテストまで修正する）で作った外の端末の文字起こしの画面の案「結果の 1 件のコピーは押した直後にアイコンだけをチェックに替え、狭い幅ではアイコンだけにする」のモックを受け持ち、その変更の外の端末の文字起こしの画面の案を確認するときに参照する。"
+  tags:
+  - topic:モック
+  - topic:画面
+- path: "pages/settings/356/a-noun-labels/index.html"
+  name: "設定画面の案 a-noun-labels（#356）"
+  description: "#356（画面設計書を design-schemas/v12.0.0 で記載し直し、気づいた設計の漏れを実装とテストまで修正する）で作った設定画面の案「追加のボタンの文言を目的語の後ろの「を」を省いた形にそろえる」のモックを受け持ち、その変更の設定画面の案を確認するときに参照する。"
+  tags:
+  - topic:モック
+  - topic:画面
+- path: "refs/356/assets/style.css"
+  name: "#356 のモックの共有のスタイル"
+  description: "#356（画面設計書を design-schemas/v12.0.0 で記載し直し、気づいた設計の漏れを実装とテストまで修正する）で作った画面のモックが共有する見た目（コピーのボタンのアイコンの切り替えと狭い幅の出し方）を受け持ち、その作業 PR のモックの見た目を変えるときに参照する。"
+  tags:
+  - topic:モック
+  - topic:スタイル
+- path: "refs/356/assets/app.js"
+  name: "#356 のモックの共有のスクリプト"
+  description: "#356（画面設計書を design-schemas/v12.0.0 で記載し直し、気づいた設計の漏れを実装とテストまで修正する）で作った画面のモックが共有する振る舞い（#347 の振る舞いに、コピーの押した直後の表示の替え方を変えたもの）を受け持ち、その作業 PR のモックの振る舞いを変えるときに参照する。"
+  tags:
+  - topic:モック
+  - topic:画面
 - path: pages/web-transcription/347/index.md
   description: '#347（外の端末の文字起こしの画面に録音の破棄と一時停止を追加し、長い結果を折りたたんでコピーのボタンを上に配置する）で作った外の端末の文字起こしの画面のモックの案を記載し、その変更の外の端末の文字起こしの画面の案を確認するときに参照する。'
   tags:

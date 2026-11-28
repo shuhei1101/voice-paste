@@ -21,6 +21,7 @@ from PySide6.QtWidgets import (
 
 from voice_paste.shared.settings import EdgePhraseSettings
 from voice_paste.ui.windows.settings_fields import set_invalid
+from voice_paste.ui.windows.window_parts import ICON_BUTTON_SIZE_PX, IconButton
 
 HEADING_TEXT: str = "ハルシネーション"
 """まとまりの見出し。"""
@@ -123,7 +124,7 @@ class RowGrip(QLabel):
 
 
 class EdgePhrasePanel(QWidget):
-    """設定画面の「ハルシネーション」のまとまりに置く、説明・文言の一覧・空の文・「行を追加」・凡例。
+    """設定画面の「ハルシネーション」のまとまりに置く、説明・文言の一覧・空の文・「行追加」・凡例。
 
     追加・削除・並べ替え・入力はこの部品の中だけを変え、settings.yaml へは設定画面の保存で書く。
     """
@@ -169,7 +170,7 @@ class EdgePhrasePanel(QWidget):
         self._rows_layout.setSpacing(6)
         outer.addWidget(self._list)
 
-        add_button = QPushButton("行を追加")
+        add_button = QPushButton("行追加")
         add_button.setObjectName("add_edge_phrase_button")
         add_button.clicked.connect(self.add_phrase)
         legend = QLabel(LEGEND_TEXT)
@@ -341,7 +342,7 @@ class EdgePhrasePanel(QWidget):
             position_box.addItem(label, key)
         position_label.setFixedWidth(position_box.sizeHint().width())
         remove_gap = QWidget()
-        remove_gap.setFixedWidth(QPushButton("×").sizeHint().width())
+        remove_gap.setFixedWidth(ICON_BUTTON_SIZE_PX)
         for label in (text_label, position_label):
             label.setProperty("role", "heading")
         grid.addWidget(grip_gap, 0, 0)
@@ -373,9 +374,9 @@ class EdgePhrasePanel(QWidget):
         for key, label in POSITION_LABELS:
             position_box.addItem(label, key)
         position_box.setCurrentIndex(max(position_box.findData(str(value["position"])), 0))
-        remove_button = QPushButton("×")
-        remove_button.setObjectName(f"edge_phrase_remove_{position}")
-        remove_button.setAccessibleName(f"{position + 1} 行目を削除")
+        remove_button = IconButton(
+            f"edge_phrase_remove_{position}", "trash", f"{position + 1} 行目を削除"
+        )
         error_label = QLabel()
         error_label.setTextFormat(Qt.TextFormat.PlainText)
         error_label.setProperty("role", "error")

@@ -1,0 +1,19 @@
+confirmations:
+  - topic: 外部の端末の画面のコピーの成功の伝え方
+    decision: 押した直後の 2 秒だけアイコンをチェックに替えて成功の色にし、文言は「コピー」のままにする。768px 未満の幅ではコピーをアイコンだけのボタンにする（推奨案 A）
+    decided_by: 👍
+    approver: shuhei1101
+    commit: 2170b3e
+    thread: https://github.com/shuhei1101/voice-paste/pull/356#discussion_r4727500201
+  - topic: 設定画面の追加のボタンの文言
+    decision: 目的語の後ろの「を」を省いた形にそろえる（推奨案 A）。表記のヒントは「プリセット追加」「単語追加」、ハルシネーションは「行追加」、ブラウザ添付・エンドポイントへ送信は「プリセット追加」。あわせて、画面に出す「語」は「単語」にする
+    decided_by: 返信
+    approver: shuhei1101
+    commit: 18d9a7a
+    thread: https://github.com/shuhei1101/voice-paste/pull/356#discussion_r4727516239
+  - topic: 外部の端末の画面のコピーの失敗の文言
+    decision: 結果の頭の行の下に「コピーできませんでした。ブラウザがクリップボードへの書き込みを許可していません。」を出す（推奨案 A）
+    decided_by: 👍
+    approver: shuhei1101
+    commit: af2edd4
+    thread: https://github.com/shuhei1101/voice-paste/pull/356#discussion_r4727622807

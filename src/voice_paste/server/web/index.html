@@ -141,10 +141,13 @@
       <div class="result__head">
         <span class="result__meta"><span class="result__time num" data-element="result_time"></span><span class="result__src" data-element="result_source"></span></span>
         <span class="result__actions" hidden>
-          <button type="button" class="btn" data-element="copy_button" data-copied="false"><svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><rect x="9" y="9" width="11" height="11" rx="2"/><path d="M5 15V5a2 2 0 0 1 2-2h8"/></svg><span aria-live="polite">コピー</span></button>
+          <!-- コピー: 押した直後の 2 秒だけアイコンをチェックに替え、文言は替えない。768px 未満はアイコンだけにする -->
+          <button type="button" class="btn copy-btn" aria-label="コピー" title="コピー" data-element="copy_button" data-copied="false"><svg class="ico ico--copy" viewBox="0 0 24 24" aria-hidden="true"><rect x="9" y="9" width="11" height="11" rx="2"/><path d="M5 15V5a2 2 0 0 1 2-2h8"/></svg><svg class="ico ico--check" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12l5 5 9-10"/></svg><span class="copy-btn__label" aria-hidden="true">コピー</span><span class="sr-only" data-copy-status aria-live="polite"></span></button>
           <button type="button" class="btn btn--icon btn--danger" aria-label="この結果を削除" title="この結果を削除" data-element="delete_button"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16M10 11v6M14 11v6M6 7l1 13h10l1-13M9 7V4h6v3"/></svg></button>
         </span>
       </div>
+      <!-- コピーの失敗: クリップボードへ書き込めなかったときだけ頭の行の下に出し、次にコピーを押したら隠す -->
+      <p class="result__copy-error" role="alert" data-element="copy_error" hidden></p>
       <div class="result__status" data-element="result_status" hidden>
         <svg class="result__icon" viewBox="0 0 24 24" aria-hidden="true" hidden><circle cx="12" cy="12" r="9"/><path d="M12 8v5M12 16v.01"/></svg>
         <span class="spinner" aria-hidden="true" hidden></span>

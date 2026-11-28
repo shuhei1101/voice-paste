@@ -21,6 +21,10 @@ elements:
     kind: button
     position: 音声送信 > 操作
     description: 画面での録音を始める。MediaRecorder の形式を `isTypeSupported` で webm/opus・mp4・ogg の順に選び、audioBitsPerSecond に画面の録音のビットレートを引き渡す。マイクの許可はブラウザ標準の確認に任せる。端末内の音声が「送信失敗」「未送信」「文字起こし前」のときは塗りを除外し、主の操作を再送信ボタンへ移す
+    disabled_reason: ファイルの送信中の行（送信中のファイル名と「送信中 {n}%」）が、送信中で押せないことを示す
+    label_display: icon_and_text
+    confirm: none
+    icon: circle
     label: 録音開始
     visible_when: 録音中・一時停止中でないとき
     enabled_when: 送信中でないとき
@@ -34,8 +38,12 @@ elements:
     kind: input
     position: 音声送信 > 操作
     description: 録ってある音声ファイルを選ぶ。選んだら確認せずにすぐ送信し、送信している間はファイルの送信中の行を出す。選んだファイルは端末内の音声に残さない（元が端末にあるため）
+    retained_state:
+      - what: 選んだファイル
+        store: none
+        reason: 選んだらすぐ送信し、端末内の音声にも残さないため
     label: ファイル送信
-    io: 入力
+    io: input
     type: File
     visible_when: 録音中・一時停止中でないとき
     enabled_when: 送信中でないとき
@@ -71,26 +79,23 @@ elements:
     kind: label
     position: 音声送信 > 録音中の表示
     description: 録った時間の合計（一時停止していた時間を含まない）。録音中は 1 秒ごとに更新し、一時停止中は止めて補足の色にする（role=timer）。読み上げ名は「経過時間 {分} 分 {秒} 秒」
-    io: 表示
+    io: output
     visible_when: 録音中・一時停止中
     display_format: '`mm:ss`（例 `02:14`）'
   - name: 上限までの録音時間
     id: recording_progress
     kind: progress
     position: 音声送信 > 録音中の表示
-    description: 画面の録音の上限時間に対する、録った時間の合計（秒）。一時停止中は進めない
-    io: 表示
+    description: 画面の録音の上限時間に対する、録った時間の合計（秒）。一時停止中は進めない。値の範囲は 0〜1800
+    io: output
     visible_when: 録音中・一時停止中
-    range:
-      min: '0'
-      max: '1800'
   - name: 上限と残り時間
     id: recording_remaining
     kind: label
     position: 音声送信 > 録音中の表示
     description: 上限時間と、録った時間の合計で数えた残り時間（一時停止中は進めない）。残り 60 秒未満になったら残り時間を注意の色にし、「（上限で自動送信）」を添える
     label: 上限 30:00 / 残り {m:ss}
-    io: 表示
+    io: output
     visible_when: 録音中・一時停止中
     display_format: '`m:ss`（例 `27:46`・`0:48`）'
   - name: 録音停止・送信ボタン
@@ -98,6 +103,9 @@ elements:
     kind: button
     position: 音声送信 > 録音中の表示
     description: 録音を止め、録った音声（一時停止していた間を含まない）を保存日時つきで端末（IndexedDB）に 1 件だけ残して（前の 1 件を置き換える）送信する。一時停止中も押せる。録った時間の合計が上限時間に達したときも同じ動きを自動で行う。録音中の表示の主の操作（塗り）で、幅が 30rem 未満の録音中の表示では 1 行目に幅いっぱいで配置する
+    label_display: icon_and_text
+    confirm: none
+    icon: square
     label: 録音停止・送信
     visible_when: 録音中・一時停止中
     target: 音声を受け付ける.audio
@@ -115,7 +123,10 @@ elements:
     kind: label
     position: 音声送信
     description: 送信の失敗を、見出しと本文で出す（role=alert）。次の送信か録音を始めると削除する
-    io: 表示
+    overflow:
+      type: wrap
+      max_length: 200
+    io: output
     visible_when: 直前の送信か録音の開始が失敗したとき
     source: 音声を受け付ける の応答のステータス
     notes:
@@ -125,32 +136,31 @@ elements:
     kind: label
     position: 音声送信 > 端末内の音声
     description: 画面で録った直近 1 件の音声の録った日時・長さ・形式・大きさ。送信中は、送信した時点の用語集のプリセット（選択欄の表示文言のまま）を末尾に添え、次に送信する音声の選択と分ける。見出しは「端末内の音声」
-    io: 表示
+    io: output
     visible_when: 端末（IndexedDB）に音声があるとき
     display_format: '`MM/DD HH:mm 録音・{m:ss}・{形式}・{大きさ}`（例 `10/23 14:05 録音・2:14・webm・540 KB`）。送信中は末尾に `・プリセット「{名前}」`'
   - name: 端末内の音声の状態
     id: kept_state
     kind: label
     position: 音声送信 > 端末内の音声
-    description: その音声の送信と文字起こしの状態。マーカーと文言で分け、色だけに頼らない
-    io: 表示
+    description: 'その音声の送信と文字起こしの状態。マーカーと文言で分け、色だけに頼らない。並び: 「送信中 {n}%」（送信中）・「送信済み」（202 を受けた後。そのジョブが failed か 404 になるまで）・「送信失敗」（送信が失敗した）・「未送信」（一覧に無いプリセットで 400 になった）・「文字起こし前」（そのジョブが failed か 404）'
+    io: output
     visible_when: 端末（IndexedDB）に音声があるとき
-    options: 「送信中 {n}%」（送信中）・「送信済み」（202 を受けた後。そのジョブが failed か 404 になるまで）・「送信失敗」（送信が失敗した）・「未送信」（一覧に無いプリセットで 400 になった）・「文字起こし前」（そのジョブが failed か 404）
   - name: 送信の進捗
     id: kept_progress
     kind: progress
     position: 音声送信 > 端末内の音声
-    description: 送信したバイト数の割合（XMLHttpRequest の upload の progress）。読み上げ名は「送信の進捗」
-    io: 表示
+    description: 送信したバイト数の割合（XMLHttpRequest の upload の progress）。読み上げ名は「送信の進捗」。値の範囲は 0〜100
+    io: output
     visible_when: 送信中
-    range:
-      min: '0'
-      max: '100'
   - name: ダウンロードボタン
     id: download_button
     kind: button
     position: 音声送信 > 端末内の音声
     description: 端末内の音声を、録った日時の名前と形式の拡張子で端末へ保存する
+    label_display: icon_and_text
+    confirm: none
+    icon: download
     label: ダウンロード
     visible_when: 端末（IndexedDB）に音声があるとき
     action: '`voice-paste_{YYYYMMDD-HHmmss}.{拡張子}` の名前で保存する'
@@ -159,6 +169,9 @@ elements:
     kind: button
     position: 音声送信 > 端末内の音声
     description: 端末内の音声を、再送信した時点の用語集のプリセットの選択でもう一度送信する。このときの主の操作（塗り）。新しい job_id で結果の一覧に待ちの件を追加し、失敗した前の件は一覧から除外する
+    label_display: icon_and_text
+    confirm: none
+    icon: rotate-cw
     label: 再送信
     visible_when: 端末内の音声が「送信失敗」「未送信」「文字起こし前」のとき
     target: 音声を受け付ける.audio
@@ -177,7 +190,7 @@ elements:
     position: 結果 > 見出し
     description: 一覧の件数（待ちの件を含む）と、残す件数・期限
     label: '{n} 件・最大 10 件・保存 7 日（0 件のときは「最大 10 件・保存 7 日」）'
-    io: 表示
+    io: output
     visible_when: 常時
   - name: 結果なしの表示
     id: results_empty
@@ -191,7 +204,17 @@ elements:
     kind: list
     position: 結果
     description: 新しい件を先頭に並べる（aria-live=polite）。終わっていない件（文字起こし待ち・文字起こし中）は 2 秒ごとに結果を取りに行き、done・failed・404 で取りに行くのをやめる。取りに行けなかったとき（届かない・5xx）は次の間隔で取りに行く。終わっていない件の job_id も端末（localStorage）に持ち、画面を開き直したら取りに行くのを続ける。画面を開いたときに、保存日時から 7 日を過ぎた結果と端末内の音声を削除する。結果は直近 10 件を残し、超えたらいちばん古い件を削除する
-    io: 表示
+    overflow:
+      type: wrap
+      unbounded: true
+    retained_state:
+      - what: 結果の一覧（終わっていない件の job_id を含む）
+        store: local_storage
+        key: voice-paste.results
+        save_on: 件を追加したとき・結果を取りに行って状態が変わったとき・削除したとき
+        restore_on: 画面を開いたとき（開き直し・再読み込み）
+        reset_when: 保存日時から 7 日を過ぎた件と、直近 10 件を超えた件は削除する
+    io: output
     visible_when: 一覧に件があるとき
     source: 文字起こしの結果を返却する.state
     action_ref: IF-4#
@@ -201,7 +224,7 @@ elements:
     kind: label
     position: 結果 > 結果の 1 件 > 頭の行
     description: 送信した日時
-    io: 表示
+    io: output
     visible_when: 常時
     display_format: '`MM/DD HH:mm`'
   - name: 結果の元の音声
@@ -209,34 +232,39 @@ elements:
     kind: label
     position: 結果 > 結果の 1 件 > 頭の行
     description: 画面で録った音声は「画面録音・{長さ}」、選んだファイルはファイル名。日時の右に並べ、コピー・削除に場所を譲って 1 行で末尾を `…` で省く（狭い幅では「画面録音・{長さ}」も省く）。省いた全文は `title` で出す
-    io: 表示
+    io: output
     visible_when: 常時
   - name: 結果の状態
     id: result_status
     kind: label
     position: 結果 > 結果の 1 件
-    description: 終わっていない件と失敗した件の状態
-    io: 表示
+    description: '終わっていない件と失敗した件の状態。並び: queued: 「文字起こし待ち」。running: reports_progress が true なら「文字起こし中 {n}%」、false なら「文字起こし中」。failed: 「文字起こし失敗」。404: 「結果消失」'
+    overflow:
+      type: wrap
+      max_length: 20
+    io: output
     visible_when: state が queued・running・failed か 404 のとき
-    options: 'queued: 「文字起こし待ち」。running: reports_progress が true なら「文字起こし中 {n}%」、false なら「文字起こし中」。failed: 「文字起こし失敗」。404: 「結果消失」'
     source: 文字起こしの結果を返却する.state・文字起こしの結果を返却する.reports_progress
   - name: 文字起こしの進捗
     id: result_progress
     kind: progress
     position: 結果 > 結果の 1 件
-    description: 文字起こしの進み具合。読み上げ名は「文字起こしの進捗」
-    io: 表示
+    description: 文字起こしの進み具合。読み上げ名は「文字起こしの進捗」。値の範囲は 0〜100
+    overflow:
+      type: wrap
+      max_length: 4
+    io: output
     visible_when: state が running で、reports_progress が true のとき（false のときは hidden にして読み上げにも出さない）
-    range:
-      min: '0'
-      max: '100'
     source: 文字起こしの結果を返却する.progress（× 100 して整数に丸める）
   - name: 起こした文字
     id: result_text
     kind: label
     position: 結果 > 結果の 1 件
     description: 用語集で補正した文字。改行を保ち、長い単語も折り返す。表示が 5 行を超える件は先頭の 5 行だけを出して折りたたみ、続きを読む・折りたたむボタンで全文と行き来する。done を受けたら保存日時つきで端末（localStorage）に残す
-    io: 表示
+    overflow:
+      type: wrap
+      unbounded: true
+    io: output
     visible_when: state が done のとき
     source: 文字起こしの結果を返却する.text
   - name: 失敗の詳細
@@ -244,7 +272,10 @@ elements:
     kind: label
     position: 結果 > 結果の 1 件
     description: 失敗の理由と対処。失敗した件は端末（localStorage）に残さず、画面を開いている間だけ出す
-    io: 表示
+    overflow:
+      type: wrap
+      max_length: 200
+    io: output
     visible_when: state が failed か 404 のとき
     source: 文字起こしの結果を返却する.error
     notes:
@@ -253,7 +284,17 @@ elements:
     id: copy_button
     kind: button
     position: 結果 > 結果の 1 件 > 頭の行 > 操作
-    description: 起こした文字の全文を、折りたたみの状態によらずクリップボードへ入れる（`navigator.clipboard.writeText`）。日時・元の音声と同じ行の右端（起こした文字の上）に配置する。押した直後は 2 秒だけ「コピー済み」に替え、読み上げにも伝える
+    description: 起こした文字の全文を、折りたたみの状態によらずクリップボードへ入れる（`navigator.clipboard.writeText`）。日時・元の音声と同じ行の右端（起こした文字の上）に配置する。768px 未満の幅ではアイコンだけにする（削除ボタンと同じ大きさ）。押した後の表示は結果の伝え方のとおり
+    feedback:
+      success: 押した直後の 2 秒だけアイコンをチェックに替えて成功の色にし、文言は「コピー」のまま替えない。読み上げには「コピーしました」を伝える
+      failure: クリップボードへ書き込めなかったときは、その結果の頭の行の下に「コピーできませんでした。ブラウザがクリップボードへの書き込みを許可していません。」を出す（読み上げにも伝える）。アイコンと文言は替えず、次にコピーを押したときに非表示にする
+    narrow:
+      action: icon_only
+    tooltip: コピー
+    accessible_name: コピー
+    label_display: icon_and_text
+    confirm: none
+    icon: copy
     label: コピー
     visible_when: state が done のとき
     action: 起こした文字をクリップボードへ入れる
@@ -262,6 +303,11 @@ elements:
     kind: button
     position: 結果 > 結果の 1 件 > 頭の行 > 操作
     description: その結果を端末から削除する確認を開く。アイコンだけのボタンで、読み上げ名は「この結果を削除」
+    label_display: icon_only
+    confirm: dialog
+    icon: trash-2
+    accessible_name: この結果を削除
+    tooltip: この結果を削除
     visible_when: state が done のとき
     action_ref: SCR-4#
   - name: 送信中のファイル名
@@ -269,7 +315,7 @@ elements:
     kind: label
     position: 音声送信 > ファイルの送信中
     description: 選んで送信しているファイルの名前と大きさ。操作のすぐ下に出し、録音開始ボタンとファイル送信ボタンが押せない理由をその場で確認できるようにする。長い名前は名前だけを 1 行で末尾を `…` で省き、大きさは省かずに残す
-    io: 表示
+    io: output
     visible_when: 選んだファイルを送信している間（202 か失敗を受けたら削除する）
     display_format: '`{ファイル名}・{大きさ}`（例 `interview-part2.m4a・38.4 MB`）'
   - name: ファイルの送信の状態
@@ -278,25 +324,29 @@ elements:
     position: 音声送信 > ファイルの送信中
     description: 送信したバイト数の割合（role=status）。202 を受けたらこの行を削除し、結果の一覧の先頭に待ちの件を出す。失敗したらこの行を削除し、音声送信のエラーを出す
     label: 送信中 {n}%
-    io: 表示
+    io: output
     visible_when: 選んだファイルを送信している間
   - name: ファイルの送信の進捗
     id: file_sending_progress
     kind: progress
     position: 音声送信 > ファイルの送信中
-    description: 送信したバイト数の割合（XMLHttpRequest の upload の progress）。読み上げ名は「送信の進捗」
-    io: 表示
+    description: 送信したバイト数の割合（XMLHttpRequest の upload の progress）。読み上げ名は「送信の進捗」。値の範囲は 0〜100
+    io: output
     visible_when: 選んだファイルを送信している間
-    range:
-      min: '0'
-      max: '100'
   - name: 用語集のプリセットの選択欄
     id: preset_select
     kind: select
     position: 音声送信 > 用語集のプリセット
     description: 次に送信する音声の補正に使用する用語集のプリセットを選ぶ。録音開始ボタン・ファイル送信ボタンの上に配置する。録音停止・送信・ファイル送信・再送信のどれも、送信した時点の選択を送信する。送信中も次に送信する音声のために変えられる
+    retained_state:
+      - what: 選んだ用語集のプリセットの名前（「設定に従う」は空文字）
+        store: local_storage
+        key: voice-paste.glossary_preset
+        save_on: 選んだとき
+        restore_on: 画面を開いたとき
+        reset_when: 覚えた名前が presets に無いときは「設定に従う」にする
     label: 用語集のプリセット
-    io: 入力
+    io: input
     type: 文字列
     visible_when: 常時
     enabled_when: 録音中・一時停止中でないとき
@@ -321,8 +371,14 @@ elements:
     kind: checkbox
     position: 音声送信 > 画面を暗くしない
     description: 画面で録っている間、Screen Wake Lock で端末の画面の消灯を抑止するか。用語集のプリセットの選択欄のすぐ下、録音開始ボタンの上に配置する。オンなら録音を始めるときに `navigator.wakeLock.request("screen")` を取得し、一時停止中も抑止を続け、録音の停止・上限での停止・破棄で解放する。録音中・一時停止中に画面が隠れるとブラウザが解放し、画面へ戻ったとき（visibilitychange）に録音中か一時停止中なら取得し直す。取得できないとき（拒否）は抑止せずに録音を続け、ブラウザのコンソールに警告を出す。ファイルの送信では抑止しない（モック `docs/mock/pages/web-transcription/292/a-below-preset/`）
+    retained_state:
+      - what: チェックのオン・オフ
+        store: local_storage
+        key: voice-paste.keep_screen_on
+        save_on: 変えたとき
+        restore_on: 画面を開いたとき
     label: 録音中は画面を暗くしない
-    io: 入力
+    io: input
     type: 真偽値
     visible_when: 常時
     enabled_when: 録音中・一時停止中でなく、ブラウザが Screen Wake Lock に対応しているとき（`navigator.wakeLock` がある）
@@ -368,7 +424,7 @@ elements:
     kind: label
     position: 音声送信 > ファイルの送信中
     description: 送信しているファイルに付けた用語集のプリセット。送信した時点の選択欄の表示文言をそのまま出し、次に送信する音声の選択と分ける。ファイル名が長いと省かれるため、送信中のファイル名とは別の行に出す
-    io: 表示
+    io: output
     visible_when: 選んだファイルを送信している間
     display_format: プリセット「{名前}」（例 プリセット「下書き」）
     status: planned
@@ -377,6 +433,9 @@ elements:
     kind: button
     position: 音声送信 > 録音中の表示
     description: 録音中は「一時停止」で MediaRecorder を `pause()` し、一時停止中は「再開」で `resume()` する。録音停止・送信ボタンの右に配置し、幅が 30rem 未満の録音中の表示では破棄ボタンと 2 行目に同じ幅で並べる
+    label_display: icon_and_text
+    confirm: none
+    icon: pause（一時停止中は play）
     label: 一時停止（一時停止中は「再開」）
     visible_when: 録音中・一時停止中
     action: 録音中なら一時停止中の表示に替え、一時停止中なら録音中の表示に戻す
@@ -386,6 +445,9 @@ elements:
     kind: button
     position: 音声送信 > 録音中の表示
     description: 録った音声を送信せず、端末（IndexedDB）にも残さずに録音を止める確認を開く。取り消せない操作のため文字を警告の色にする。一時停止・再開ボタンの右に配置する
+    label_display: icon_and_text
+    confirm: dialog
+    icon: trash-2
     label: 破棄
     visible_when: 録音中・一時停止中
     action_ref: SCR-4#
@@ -395,6 +457,10 @@ elements:
     kind: button
     position: 結果 > 結果の 1 件
     description: 起こした文字のすぐ下の左に出し、起こした文字の全文と先頭の 5 行を切り替える。`aria-expanded` と `aria-controls`（起こした文字）で開閉を伝え、開くと文言を「折りたたむ」、山形を上向きに替える。開閉に動きは付けない
+    toggle_state: expanded
+    label_display: icon_and_text
+    confirm: none
+    icon: chevron-down（全文を出した後は上向き）
     label: 続きを読む（全文を出した後は「折りたたむ」）
     visible_when: state が done で、起こした文字の表示が 5 行を超えるとき
     action: 起こした文字の全文と先頭の 5 行を切り替える
@@ -402,6 +468,8 @@ elements:
 screen: src/voice_paste/server/web/index.html
 mock: docs/mock/pages/web-transcription/347/a-actions-row/
 lead: 外の端末のブラウザで開く 1 枚（`GET /web/`）。上に音声送信の区画、下に結果の一覧を 1 カラムで並べる。
+screen_type: other
+leave_guard: none
 refs:
   - to: SC-3
     type: references

@@ -22,30 +22,31 @@ from PySide6.QtWidgets import (
 
 from voice_paste.shared.settings import HINT_MAX_BYTES, HintPresetSettings, join_hint_words
 from voice_paste.ui.windows.settings_fields import set_invalid
+from voice_paste.ui.windows.window_parts import IconButton
 
 INTRO_TEXT: str = (
-    "間違えやすい語の正しい表記を並べる。文字起こしへの指示としては効かない。\n"
+    "間違えやすい単語の正しい表記を並べる。文字起こしへの指示としては効かない。\n"
     "読みは、文字起こしのエンジンが Haas（WSL）のときに使う。"
-    "読みが無い語は、認識の手がかりがほとんど効かない。"
+    "読みが無い単語は、認識の手がかりがほとんど効かない。"
 )
 """まとまりの見出しの下に出す、並べるものと、指示としては効かないこと、読みを使うエンジンの説明。"""
 
 NOTES_TEXT: str = (
     "・ヒントを渡すと、句読点が付く・改行がまとまる・口癖が一部消える。\n"
-    "・並べた表記にほかの語が引っ張られたら、その語も追加する"
+    "・並べた表記にほかの単語が引っ張られたら、その単語も追加する"
     "（例: TypeScript がタイプスクリプトになったら「TypeScript」を追加する）。"
 )
-"""まとまりの末尾に出す、ヒントを渡すと変わる書き方と、引っ張られた語への対処。"""
+"""まとまりの末尾に出す、ヒントを渡すと変わる書き方と、引っ張られた単語への対処。"""
 
 EMPTY_PRESETS_TEXT: str = (
     "ヒントのプリセットはまだありません。無い間は、ヒントを渡さずに文字を起こします。"
 )
 """プリセットが 1 件も無いときの案内。"""
 
-EMPTY_WORDS_TEXT: str = "このプリセットにはまだ語がありません。"
-"""語が 1 つも無いプリセットの、語の欄の代わりに出す文。"""
+EMPTY_WORDS_TEXT: str = "このプリセットにはまだ単語がありません。"
+"""単語が 1 つも無いプリセットの、単語の欄の代わりに出す文。"""
 
-LIST_ACCESSIBLE_NAME: str = "表記のヒントのプリセット（上から順に語をつなぐ）"
+LIST_ACCESSIBLE_NAME: str = "表記のヒントのプリセット（上から順に単語をつなぐ）"
 """プリセットの一覧の読み上げの名前。"""
 
 NAME_PLACEHOLDER: str = "例: 開発"
@@ -151,7 +152,7 @@ def _dim(widget: QWidget, *, dimmed: bool) -> None:
 
 
 class HintPresetPanel(QWidget):
-    """設定画面の「表記のヒント」のまとまりに置く、有効なヒントの長さ・プリセットの縦の並び・「プリセットを追加」・補足。
+    """設定画面の「表記のヒント」のまとまりに置く、有効なヒントの長さ・プリセットの縦の並び・「プリセット追加」・補足。
 
     追加・削除・並べ替え・入力はこの部品の中だけを変え、settings.yaml へは設定画面の保存で書く。
     """
@@ -216,7 +217,7 @@ class HintPresetPanel(QWidget):
         self._rows_layout.setSpacing(8)
         outer.addLayout(self._rows_layout)
 
-        add_button = QPushButton("プリセットを追加")
+        add_button = QPushButton("プリセット追加")
         add_button.setObjectName("hint_preset_add")
         add_button.clicked.connect(self.add_preset)
         outer.addWidget(add_button, alignment=Qt.AlignmentFlag.AlignLeft)
@@ -444,13 +445,13 @@ class HintPresetPanel(QWidget):
         size_label = QLabel()
         size_label.setObjectName(f"hint_preset_size_{position}")
         size_label.setProperty("role", "muted")
-        up_button = self._operation_button("↑", f"hint_preset_up_{position}")
+        up_button = IconButton(f"hint_preset_up_{position}", "arrow_up", "")
         up_button.setEnabled(position > 0)
         up_button.clicked.connect(lambda: self._move(position, -1))
-        down_button = self._operation_button("↓", f"hint_preset_down_{position}")
+        down_button = IconButton(f"hint_preset_down_{position}", "arrow_down", "")
         down_button.setEnabled(not last)
         down_button.clicked.connect(lambda: self._move(position, 1))
-        remove_button = self._operation_button("×", f"hint_preset_remove_{position}")
+        remove_button = IconButton(f"hint_preset_remove_{position}", "trash", "")
         remove_button.clicked.connect(lambda: self._remove(position))
         head.addWidget(enabled_box)
         head.addWidget(heading, 1)
@@ -487,7 +488,7 @@ class HintPresetPanel(QWidget):
             empty_words = QLabel(EMPTY_WORDS_TEXT)
             empty_words.setObjectName(f"hint_words_empty_{position}")
             column.addWidget(empty_words)
-        add_word_button = QPushButton("語を追加")
+        add_word_button = QPushButton("単語追加")
         add_word_button.setObjectName(f"hint_word_add_{position}")
         add_word_button.clicked.connect(lambda: self.add_word(position))
         column.addWidget(add_word_button, alignment=Qt.AlignmentFlag.AlignLeft)
@@ -498,9 +499,9 @@ class HintPresetPanel(QWidget):
             spoken = _spoken_name(position, current)
             heading.setText(_display_name(current))
             enabled_box.setAccessibleName(f"{spoken}を有効にする")
-            up_button.setAccessibleName(f"{spoken}を上へ")
-            down_button.setAccessibleName(f"{spoken}を下へ")
-            remove_button.setAccessibleName(f"{spoken}を削除")
+            up_button.set_label(f"{spoken}を上へ")
+            down_button.set_label(f"{spoken}を下へ")
+            remove_button.set_label(f"{spoken}を削除")
 
         def sync_enabled() -> None:
             """有効の切り替えの右の文字と、語の欄の薄さ・取り消し線を今の状態に合わせる。"""
@@ -530,14 +531,14 @@ class HintPresetPanel(QWidget):
         """語の欄と読みの欄の列の見出しを作る。左端を合わせるため、行と同じ幅の比と、見えない削除ボタンの幅を持つ。"""
         head = QWidget()
         head.setObjectName(f"hint_words_head_{position}")
-        head.setAccessibleName("語と読み")
+        head.setAccessibleName("単語と読み")
         layout = QHBoxLayout(head)
         layout.setContentsMargins(0, 0, 0, 0)
-        for text, stretch in (("語", WORD_COLUMN_STRETCH), ("読み", READING_COLUMN_STRETCH)):
+        for text, stretch in (("単語", WORD_COLUMN_STRETCH), ("読み", READING_COLUMN_STRETCH)):
             title = QLabel(text)
             title.setProperty("role", "heading")
             layout.addWidget(title, stretch)
-        spacer = self._operation_button("×", "")
+        spacer = IconButton("", "trash", "")
         policy = spacer.sizePolicy()
         policy.setRetainSizeWhenHidden(True)
         spacer.setSizePolicy(policy)
@@ -555,12 +556,15 @@ class HintPresetPanel(QWidget):
         pair = QHBoxLayout()
         edit = QLineEdit(word)
         edit.setObjectName(f"hint_word_{position}_{word_position}")
-        edit.setAccessibleName(f"{word_position + 1} つ目の語")
+        edit.setAccessibleName(f"{word_position + 1} つ目の単語")
         reading_edit = QLineEdit(reading)
         reading_edit.setObjectName(f"hint_reading_{position}_{word_position}")
-        reading_edit.setAccessibleName(f"{word_position + 1} つ目の語の読み")
-        remove_button = self._operation_button("×", f"hint_word_remove_{position}_{word_position}")
-        remove_button.setAccessibleName(f"{word_position + 1} つ目の語を削除")
+        reading_edit.setAccessibleName(f"{word_position + 1} つ目の単語の読み")
+        remove_button = IconButton(
+            f"hint_word_remove_{position}_{word_position}",
+            "trash",
+            f"{word_position + 1} つ目の単語を削除",
+        )
         remove_button.clicked.connect(lambda: self._remove_word(position, word_position))
         pair.addWidget(edit, WORD_COLUMN_STRETCH)
         pair.addWidget(reading_edit, READING_COLUMN_STRETCH)
@@ -587,14 +591,7 @@ class HintPresetPanel(QWidget):
         for row in self._rows:
             words = _stripped_words([cell.edit.text() for cell in row.cells])
             size = _byte_length(_WordsView(enabled=True, words=words))
-            row.size_label.setText(f"{len(words)} 語・{size} バイト")
-
-    @staticmethod
-    def _operation_button(text: str, object_name: str) -> QPushButton:
-        """上へ・下へ・削除のボタンを作る（見た目はマーカー。読み上げの名前は呼ぶ側が付ける）。"""
-        button = QPushButton(text)
-        button.setObjectName(object_name)
-        return button
+            row.size_label.setText(f"{len(words)} 単語・{size} バイト")
 
     @staticmethod
     def _error_label() -> QLabel:

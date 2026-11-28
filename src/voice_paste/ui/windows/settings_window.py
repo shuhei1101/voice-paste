@@ -350,7 +350,7 @@ GLOSSARY_NAME_HINT: str = "別の名前にしてください。"
 HINT_KEY_PATTERN: re.Pattern[str] = re.compile(
     rf"^{HINT_PRESETS_FIELD_NAME}(?:\[(\d+)\]\.(?:(name)|(words|readings)\[(\d+)\]))?$"
 )
-"""表記のヒントの欄の失敗のキー（`hint_presets`・`hint_presets[1].name`・`hint_presets[1].words[3]`・`hint_presets[1].readings[3]`）を、何件目か・項目・何つ目の語かに分ける。"""
+"""表記のヒントの欄の失敗のキー（`hint_presets`・`hint_presets[1].name`・`hint_presets[1].words[3]`・`hint_presets[1].readings[3]`）を、何件目か・項目・何つ目の単語かに分ける。"""
 
 EDGE_KEY_PATTERN: re.Pattern[str] = re.compile(rf"^{EDGE_PHRASES_FIELD_NAME}\[(\d+)\]\.text$")
 """文頭・文末から削除する文言の欄の失敗のキー（`edge_phrases[1].text`）を、何行目かに分ける。"""
@@ -566,18 +566,18 @@ def to_field_message(
     if error_type == HINT_TOO_LONG_ERROR_TYPE:
         return (
             f"有効なヒントが長すぎます（{error['ctx']['length']} / {HINT_MAX_BYTES} バイト）。"
-            "語を減らすか、プリセットを無効にしてください。"
+            "単語を減らすか、プリセットを無効にしてください。"
         )
     if error_type == HINT_WORD_EMPTY_ERROR_TYPE:
-        return "語を入れるか、この欄を削除してください。"
+        return "単語を入れるか、この欄を削除してください。"
     if error_type == HINT_WORD_SEPARATOR_ERROR_TYPE:
-        return "読点（、）・句点（。）・改行は入れられません。語を分けて追加してください。"
+        return "読点（、）・句点（。）・改行は入れられません。単語を分けて追加してください。"
     if error_type == HINT_READING_NOT_KANA_ERROR_TYPE:
         return "読みはひらがなかカタカナで入れてください。"
     if error_type == HINT_READING_CONFLICT_ERROR_TYPE:
-        return "同じ語に違う読みが入っています。読みを揃えるか、語を削除してください。"
+        return "同じ単語に違う読みが入っています。読みを揃えるか、単語を削除してください。"
     if error_type == HINT_READINGS_LENGTH_ERROR_TYPE:
-        return "読みの数が語の数と合いません。settings.yaml の readings を修正してください。"
+        return "読みの数が単語の数と合いません。settings.yaml の readings を修正してください。"
     if error_type == HAAS_PORT_OVERLAP_ERROR_TYPE:
         return "API を待ち受けるポートと同じ番号です。別の番号を入れてください。"
     if error_type == HAAS_MODEL_EMPTY_ERROR_TYPE:
@@ -1485,13 +1485,13 @@ class SettingsWindow(QWidget):
 
     @staticmethod
     def _hint_label(location: tuple[int | str, ...]) -> str:
-        """エラーの一覧に出す表記のヒントの欄の呼び方（「有効なヒントの長さ」「プリセット 1 件目の名前」「プリセット 1 件目の 2 つ目の語」「プリセット 1 件目の 2 つ目の語の読み」）を返す。"""
+        """エラーの一覧に出す表記のヒントの欄の呼び方（「有効なヒントの長さ」「プリセット 1 件目の名前」「プリセット 1 件目の 2 つ目の単語」「プリセット 1 件目の 2 つ目の単語の読み」）を返す。"""
         if not location:
             return HINT_LENGTH_LABEL
         position = int(location[0]) + 1
         if location[1] == "name":
             return f"プリセット {position} 件目の名前"
-        name = f"プリセット {position} 件目の {int(location[2]) + 1} つ目の語"
+        name = f"プリセット {position} 件目の {int(location[2]) + 1} つ目の単語"
         return f"{name}の読み" if location[1] == "readings" else name
 
     @staticmethod

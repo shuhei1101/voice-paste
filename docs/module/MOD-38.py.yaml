@@ -19,6 +19,7 @@ classes:
       最後の 1 件の用語集と補正に使用するプリセットの削除ボタンは、フォーカスとツールチップを残すため `setEnabled(False)` にせず、押しても削除しない扱いと薄い見た目にする（用語集もプリセットも常に 1 件以上残る）。
       コンストラクタは、行を読み込む関数（UiDeps.read_glossary）と、追加する用語集の場所を決める関数（UiDeps.new_glossary_path）を受ける。
       単体テストは tests/unit/voice_paste/ui/windows/test_settings_glossaries.py に配置する（ファイルを作った時点で、この設計書の対応テストファイルに追加する）。
+      用語集・行・プリセットの削除ボタンは IconButton（window_parts.py。trash）、プリセットの使用する用語集を外すボタンは IconButton（x）で作る。最後の 1 件の用語集と補正に使用するプリセットの削除ボタンは property("inactive") を True にし、薄い見た目にする。
     properties:
       - name: presets_changed
         type: Signal(list, object)
@@ -341,7 +342,7 @@ classes:
         title: 用語集のプリセットを追加
         kind: メソッド
         scope: public
-        summary: 末尾に名前が空で使用する用語集の無いプリセットを追加し、その使用する用語集の表を出して名前の欄へフォーカスを移し、changed を emit する。「プリセットを追加」が呼ぶ
+        summary: 末尾に名前が空で使用する用語集の無いプリセットを追加し、その使用する用語集の表を出して名前の欄へフォーカスを移し、changed を emit する。「プリセット追加」が呼ぶ
         status: planned
         returns:
           type: None

@@ -1,4 +1,4 @@
-# yaml-language-server: $schema=https://raw.githubusercontent.com/shuhei1101/knowledge/design-schemas/v9.5.0/schemas/prompt.schema.yaml
+# yaml-language-server: $schema=https://raw.githubusercontent.com/shuhei1101/knowledge/design-schemas/v12.0.0/schemas/prompt.schema.yaml
 id: openai-transcribe
 name: OpenAI API の文字起こしのプロンプト
 kind: llm

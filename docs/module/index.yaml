@@ -186,6 +186,8 @@ items:
     summary: 常駐アプリ / ホットキーと画面 / settings_window.py
   - page: MOD-35.py.yaml
     summary: 常駐アプリ / ホットキーと画面 / transcribing_indicator.py
+  - page: MOD-106.py.yaml
+    summary: 常駐アプリ / ホットキーと画面 / window_parts.py
   - page: MOD-1.yaml
     summary: FastAPI の app を組み立て、127.0.0.1 での待ち受け・Host・Origin・トークンの守りと、例外の HTTP への変換を持つ。uvicorn を専用のスレッドで動かす。
   - page: MOD-3.yaml

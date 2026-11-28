@@ -759,6 +759,15 @@ files:
     related:
       - to: src/voice_paste/ui/windows/transcribing_indicator.py
         type: tests
+  - path: unit/voice_paste/ui/windows/test_window_parts.py
+    description: "窓の部品（アイコンだけのボタン）の読み上げ名・ツールチップ・大きさを検証する単体テストを受け持ち、窓の部品を変えるときに参照する。"
+    tags:
+      - topic:testing
+      - topic:画面
+      - topic:ボタン
+    related:
+      - to: src/voice_paste/ui/windows/window_parts.py
+        type: tests
   - path: "conftest.py"
     name: "テストの共通のフィクスチャ"
     description: "全てのテストの層が使う共通のフィクスチャを受け持ち、テストの共通の前提を変えるときに参照する。"

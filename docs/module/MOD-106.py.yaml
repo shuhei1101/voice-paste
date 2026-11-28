@@ -1,0 +1,151 @@
+id: MOD-106
+visibility: internal
+title: 常駐アプリ / ホットキーと画面 / window_parts.py
+test_files:
+  - tests/unit/voice_paste/ui/windows/test_window_parts.py
+classes:
+  - name: HeadRow
+    title: 見出しの行
+    container: ui/windows/window_parts.py
+    usecase: 録音する
+    role: 画面の部品
+    kind: クラス
+    inherits: PySide6.QtWidgets.QWidget
+    summary: どこをつかんでも（子のボタンの上を除く）押したまま動かすと、`QWindow.startSystemMove` で窓を動かす行
+    description: |-
+      かざすとつかむマーカー（GripIcon）を描き直して濃くする。録音の画面と文字起こし中の表示が使用する。
+    properties:
+      - name: drag_started
+        type: Signal()
+        description: 窓の移動を OS に任せる直前（動かす前の位置を控える合図）
+    status: implemented
+  - name: GripIcon
+    title: つかむマーカー
+    container: ui/windows/window_parts.py
+    usecase: 録音する
+    role: 画面の部品
+    kind: クラス
+    inherits: PySide6.QtWidgets.QWidget
+    summary: 窓をつかめることを示す、点を 2 列 3 行に並べたマーカー。見出しの行にかざしている間は濃くする
+    status: implemented
+  - name: HotkeyButton
+    title: ホットキーを出すボタン
+    container: ui/windows/window_parts.py
+    usecase: 録音する
+    role: 画面の部品
+    kind: クラス
+    inherits: PySide6.QtWidgets.QPushButton
+    summary: 名前を 1 行目に、同じ操作のホットキーを枠で囲んだ等幅のキーで 2 行目に出すボタン。ホットキーが空なら名前だけを上下の中央に出す
+    status: implemented
+  - name: IconButton
+    title: アイコンのボタン
+    container: ui/windows/window_parts.py
+    usecase: 設定を変える
+    role: 画面の部品
+    kind: クラス
+    inherits: PySide6.QtWidgets.QPushButton
+    summary: 設定画面の行の操作（削除・上へ・下へ・外す）に配置する、アイコンだけのボタン。アイコンは線で描き、読み上げ名と同じ文言をツールチップに出す
+    description: |-
+      アイコンは画像を持たず、paintEvent で ICON_PEN_PX の線で描く（`trash` はごみ箱、`arrow_up`・`arrow_down` は上下の矢印、`x` は斜めの 2 本）。
+      描く色は、押せるときは theme_color("text")、`setEnabled(False)` か property("inactive") が True のときは theme_color("text_muted")。property("inactive") は、押しても何もしない扱いのままフォーカスとツールチップを残すボタン（最後の用語集・補正に使うプリセットの削除）が使用する。
+      大きさは ICON_BUTTON_SIZE_PX の正方形に固定する。設定画面の行の削除ボタンの幅をそろえる計算は、この大きさを使用する（今の「×」の QPushButton の sizeHint を置き換える）。
+    methods:
+      - name: __init__
+        title: ボタンを作る
+        kind: メソッド
+        scope: public
+        summary: objectName・アイコン・読み上げ名を受け、読み上げ名とツールチップに同じ文言を入れる
+        args:
+          - name: name
+            type: str
+            required: true
+            passing: positional
+            description: objectName（画面設計の項目 ID）
+          - name: icon
+            type: Literal["trash", "arrow_up", "arrow_down", "x"]
+            required: true
+            passing: positional
+            description: 描くアイコン
+          - name: label
+            type: str
+            required: true
+            passing: positional
+            description: 読み上げ名とツールチップの文言
+        returns:
+          type: None
+          description: なし
+        unit_tests:
+          - name: test_icon_button_label
+            case: 正常
+            summary: 読み上げ名とツールチップに同じ文言を入れ、文字は出さない
+            condition: IconButton("preset_remove_0", "trash", "ChatGPTを削除") を作る。QT_QPA_PLATFORM=offscreen
+            mock: なし（offscreen）
+            expected: objectName が preset_remove_0、accessibleName と toolTip が「ChatGPTを削除」、text() が空、大きさが ICON_BUTTON_SIZE_PX の正方形
+      - name: set_label
+        title: 文言を替える
+        kind: メソッド
+        scope: public
+        summary: 読み上げ名とツールチップの文言を替える（タイトル・名前を入れ直したとき）
+        args:
+          - name: label
+            type: str
+            required: true
+            passing: positional
+            description: 読み上げ名とツールチップの文言
+        returns:
+          type: None
+          description: なし
+        unit_tests:
+          - name: test_icon_button_set_label
+            case: 正常
+            summary: 読み上げ名とツールチップを一緒に替える
+            condition: label「プリセット 1 件目を削除」で作り、set_label("ChatGPTを削除") を呼ぶ
+            mock: なし（offscreen）
+            expected: accessibleName と toolTip が「ChatGPTを削除」
+    refs:
+      - to: SCR-9
+        type: requires
+        when: 『設定画面』の行の操作のボタン（label_display が icon_only の要素）のアイコンと読み上げ名を確認するとき。
+functions:
+  - name: clear_layout
+    title: レイアウトを空にする
+    kind: 関数
+    container: ui/windows/window_parts.py
+    usecase: 録音する
+    scope: public
+    summary: レイアウトの中の部品を全て外して捨て、外した分の大きさを数え直させる
+    args:
+      - name: layout
+        type: QLayout
+        required: true
+        passing: positional
+        description: 空にするレイアウト
+    returns:
+      type: None
+      description: なし
+    status: implemented
+constants:
+  - name: ICON_BUTTON_SIZE_PX
+    title: アイコンのボタンの大きさ
+    container: ui/windows/window_parts.py
+    usecase: 設定を変える
+    summary: 設定画面の行の操作のアイコンのボタンの幅と高さ。同じ行の入力欄の高さにそろえる
+    value: '28'
+  - name: ICON_PEN_PX
+    title: アイコンの線の太さ
+    container: ui/windows/window_parts.py
+    usecase: 設定を変える
+    summary: アイコンのボタンに描く線の太さ
+    value: '1.6'
+notes:
+  再利用と新規作成の判定: |-
+    | 新規作成するもの | 探した単語 | 見つかった候補 | 判定 |
+    | --- | --- | --- | --- |
+    | IconButton（設定画面の行の操作のアイコンのボタン） | アイコン・ボタン・icon・HeadButton・QPainter・削除 | recording_window.py の HeadButton（見出しの行の「隠す」「×」を線で描く） | 別に新規作成する。HeadButton は枠を持たず「×」にかざすと警告の色にする見出しの行専用の見た目で、設定画面の行のボタン（枠を持ち、4 種のアイコンを描く）と見た目が違う。広げると見た目を切り替える引数が増えるため |
+lead: 録音の画面・文字起こし中の表示・設定画面が共通で使用する画面の部品（見出しの行・つかむマーカー・ホットキーを出すボタン・アイコンのボタン）を受け持ち、これらの部品を変えるときに参照する。
+tags:
+  - name: topic:画面
+    main: true
+  - name: topic:部品
+  - name: topic:ホットキー
+  - name: topic:アイコン

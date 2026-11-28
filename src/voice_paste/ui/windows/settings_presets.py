@@ -19,6 +19,7 @@ from PySide6.QtWidgets import (
 
 from voice_paste.shared.settings import PRESETS_FIELD_NAME, BrowserPreset, EndpointPreset, Preset
 from voice_paste.ui.windows.settings_fields import connect_changed, set_invalid
+from voice_paste.ui.windows.window_parts import IconButton
 
 PRESET_MODELS: dict[str, type[BrowserPreset] | type[EndpointPreset]] = {
     "browser": BrowserPreset,
@@ -65,7 +66,7 @@ class _PresetRow:
 
 
 class PresetListPanel(QWidget):
-    """設定画面の 1 つの種類のタブに置く、プリセットのまとまりの縦の並びと「プリセットを追加」。"""
+    """設定画面の 1 つの種類のタブに置く、プリセットのまとまりの縦の並びと「プリセット追加」。"""
 
     changed = Signal()
     """追加・削除・並べ替え・欄の入力で値が変わった（設定画面が変えた欄の数えに使う）。"""
@@ -104,7 +105,7 @@ class PresetListPanel(QWidget):
         self._rows_layout = QVBoxLayout()
         outer.addLayout(self._rows_layout)
 
-        add_button = QPushButton("プリセットを追加")
+        add_button = QPushButton("プリセット追加")
         add_button.setObjectName(f"add_preset_button_{kind}")
         add_button.clicked.connect(self.add_preset)
         outer.addWidget(add_button, alignment=Qt.AlignmentFlag.AlignLeft)
@@ -263,13 +264,13 @@ class PresetListPanel(QWidget):
         heading = QLabel()
         heading.setObjectName(f"preset_heading_{position}")
         heading.setProperty("role", "heading")
-        up_button = self._operation_button("↑", "preset_up", position)
+        up_button = IconButton(f"preset_up_{position}", "arrow_up", "")
         up_button.setEnabled(position > 0)
         up_button.clicked.connect(lambda: self._move(position, -1))
-        down_button = self._operation_button("↓", "preset_down", position)
+        down_button = IconButton(f"preset_down_{position}", "arrow_down", "")
         down_button.setEnabled(not last)
         down_button.clicked.connect(lambda: self._move(position, 1))
-        remove_button = self._operation_button("×", "preset_remove", position)
+        remove_button = IconButton(f"preset_remove_{position}", "trash", "")
         remove_button.clicked.connect(lambda: self._remove(position))
         head.addWidget(enabled)
         head.addWidget(heading, 1)
@@ -305,9 +306,9 @@ class PresetListPanel(QWidget):
             name = _preset_name(position, current)
             heading.setText(current or UNTITLED_TEXT)
             enabled.setAccessibleName(f"{name}を有効にする")
-            up_button.setAccessibleName(f"{name}を上へ")
-            down_button.setAccessibleName(f"{name}を下へ")
-            remove_button.setAccessibleName(f"{name}を削除")
+            up_button.set_label(f"{name}を上へ")
+            down_button.set_label(f"{name}を下へ")
+            remove_button.set_label(f"{name}を削除")
             clear_button.setAccessibleName(f"{name}のホットキーを空にする")
 
         def sync_clear_button() -> None:
@@ -324,13 +325,6 @@ class PresetListPanel(QWidget):
             connect_changed(widget, self.changed.emit)
         self._rows.append(row)
         self._rows_layout.addWidget(frame)
-
-    @staticmethod
-    def _operation_button(text: str, prefix: str, position: int) -> QPushButton:
-        """上へ・下へ・削除のボタンを作る（見た目はマーカー。読み上げの名前は入れたタイトルに合わせて付ける）。"""
-        button = QPushButton(text)
-        button.setObjectName(f"{prefix}_{position}")
-        return button
 
     @staticmethod
     def _extra_widget(attribute: str, value: Any) -> QWidget:

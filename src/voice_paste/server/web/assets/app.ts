@@ -22,6 +22,11 @@ const RETENTION_MS = 7 * 24 * 60 * 60 * 1000;
 const MAX_RESULTS = 10;
 /** コピーした直後の表示を保つ時間（ミリ秒）。 */
 const COPIED_MS = 2000;
+/** コピーできたことを読み上げに伝える文。 */
+const COPIED_TEXT = 'コピーしました';
+/** クリップボードへ書き込めなかったときに頭の行の下に出す文。 */
+const COPY_FAILED_TEXT =
+  'コピーできませんでした。ブラウザがクリップボードへの書き込みを許可していません。';
 /** 音声と結果を送信する・取りに行く API の相対パス（画面は /web/ で開く）。 */
 const API_PATH = 'transcriptions';
 /** 用語集のプリセットの一覧を取りに行く API の相対パス（画面は /web/ で開く）。 */
@@ -1175,8 +1180,9 @@ function resultElement(entry: ResultEntry): HTMLElement {
       toggleResult(entry.jobId);
     });
     actions.hidden = false;
+    const copyError = field('copy_error');
     field<HTMLButtonElement>('copy_button').addEventListener('click', (event) => {
-      void copyResult(entry, event.currentTarget as HTMLButtonElement);
+      void copyResult(entry, event.currentTarget as HTMLButtonElement, copyError);
     });
     field<HTMLButtonElement>('delete_button').addEventListener('click', () => {
       openDeleteDialog(entry);
@@ -1211,15 +1217,34 @@ function codeElement(value: string): HTMLElement {
 
 // ===== 操作 =====
 
-/** 起こした文字をクリップボードへ入れ、押した直後の 2 秒だけ「コピー済み」にする。 */
-async function copyResult(entry: ResultEntry, button: HTMLButtonElement): Promise<void> {
-  await navigator.clipboard.writeText(entry.text ?? '');
-  const label = present(button.querySelector('span'), 'copy-label');
+/**
+ * 起こした文字をクリップボードへ入れる。
+ *
+ * 入れられたら押した直後の 2 秒だけアイコンをチェックに替え（文言は「コピー」のまま）、読み上げに「コピーしました」を伝える。
+ * 入れられなかったら頭の行の下に失敗の文を出す。前に出した失敗の文は押すたびに隠す。
+ */
+async function copyResult(
+  entry: ResultEntry,
+  button: HTMLButtonElement,
+  error: HTMLElement,
+): Promise<void> {
+  const status = present(button.querySelector<HTMLElement>('[data-copy-status]'), 'copy-status');
+  error.hidden = true;
+  error.textContent = '';
+  try {
+    await navigator.clipboard.writeText(entry.text ?? '');
+  } catch (cause) {
+    // 書き込めなかった（ブラウザが許可していない）: アイコンと文言は替えずに失敗の文を出す
+    console.error('クリップボードへ書き込めませんでした', cause);
+    error.textContent = COPY_FAILED_TEXT;
+    error.hidden = false;
+    return;
+  }
   button.dataset.copied = 'true';
-  label.textContent = 'コピー済み';
+  status.textContent = COPIED_TEXT;
   setTimeout(() => {
     button.dataset.copied = 'false';
-    label.textContent = 'コピー';
+    status.textContent = '';
   }, COPIED_MS);
 }
 

@@ -700,7 +700,7 @@ def test_save_when_hint_too_long(opened: Opened) -> None:
 
 def test_save_when_hint_word_invalid(opened: Opened) -> None:
     """空の語と区切りを含む語では保存せず、エラーを出す（異常系）。"""
-    # 準備（プリセット 1 件目の 1 つ目の語を空にし、2 つ目の語を「A、B」にする）
+    # 準備（プリセット 1 件目の 1 つ目の単語を空にし、2 つ目の単語を「A、B」にする）
     word_edits = _add_hint_preset(opened.window, name="開発", word_count=2)
     word_edits[1].setText("A、B")
 
@@ -711,10 +711,10 @@ def test_save_when_hint_word_invalid(opened: Opened) -> None:
     assert result is False
     opened.deps.save_settings.assert_not_called()
     summary = _error_summary_text(opened.window)
-    assert "プリセット 1 件目の 1 つ目の語: 語を入れるか、この欄を削除してください。" in summary
+    assert "プリセット 1 件目の 1 つ目の単語: 単語を入れるか、この欄を削除してください。" in summary
     assert (
-        "プリセット 1 件目の 2 つ目の語: "
-        "読点（、）・句点（。）・改行は入れられません。語を分けて追加してください。"
+        "プリセット 1 件目の 2 つ目の単語: "
+        "読点（、）・句点（。）・改行は入れられません。単語を分けて追加してください。"
     ) in summary
 
 
@@ -1588,7 +1588,7 @@ def test_to_field_message_when_hint_too_long(
 
     # 検証
     assert message == (
-        "有効なヒントが長すぎます（258 / 222 バイト）。語を減らすか、プリセットを無効にしてください。"
+        "有効なヒントが長すぎます（258 / 222 バイト）。単語を減らすか、プリセットを無効にしてください。"
     )
 
 
@@ -1684,7 +1684,7 @@ def test_to_field_message_when_hint_reading_not_kana(
 def test_to_field_message_when_hint_reading_conflict(
     settings_model: type[Settings], default_settings: Settings
 ) -> None:
-    """同じ語に違う読みが入っている（正常系）。"""
+    """同じ単語に違う読みが入っている（正常系）。"""
     # 実行
     message, loc = _field_message(
         settings_model,
@@ -1697,7 +1697,7 @@ def test_to_field_message_when_hint_reading_conflict(
     )
 
     # 検証
-    assert message == "同じ語に違う読みが入っています。読みを揃えるか、語を削除してください。"
+    assert message == "同じ単語に違う読みが入っています。読みを揃えるか、単語を削除してください。"
     assert loc == ("hint_presets", 0, "readings", 1)
 
 

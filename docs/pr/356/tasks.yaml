@@ -40,8 +40,10 @@ tasks:
     updated_by: planner
     updated_at: '2026-11-28T14:21:15.317858+00:00'
   - process: モック作成
-    status: todo
+    status: done
     note: 記載し直しで見つけた設計の修正のうち、見た目が変わる画面だけモックを作る（判定フローチャート『モック要否』の a2）。見た目が変わる修正が無ければ skipped にする
+    updated_by: planner
+    updated_at: '2026-11-28T14:58:07.754484+00:00'
   - process: データ設計
     status: skipped
     reason: データの構造を変えない

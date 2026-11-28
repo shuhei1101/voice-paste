@@ -1,0 +1,91 @@
+/* ===== PR 347 の画面モック: 録音中の一時停止・破棄と、結果の 1 件の折りたたみ・上に移したコピー（refs/37・refs/171・refs/180・refs/292 の style.css に重ねる） ===== */
+
+/* ===== 録音中の操作 ===== */
+
+/* 録音中の表示: 幅で操作の並びを切り替えるため、自分の幅を問い合わせの基準にする */
+.recorder { container-type: inline-size; }
+
+/* 録音中の操作: 狭い幅は録音停止・送信を 1 行目に幅いっぱいで配置し、一時停止と破棄を 2 行目に同じ幅で並べる */
+.recorder__actions {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+  .btn { min-width: 0; }
+  .btn--primary { grid-column: 1 / -1; }
+}
+
+/* 広い幅: 録音停止・送信・一時停止・破棄を 1 行に並べ、主の操作だけを広げる */
+@container (width >= 30rem) {
+  .recorder__actions {
+    grid-template-columns: 1fr auto auto;
+    .btn--primary { grid-column: auto; }
+  }
+}
+
+/* 破棄ボタン: 取り消せない操作のため文字を警告の色にし、枠は他のボタンとそろえる */
+.recorder__actions .btn--danger { color: var(--error); }
+
+/* 一時停止中のマーカー: 録音中の丸と形状でも見分けられるよう四角にする（常駐アプリの録音の画面と同じ） */
+.recorder--paused .dot { border-radius: 2px; }
+
+/* 一時停止中の経過時間: 止まっていることを補足の色で示す（文言とマーカーで伝え、色だけに頼らない） */
+.recorder--paused .recorder__time { color: var(--text-2); }
+
+/* ===== 結果の 1 件 ===== */
+
+/* 結果の頭: 日時と元の音声を左、コピーと削除を右に配置し、収まらない幅では操作を次の行へ回す */
+.result__head {
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  row-gap: 4px;
+}
+
+/* 日時と元の音声のまとまり: 元の音声の長い名前を 1 行で省けるよう縮める */
+.result__meta {
+  display: flex;
+  gap: 8px;
+  flex: 1 1 12rem;
+  min-width: 0;
+}
+
+/* 頭の行の操作: 文字の大きさを本文にそろえ、折り返さず縮めない */
+.result__head .result__actions {
+  flex: none;
+  justify-content: flex-end;
+  font-size: 14px;
+  color: var(--text);
+}
+
+/* 折りたたんだ起こした文字: 先頭の 5 行だけを出す */
+.result__text[data-collapsed="true"] {
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 5;
+  line-clamp: 5;
+  overflow: hidden;
+}
+
+/* 続きを読む・折りたたむのボタン: 起こした文字のすぐ下の左に配置し、押せる高さを保つ */
+.result__toggle {
+  align-self: flex-start;
+  min-height: var(--touch-h);
+  padding: 0 4px;
+  border: 0;
+  background: transparent;
+  color: var(--accent-fg);
+  font: inherit;
+  font-size: 14px;
+  cursor: pointer;
+  &:hover { text-decoration: underline; }
+  &:focus-visible { outline: 2px solid var(--text); outline-offset: 2px; }
+  svg { width: 16px; height: 16px; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; vertical-align: -3px; }
+}
+
+/* 開いているときは山形を上向きにする */
+.result__toggle[aria-expanded="true"] svg { rotate: 180deg; }
+
+/* ===== モック専用の操作列 ===== */
+
+/* データの量の切り替え: 場面の切り替えと 2 行に分ける */
+.mock-bar + .mock-bar { padding-top: 0; }

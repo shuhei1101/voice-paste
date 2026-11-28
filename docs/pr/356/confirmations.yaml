@@ -11,3 +11,9 @@ confirmations:
     approver: shuhei1101
     commit: 18d9a7a
     thread: https://github.com/shuhei1101/voice-paste/pull/356#discussion_r4727516239
+  - topic: 外部の端末の画面のコピーの失敗の文言
+    decision: 結果の頭の行の下に「コピーできませんでした。ブラウザがクリップボードへの書き込みを許可していません。」を出す（推奨案 A）
+    decided_by: 👍
+    approver: shuhei1101
+    commit: af2edd4
+    thread: https://github.com/shuhei1101/voice-paste/pull/356#discussion_r4727622807

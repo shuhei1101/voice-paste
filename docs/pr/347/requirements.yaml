@@ -1,0 +1,30 @@
+use_cases:
+  - kind: single
+    scenario: docs/scenario/SC-3.yaml
+    impact: changed
+    detail: 画面で録っている音声を送信せずに破棄する流れと、録音を一時停止して再開する流れを追加する
+    depends_on: []
+  - kind: single
+    scenario: docs/scenario/SC-4.yaml
+    impact: changed
+    detail: 長い結果を折りたたんで「続きを読む」で全文を出す流れと、起こした文字の上のコピーで全文をコピーする流れに合わせる
+    depends_on: []
+  - kind: composite
+    scenario: docs/scenario/SC-13.yaml
+    impact: following
+    detail: 録音の破棄・一時停止と、長い結果の折りたたみの変更に記述を追随させる
+    depends_on:
+      - docs/scenario/SC-3.yaml
+      - docs/scenario/SC-4.yaml
+docs:
+  - page: docs/guide/外の端末から文字に起こす.md
+    new: false
+    change: 録音の破棄・一時停止と再開の操作と、長い結果の折りたたみ・「続きを読む」、起こした文字の上のコピーを記載する
+    status: todo
+scope_out:
+  - item: 常駐アプリの録音の画面（ホットキー・トレイから開く録音の画面）の破棄・一時停止
+    reason: '#18 で一時停止・再開・取り消しを作り済みで、起点 Issue は外の端末の画面を対象にしている'
+    plan: none
+  - item: ファイル送信の取り消し（選んだファイルの送信中に止める操作）
+    reason: 要望は画面で録っている音声の破棄で、ファイルの送信には触れていない
+    plan: none

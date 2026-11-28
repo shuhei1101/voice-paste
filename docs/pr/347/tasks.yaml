@@ -1,0 +1,85 @@
+tasks:
+  - process: 初期構築
+    status: skipped
+    reason: 既存リポジトリのため対象外
+    updated_by: planner
+    updated_at: '2026-11-28T08:31:43.503182+00:00'
+  - process: リバースエンジニアリング
+    status: skipped
+    reason: 設計書がそろっているため対象外
+    updated_by: planner
+    updated_at: '2026-11-28T08:31:43.503182+00:00'
+  - process: 方針決め
+    status: skipped
+    reason: 方針決めの依頼ではないため対象外
+    updated_by: planner
+    updated_at: '2026-11-28T08:31:43.503182+00:00'
+  - process: PoC 検証
+    status: skipped
+    reason: MediaRecorder の pause・resume はブラウザの標準の機能で、未検証の技術機構に依存しないため
+    updated_by: planner
+    updated_at: '2026-11-28T08:31:43.503182+00:00'
+  - process: 複合ユースケース設計
+    status: skipped
+    reason: ユースケースの連鎖は変わらず、複合ユースケースは単一ユースケースの変更に追随するだけのため（追随はドキュメント修正で行う）
+    updated_by: planner
+    updated_at: '2026-11-28T08:31:43.503182+00:00'
+  - process: デザインスタイル選定
+    status: skipped
+    reason: デザイン方針（docs/design-policy.md）があり、変更は見た目の方向を変えないため
+    updated_by: planner
+    updated_at: '2026-11-28T08:31:43.503182+00:00'
+  - process: 画面一覧・画面遷移
+    status: skipped
+    reason: 画面の追加・削除と画面遷移の変更が無いため
+    updated_by: planner
+    updated_at: '2026-11-28T08:31:43.503182+00:00'
+  - process: 単一ユースケース設計
+    status: todo
+  - process: モック作成
+    status: todo
+  - process: データ設計
+    status: skipped
+    reason: 端末に残すデータの形を変えないため
+    updated_by: planner
+    updated_at: '2026-11-28T08:31:43.503182+00:00'
+  - process: インターフェース定義設計
+    status: skipped
+    reason: サーバーの API を変えないため
+    updated_by: planner
+    updated_at: '2026-11-28T08:31:43.503182+00:00'
+  - process: エージェント・MCP サーバー設計
+    status: skipped
+    reason: エージェント・MCP サーバーに関わらないため
+    updated_by: planner
+    updated_at: '2026-11-28T08:31:43.503182+00:00'
+  - process: エージェントフロー・LLM 呼び出し設計
+    status: skipped
+    reason: LLM の呼び出しに関わらないため
+    updated_by: planner
+    updated_at: '2026-11-28T08:31:43.503182+00:00'
+  - process: 精度評価設計
+    status: skipped
+    reason: LLM・意思決定モデルのノードに関わらないため
+    updated_by: planner
+    updated_at: '2026-11-28T08:31:43.503182+00:00'
+  - process: 部品設計
+    status: skipped
+    reason: プロジェクトに部品設計の種類が無く、結果の 1 件の部品は画面設計とモックで扱うため
+    updated_by: planner
+    updated_at: '2026-11-28T08:31:43.503182+00:00'
+  - process: 画面設計
+    status: todo
+  - process: モジュール構成設計
+    status: skipped
+    reason: 画面のスクリプト（app.ts）のモジュール構成の設計書が無く、Python のモジュール構成は変わらないため
+    updated_by: planner
+    updated_at: '2026-11-28T08:31:43.503182+00:00'
+  - process: ドキュメント修正
+    status: todo
+  - process: 単体テスト作成
+    status: todo
+  - process: 実装
+    status: todo
+  - process: 結合テスト作成
+    status: todo

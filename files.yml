@@ -79,12 +79,6 @@ files:
       - topic:画面
       - tool:qt
       - tool:toml
-  - path: "dev-docs.yaml"
-    name: "配信元の設定"
-    description: "配信元 voice-input の文書の行・スキーマ・画面のタブとサイドバーの構成を受け持ち、検索の対象や画面の構成を変えるときに参照する。"
-    tags:
-      - topic:ドキュメント
-      - topic:設定
   - path: "eslint.config.mjs"
     name: "外の端末の画面のスクリプトの lint の設定"
     description: "外の端末の画面の TypeScript を検査する ESLint の規則を受け持ち、フロントエンドの lint を変えるときに参照する。"
@@ -134,6 +128,12 @@ files:
       - topic:依存
       - topic:lint
       - tool:uv
+  - path: "project-index.yaml"
+    name: "配信元の設定"
+    description: "配信元 voice-input の文書の行・スキーマ・画面のタブとサイドバーの構成を受け持ち、検索の対象や画面の構成を変えるときに参照する。"
+    tags:
+      - topic:ドキュメント
+      - topic:設定
   - path: "rules.yaml"
     name: "ルールの索引"
     description: "rule-inject がファイルに当てるこのリポジトリ固有のルールの索引を受け持ち、リポジトリ固有のルールを足すときに参照する。"

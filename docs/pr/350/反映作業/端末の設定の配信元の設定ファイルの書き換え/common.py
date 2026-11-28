@@ -54,7 +54,7 @@ def source_row():
 
 
 def patch_config(version, config):
-    return request("PATCH", f"/settings/sources/{SOURCE_ID}", {"config": config, "expectedVersion": version})
+    return request("PATCH", f"/settings/sources/{SOURCE_ID}", {"expectedVersion": version, "source": {"config": config}})
 
 
 def backup(path):

@@ -7,6 +7,11 @@ elements:
     kind: dialog
     position: 処理中のダイアログ
     description: 「常に手前に表示」のモーダル。ウィンドウのタイトルは voice-paste。処理中の録音はそのまま続き、閉じた後もトレイのアイコンは処理中の録音の状態のまま
+    return_focus: ダイアログを開く前に前面にあったウィンドウ（OS に任せ、こちらからは移さない）
+    initial_focus: 閉じるボタン
+    close:
+      outside_click: false
+      escape: close
     visible_when: '`notify` で busy を受けたとき（API から始めた録音の間か、ホットキー・トレイから始めた録音の確定後の文字起こし中・届け中か、トレイから指定した音声ファイルの文字起こし中・届け中に、録音開始のホットキーを押した）'
     source: UiBridge.notified（busy。理由は detail）
     action: Enter・Esc でも閉じる
@@ -36,6 +41,8 @@ elements:
     kind: button
     position: 処理中のダイアログ > フッター
     description: ダイアログを閉じる
+    label_display: text_only
+    confirm: none
     label: 閉じる
     visible_when: 常時
     autofocus: true
@@ -56,6 +63,8 @@ refs:
     type: references
     when: "『常駐アプリ / ホットキーと画面 / bridge.py』の関数「notify」を呼ぶ・変えるときに、引数と戻り値を確認するとき。"
 test_file: tests/integration/ui/test_busy_dialog.py
+screen_type: other
+leave_guard: none
 tags:
   - name: topic:ダイアログ
     main: true

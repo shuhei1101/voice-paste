@@ -4,9 +4,13 @@ title: "文字起こし中の表示"
 elements:
   - name: 窓
     id: transcribing_indicator
-    kind: window
+    kind: pane
     position: 窓
     description: 文字起こし中の表示の窓。録音の画面と同じ設定の位置に出し、フォーカスを取らない（貼り付け先の入力欄からフォーカスを奪わない）。録音の画面を動かした回は、確定した時点の録音の画面の位置（隠したまま確定した回は隠す前の位置）に出す。録音の画面と同じく、面は `color.*.surface`、外側の縁は `color.*.frame` の 1px の線で描く（`*` は `ui.theme` で決まる明暗）。タスクバーに出ない枠なしの窓のまま、見出しの行をつかんで動かす。動かした位置はその回だけ使い、次の回は今までどおりの位置に出す。出力先の切り替えのボタンを出す回は、ボタンが名前を省かずに収まる幅（既定 380px）にする
+    retained_state:
+      - what: 窓の位置
+        store: memory
+        reset_when: その回が終わったとき（次の回は録音の画面と同じ設定の位置に出す）
     visible_when: ホットキー・トレイから始めた録音セッションが transcribing か delivering の間（`recording.hide_window` がオフのとき）と、トレイから指定した音声ファイルの録音セッションが transcribing か delivering の間（`recording.hide_window` によらない）。API から始めた録音では出さない
     source: UiBridge.notified（state_changed）
     refs:
@@ -30,8 +34,11 @@ elements:
     kind: progress
     position: 窓 > 見出しの下
     description: 文字起こしの進みを割合で出す
+    overflow:
+      type: wrap
+      max_length: 4
     label: 文字起こしの進み
-    io: 表示
+    io: output
     type: 数値（%）
     visible_when: 最初の区間の終わりが届いてから（それまでは回るマーカーだけを出す）。OpenAI API と Haas は区間ごとの進みを返却しないため、設定のエンジンが OpenAI API か Haas のときは出さない
     display_format: 整数の %（例 62%）
@@ -41,7 +48,10 @@ elements:
     kind: label
     position: 窓 > 進みのバーの下
     description: 確定してからの経過と、見積もった残りの時間・全体の時間
-    io: 表示
+    overflow:
+      type: wrap
+      max_length: 30
+    io: output
     type: 時間
     visible_when: 常時
     display_format: 「経過 3.2 秒 残り 2 秒 / 5 秒」。1 分以上は「3 分 06 秒」。残りが分かるまでは「経過 1.4 秒 残りを計っています」。設定のエンジン（`transcription.engine`）が OpenAI API か Haas のときは残りを見積もらず、経過だけを出す（「経過 1.4 秒」）
@@ -78,11 +88,14 @@ elements:
     id: switch_button_{output_id}
     kind: button
     position: 窓 > 出力先 > 切り替えの並び
-    description: 届ける出力先をその出力先へ切り替える。設定でオンの固定の出力先ごとに設定の並びで 1 つずつ、等しい幅で横に並べる。今の出力先のボタンは地と枠を強め、右上の角に丸いマーカー（チェック）を重ねる（色だけで伝えない。マーカーは名前の幅を取らず、選び直しで名前を動かさない）。マーカーは採用したモックのとおり右上の角から外へはみ出して配置し、名前とホットキーの文字には重ねない（`ui.transcribing_show_hotkeys` のどちらでも）。録音の画面の出力先の確定のボタンと同じく名前の下にその出力先のホットキーを出し、同じホットキーを押しても切り替わる。今の出力先のボタンを押しても何もしない。押しても窓は前面にならず、貼り付け先のフォーカスは動かない
+    description: '届ける出力先をその出力先へ切り替える。設定でオンの固定の出力先ごとに設定の並びで 1 つずつ、等しい幅で横に並べる。今の出力先のボタンは地と枠を強め、右上の角に丸いマーカー（チェック）を重ねる（色だけで伝えない。マーカーは名前の幅を取らず、選び直しで名前を動かさない）。マーカーは採用したモックのとおり右上の角から外へはみ出して配置し、名前とホットキーの文字には重ねない（`ui.transcribing_show_hotkeys` のどちらでも）。録音の画面の出力先の確定のボタンと同じく名前の下にその出力先のホットキーを出し、同じホットキーを押しても切り替わる。今の出力先のボタンを押しても何もしない。押しても窓は前面にならず、貼り付け先のフォーカスは動かない。並び: `outputs[]` の並び（paste_and_send・paste_only・copy_only）のうちオンのもの'
+    disabled_reason: 理由は出さない。届け始める（delivering）と、すぐに届け終えて窓が閉じるため
+    toggle_state: pressed
+    label_display: text_only
+    confirm: none
     label: 貼り付けて送信 / 貼り付けのみ / コピーのみ（名前の下に [outputs[].hotkey]）
     visible_when: 固定の出力先で確定した録音で、その出力先の `outputs[].enabled` がオンのとき
     enabled_when: 録音セッションが transcribing の間。届け始めた後（delivering）は押しても切り替えず、表示も変えない
-    options: '`outputs[]` の並び（paste_and_send・paste_only・copy_only）のうちオンのもの'
     source: Session.output_id（今の出力先にマーカーを付ける）
     target: 届ける出力先の差し替え（押したボタンの出力先の ID。入り口はモジュール構成『録音セッション』）
     action: 今の出力先のマーカーと貼り付けの案内を切り替えた先に変える
@@ -108,8 +121,11 @@ elements:
     id: preset_label
     kind: label
     position: 窓 > 出力先
-    description: カスタムプリセットで確定した録音で、確定したプリセットのタイトルを出す。切り替えのボタンは出さず、切り替えを受けない
-    io: 表示
+    description: カスタムプリセットで確定した録音で、確定したプリセットのタイトルを出す。切り替えのボタンは出さず、切り替えを受けない。窓の幅に収まらない名前は末尾を「…」で省き、マウスを合わせると全体を出す（音声ファイルの名前と同じ）
+    overflow:
+      type: truncate
+      unbounded: true
+    io: output
     type: 文字列
     visible_when: カスタムプリセットで確定した録音のとき
     source: Session.output_preset.title
@@ -124,7 +140,10 @@ elements:
     kind: label
     position: 窓 > 見出しの下
     description: トレイから指定した音声ファイルの名前（フォルダのパスを除く）を 1 行で出す。窓の幅に収まらない名前は末尾を「…」で省き、マウスを合わせると全体を出す
-    io: 表示
+    overflow:
+      type: truncate
+      unbounded: true
+    io: output
     type: 文字列
     visible_when: トレイから指定した音声ファイルの録音セッションのとき
     source: 録音セッションの音声ファイルのパス
@@ -144,6 +163,8 @@ notes:
     `ui.transcribing_show_hotkeys` がオフのときは、全てのボタンを名前だけで出す（ホットキーでの切り替えはそのまま有効になる）。録音の画面の `ui.show_hotkeys` にはよらない。
   フォーカス: 窓はフォーカスを受けない窓（`WindowDoesNotAcceptFocus`）のまま出し、切り替えのボタンを押しても見出しの行をつかんでも前面にならない。貼り付けて送信・貼り付けのみは、届けるときのアクティブなウィンドウへ貼る
 test_file: tests/integration/ui/test_transcribing_indicator.py
+screen_type: other
+leave_guard: none
 tags:
   - name: topic:文字起こし
     main: true

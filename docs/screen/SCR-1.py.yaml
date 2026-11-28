@@ -4,12 +4,13 @@ title: "トレイ"
 elements:
   - name: トレイのアイコン
     id: tray_icon
-    kind: icon
+    kind: image
     position: タスクバーの通知領域
-    description: 状態ごとに同梱した画像（`resources/` の下）を出し分ける。失敗は録音中と同じ赤の地にマイクの斜線を入れ、色だけでなく形状でも分ける。左クリック（既定の操作）は「録音を開始」と同じ。右クリックでメニューを開く。録音の画面を隠している間の左クリックは「録音の画面を表示」と同じで、それ以外の録音から届けるまでの間は何もしない
-    io: 表示
+    description: '状態ごとに同梱した画像（`resources/` の下）を出し分ける。失敗は録音中と同じ赤の地にマイクの斜線を入れ、色だけでなく形状でも分ける。左クリック（既定の操作）は「録音を開始」と同じ。右クリックでメニューを開く。録音の画面を隠している間の左クリックは「録音の画面を表示」と同じで、それ以外の録音から届けるまでの間は何もしない。並び: 準備中・待機中・録音中・文字起こし中・失敗（文字起こしのエンジンを準備できなかったか、設定を読み込めなかった起動のときだけで、次の起動まで続く）。値は文字を持たない（状態か音量）ため、長さで崩れない'
+    overflow:
+      type: wrap
+    io: output
     visible_when: 起動してから終了まで
-    options: 準備中・待機中・録音中・文字起こし中・失敗（文字起こしのエンジンを準備できなかったか、設定を読み込めなかった起動のときだけで、次の起動まで続く）
     source: UiBridge.notified（state_changed）と起動の結果
     action_ref: MOD-24#classes[SessionManager].methods[start]
   - name: アイコンのヒント
@@ -17,14 +18,17 @@ elements:
     kind: tooltip
     position: トレイのアイコン
     description: アイコンにかざすと状態を文字で出す
-    io: 表示
+    io: output
     visible_when: アイコンにかざしたとき
     display_format: 'voice-paste: {状態}（例 voice-paste: 待機中）'
   - name: 録音を開始
     id: menu_start
-    kind: menu_item
+    kind: button
     position: メニュー > 1 番目
     description: 録音を開始する。後の流れは録音開始のホットキーと同じで、`recording.hide_window` がオンなら録音の画面を出さない。右に録音開始のホットキーを出す。既定の項目として太字で出し、押せないときは太字を除外する
+    disabled_reason: 項目名の後ろに理由を括弧で添える（録音から届けるまでの間は「（処理中）」、準備に失敗した起動では「（準備に失敗）」）
+    label_display: text_only
+    confirm: none
     label: 録音を開始 [hotkeys.start]（処理中は「録音を開始（処理中）」、準備に失敗した起動では「録音を開始（準備に失敗）」）
     visible_when: 常時
     enabled_when: 待機中のとき。録音から届けるまでの間（API から始めた録音の間と、音声ファイルの文字起こしの間を含む）と、起動に失敗した起動では押せない
@@ -35,68 +39,88 @@ elements:
         when: "『録音の画面』の表示と振る舞いを確認するとき。"
   - name: 設定…
     id: menu_settings
-    kind: menu_item
+    kind: button
     position: メニュー > 区切りの後 > 4 番目
     description: 設定画面を出力先のまとまりを選んで開く。設定画面が開いていれば、新しい窓を作らずに最小化を戻して最前面に出し、まとまりは変えない。文字起こしのエンジンを準備できなかった起動でも、設定を修正して再起動できるよう押せるまま残す。設定を読み込めなかった起動では、読み込んだ設定が無いため押せない
+    disabled_reason: 理由は出さない。準備中は数秒で待機中か失敗に替わり、設定を読み込めなかった起動はトレイの通知とアイコンの状態で知らせているため
+    label_display: text_only
+    confirm: none
     label: 設定…
     visible_when: 常時
     enabled_when: 準備中（起動してから待機中か失敗になるまで）でなく、設定を読み込めなかった起動でもないとき。録音から届けるまでの間（API から始めた録音の間を含む）も押せる
     action_ref: SCR-9#
   - name: 用語集の設定…
     id: menu_settings_glossary
-    kind: menu_item
+    kind: button
     position: メニュー > 5 番目
     description: 設定画面を用語集のまとまりを選んで開く。設定画面が開いていれば、新しい窓を作らずに最小化を戻して最前面に出し、用語集のまとまりへ切り替える
+    disabled_reason: 「設定…」と同じ
+    label_display: text_only
+    confirm: none
     label: 用語集の設定…
     visible_when: 常時
     enabled_when: 「設定…」と同じ
     action_ref: SCR-9#elements[用語集のプリセットの一覧]
   - name: ショートカットの設定…
     id: menu_settings_shortcuts
-    kind: menu_item
+    kind: button
     position: メニュー > 6 番目
     description: 設定画面をショートカットのまとまりを選んで開き、ショートカットの一覧の末尾に行を 1 つ追加する（追加した行の初期値は 設定画面 の行の追加ボタン）。設定画面が開いていれば、新しい窓を作らずに最小化を戻して最前面に出し、ショートカットのまとまりへ切り替えて行を 1 つ追加する
+    disabled_reason: 「設定…」と同じ
+    label_display: text_only
+    confirm: none
     label: ショートカットの設定…
     visible_when: 常時
     enabled_when: 「設定…」と同じ
     action_ref: SCR-9#elements[ショートカットの一覧]
   - name: 設定フォルダを開く
     id: menu_open_settings_folder
-    kind: menu_item
+    kind: button
     position: メニュー > 7 番目
     description: settings.yaml のあるフォルダをエクスプローラーで開く
+    label_display: text_only
+    confirm: none
     label: 設定フォルダを開く
     visible_when: 常時
     action: 設定のフォルダを開く
   - name: ログフォルダを開く
     id: menu_open_log_folder
-    kind: menu_item
+    kind: button
     position: メニュー > 8 番目
     description: ログのフォルダをエクスプローラーで開く
+    label_display: text_only
+    confirm: none
     label: ログフォルダを開く
     visible_when: 常時
     action: ログのフォルダを開く
   - name: 再起動
     id: menu_restart
-    kind: menu_item
+    kind: button
     position: メニュー > 区切りの後 > 10 番目
     description: 常駐アプリを再起動する（処理中の扱いは補足）
+    label_display: text_only
+    confirm: none
     label: 再起動
     visible_when: 常時
     action: 常駐アプリを再起動する
   - name: 終了
     id: menu_quit
-    kind: menu_item
+    kind: button
     position: メニュー > 11 番目
     description: 常駐アプリを終了する（処理中の扱いは補足）
+    label_display: text_only
+    confirm: none
     label: 終了
     visible_when: 常時
     action: 常駐アプリを終了する
   - name: 録音の画面を表示
     id: menu_show_window
-    kind: menu_item
+    kind: button
     position: メニュー > 2 番目
     description: その回に隠した録音の画面を、隠す前の位置にフォーカスを取らずに戻す。隠している間はアイコンの左クリックと同じ操作になるため、既定の項目として太字で出す。項目は常に出し、押せないときは項目名に理由を添えて太字を除外する
+    disabled_reason: 項目名の後ろに理由を括弧で添える（「（表示中）」「（画面を表示しない録音）」「（録音していません）」）
+    label_display: text_only
+    confirm: none
     label: 録音の画面を表示（録音の画面が出ている間は「録音の画面を表示（表示中）」、画面を出さない設定の録音と API から始めた録音の間は「録音の画面を表示（画面を表示しない録音）」、待機中・文字起こし中・準備に失敗した起動では「録音の画面を表示（録音していません）」）
     visible_when: 常時
     enabled_when: ホットキー・トレイから始めた録音セッションが recording か paused で、その回の録音の画面を隠しているとき
@@ -107,9 +131,12 @@ elements:
         when: "『録音の画面』の表示と振る舞いを確認するとき。"
   - name: 音声ファイルを文字に起こす…
     id: menu_transcribe_audio_file
-    kind: menu_item
+    kind: button
     position: メニュー > 3 番目
     description: 文字に起こす音声ファイルを 1 つ選ぶ OS 標準のファイルを開くダイアログを、履歴のフォルダを最初に開いた状態で出す。絞り込みは、PyAV で読める形式の拡張子を並べた音声ファイルと、全てのファイルの 2 つ。選んだファイルは形式を確かめてから文字に起こし、読めない形式ならトレイの通知で知らせる。キャンセルでは何もしない。押せないときは項目名に理由を添える
+    disabled_reason: 項目名の後ろに理由を括弧で添える（録音から届けるまでの間は「（処理中）」、準備に失敗した起動では「（準備に失敗）」）
+    label_display: text_only
+    confirm: none
     label: 音声ファイルを文字に起こす…（録音から届けるまでの間は「音声ファイルを文字に起こす…（処理中）」、準備に失敗した起動では「音声ファイルを文字に起こす…（準備に失敗）」）
     visible_when: 常時
     enabled_when: 待機中のとき。録音から届けるまでの間（API から始めた録音の間と、音声ファイルの文字起こしの間を含む）と、起動に失敗した起動では押せない
@@ -120,9 +147,11 @@ elements:
         when: 『音声ファイルを指定する』の流れと突き合わせるとき。
   - name: 履歴フォルダを開く
     id: menu_open_history_folder
-    kind: menu_item
+    kind: button
     position: メニュー > 9 番目
     description: 履歴の配置先のフォルダが無ければ作ってから、エクスプローラー（Linux は既定のファイルマネージャー）で開く。履歴を残さない設定でも押せる
+    label_display: text_only
+    confirm: none
     label: 履歴フォルダを開く
     visible_when: 常時
     action: 履歴のフォルダを開く
@@ -147,6 +176,8 @@ notes:
   処理中の再起動・終了: 録音から届けるまでの間（API から始めた録音の間を含む）に「再起動」・「終了」を選ぶと、アイコンはその時点で非表示にし、再起動・終了はその回を届け終えてから行う
   メニューの見た目: 右クリックで開くメニュー（`QMenu`）の面は `color.*.surface`、外側の縁は `color.*.frame` の 1px の線で描く（`*` は `ui.theme` で決まる明暗）
 test_file: tests/integration/ui/test_tray.py
+screen_type: other
+leave_guard: none
 tags:
   - name: topic:トレイ
     main: true

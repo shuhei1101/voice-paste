@@ -7,6 +7,11 @@ elements:
     kind: dialog
     position: 捨てる確認
     description: 設定画面の上に出すモーダル。ウィンドウのタイトルは「voice-paste の設定」。Esc は「設定画面へ戻る」と同じ
+    return_focus: 設定画面で確認を開いた操作の要素（キャンセルボタン。窓の閉じる・Esc で開いたときは最後にフォーカスのあった欄）
+    initial_focus: 設定画面へ戻るボタン
+    close:
+      outside_click: false
+      escape: close
     visible_when: 設定画面で欄を変えたまま「キャンセル」・Esc・窓の閉じるを押したとき。欄を変えていなければ出さずに閉じる
   - name: 見出し
     id: discard_title
@@ -20,8 +25,11 @@ elements:
     kind: label
     position: 捨てる確認 > 本体
     description: 保存していない変更の件数と、閉じると保存されないことを伝える
+    overflow:
+      type: wrap
+      max_length: 60
     label: 保存していない変更が {件数} 件あります。閉じると、変更は保存されません。
-    io: 表示
+    io: output
     visible_when: 常時
     source: 設定画面で保存した値から変えた欄の数。用語集は、追加した・削除した・名前か行を変えた用語集 1 つを 1 件（1 つの用語集で何度変えても 1 件）、補正に使用する用語集の切り替えを 1 件と数える。表記のヒントは、追加した・削除した・名前か単語か有効を変えたプリセット 1 つを 1 件（1 つのプリセットで何度変えても 1 件）、保存した値にあって今も残っているプリセットどうしの順が変わっていれば並べ替えを別に 1 件と数える（追加・削除だけでは並べ替えに数えない）。出力先のプリセットは、追加した・削除した・有効かタイトルか URL かホットキーか種類ごとの欄を変えたプリセット 1 つを 1 件（1 つのプリセットで何度変えても 1 件）、種類のタブごとに、保存した値にあって今も残っているプリセットどうしの順が変わっていれば並べ替えを別に 1 件と数える（追加・削除だけでは並べ替えに数えない）
   - name: 破棄して閉じるボタン
@@ -29,6 +37,8 @@ elements:
     kind: button
     position: 捨てる確認 > フッター
     description: 変えた値を捨て、設定画面を閉じて待機中に戻る
+    label_display: text_only
+    confirm: none
     label: 破棄して閉じる
     visible_when: 常時
     action: ダイアログと設定画面を閉じる（settings.yaml は書き込まない）
@@ -37,6 +47,8 @@ elements:
     kind: button
     position: 捨てる確認 > フッター
     description: ダイアログだけを閉じ、変えた値を残した設定画面へ戻る。Enter で誤って捨てないよう、最初のフォーカスを配置する
+    label_display: text_only
+    confirm: none
     label: 設定画面へ戻る
     visible_when: 常時
     autofocus: true
@@ -49,6 +61,8 @@ refs:
     type: references
     when: "『設定を変える』の流れと突き合わせるとき。"
 test_file: tests/integration/ui/test_settings_window.py
+screen_type: other
+leave_guard: none
 tags:
   - name: topic:ダイアログ
     main: true

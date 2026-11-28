@@ -7,6 +7,11 @@ elements:
     kind: dialog
     position: 既定に戻す確認
     description: 設定画面の上に出すモーダル。ウィンドウのタイトルは「voice-paste の設定」。Esc は「設定画面へ戻る」と同じ
+    return_focus: 設定画面の既定に戻すボタン
+    initial_focus: 設定画面へ戻るボタン
+    close:
+      outside_click: false
+      escape: close
     visible_when: 設定画面の「既定に戻す」を押したとき
   - name: 見出し
     id: reset_title
@@ -27,6 +32,8 @@ elements:
     kind: button
     position: 既定に戻す確認 > フッター
     description: 戻さずにダイアログを閉じる。最初のフォーカスを配置する
+    label_display: text_only
+    confirm: none
     label: 設定画面へ戻る
     visible_when: 常時
     autofocus: true
@@ -36,6 +43,8 @@ elements:
     kind: button
     position: 既定に戻す確認 > フッター
     description: settings.yaml から全てのキーを除外し、設定画面に戻って既定の値（settings.local.yaml にあるキーはその値）を欄に入れる。反映が immediate の設定はすぐに有効にする
+    label_display: text_only
+    confirm: none
     label: 既定に戻す
     visible_when: 常時
     action: ダイアログを閉じ、設定画面に「既定に戻したメッセージ」を出す
@@ -47,6 +56,8 @@ refs:
     type: references
     when: "『設定を変える』の流れと突き合わせるとき。"
 test_file: tests/integration/ui/test_settings_window.py
+screen_type: other
+leave_guard: none
 tags:
   - name: topic:ダイアログ
     main: true

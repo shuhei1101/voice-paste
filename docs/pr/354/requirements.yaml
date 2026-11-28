@@ -1,0 +1,11 @@
+docs:
+  - page: docs/test-procedure/TP-1.yaml
+    new: false
+    change: 最上位の notes に補足「画面の起動」を追加し、開発ドキュメントサーバー（project-index と dev-docs）を作業ブランチの配信の設定（project-index.yaml の nav）を重ねて別ポートで起動し、画面を開く手順と止め方を、開発ドキュメントサーバーの行として記載する
+    status: done
+    updated_by: planner
+    updated_at: '2026-11-28T13:54:47.371494+00:00'
+scope_out:
+  - item: 補足「画面の起動」の、外の端末の文字起こしの画面（SCR-6）の行
+    reason: 要望が求めるのは開発ドキュメントサーバーの行だけで、外の端末の文字起こしの画面の起動の手順は要望に含まれない（task-reviewer の受付判断の提案）
+    plan: '#355'

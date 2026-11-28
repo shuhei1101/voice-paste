@@ -182,3 +182,63 @@ tags:
   - name: topic:lint
   - name: topic:コマンド
   - name: tool:pytest
+  - name: topic:画面
+  - name: action:起動
+  - name: tool:project-index
+  - name: tool:dev-docs
+notes:
+  画面の起動: |-
+    作業ブランチの変更を画面で確認するときは、作業 PR の worktree の設定で画面を配信する側に合わせて起動する。
+
+    | 画面 | 起動 | 止め方 |
+    | --- | --- | --- |
+    | 開発ドキュメントサーバー（project-index と dev-docs） | 下の手順で、作業 PR の worktree の `project-index.yaml` の `nav` と `documents` を重ねた設定で、project-index をポート 18786、dev-docs をポート 18787 で起動し、`http://127.0.0.1:18787/voice-input/{文書のパス}?rev={作業ブランチ}` を開く | `ss -ltnp` で 18786・18787 を待ち受ける PID を確認してから、その PID だけへ `kill` で `SIGTERM` を送信し、手順 1 の一時フォルダを削除する。利用者の端末の 8781・8786 のサーバーは止めない |
+
+    開発ドキュメントサーバーの起動の手順:
+
+    1. 作業 PR の worktree の直下で、一時フォルダに設定を作る。project-index は配信元の設定を `default_ref`（develop）の commit から参照するため、作業ブランチの `nav` と `documents` は Git 管理外のファイルに書き出し、配信元 `voice-input` の `sources[].config` の末尾に重ねる。配信元はスキーマを参照する `knowledge` と合わせて 2 つだけにする
+
+    ```bash
+    D=$(mktemp -d /tmp/vp-docs-XXXXXX)
+    python3 - "$PWD" "$D" <<'EOF'
+    import os, pathlib, sys, yaml
+    wt, d = sys.argv[1], pathlib.Path(sys.argv[2])
+    home = pathlib.Path(os.path.expanduser("~/.config"))
+    cfg = yaml.safe_load(open(f"{wt}/project-index.yaml"))
+    (d / "overlay.yaml").write_text(yaml.safe_dump({k: cfg[k] for k in ("nav", "documents")}, allow_unicode=True, sort_keys=False))
+    pi = yaml.safe_load(open(home / "project-index/settings.yaml"))
+    src = [s for s in pi["sources"] if s.get("id") in ("voice-input", "knowledge")]
+    for s in src:
+        if s["id"] == "voice-input":
+            c = s["config"] if isinstance(s["config"], list) else [s["config"]]
+            s["config"] = c + [str(d / "overlay.yaml")]
+    pi["sources"] = src
+    for k in ("port", "state_dir", "log_dir"):
+        pi.pop(k, None)
+    (d / "project-index.yaml").write_text(yaml.safe_dump(pi, allow_unicode=True, sort_keys=False))
+    dd = yaml.safe_load(open(home / "dev-docs/settings.yaml"))
+    dd = {"version": dd["version"], "clone": dd["clone"], "project_index": "http://127.0.0.1:18786"}
+    (d / "dev-docs.yaml").write_text(yaml.safe_dump(dd, allow_unicode=True, sort_keys=False))
+    EOF
+    ```
+
+    2. 端末の設定の `clone` の project-index を、手順 1 の設定・ポート 18786・一時フォルダの状態で裏で起動し、待ち受けるまで待つ
+
+    ```bash
+    PI=$(python3 -c 'import yaml,os;print(yaml.safe_load(open(os.path.expanduser("~/.config/project-index/settings.yaml")))["clone"])')
+    PROJECT_INDEX_CONFIG=$D/project-index.yaml PROJECT_INDEX_PORT=18786 PROJECT_INDEX_STATE_DIR=$D/pi-state setsid nohup $PI/.venv/bin/python -m project_index serve > $D/project-index.log 2>&1 < /dev/null &
+    until curl -s -o /dev/null http://127.0.0.1:18786/; do sleep 2; done
+    ```
+
+    3. 端末の設定の `clone` の dev-docs を、手順 1 の設定・ポート 18787・一時フォルダの状態で裏で起動し、待ち受けるまで待つ
+
+    ```bash
+    DD=$(python3 -c 'import yaml,os;print(yaml.safe_load(open(os.path.expanduser("~/.config/dev-docs/settings.yaml")))["clone"])')
+    (cd $DD && DEV_DOCS_CONFIG=$D/dev-docs.yaml DEV_DOCS_PORT=18787 DEV_DOCS_STATE_DIR=$D/dd-state setsid nohup $DD/.venv/bin/python -m dev_docs serve > $D/dev-docs.log 2>&1 < /dev/null &)
+    until curl -s -o /dev/null http://127.0.0.1:18787/; do sleep 2; done
+    ```
+
+    4. `curl -s http://127.0.0.1:18786/sources/voice-input/config` の `nav.tabs[].title` が作業ブランチの `nav` のタブの並びになっていることを確認してから、画面を開く。`$D/project-index.log` の `配信中` の行に `voice-input` が無いときは、同じログの `ERROR` の行を確認する
+
+    起動した後に `overlay.yaml` を書き換えても、project-index には反映されない。`nav`・`documents` を修正した後は、止めてから手順 1 から再実行する。
+    作業ブランチで削除した `documents[]` の行は、develop の行が残って配信される。

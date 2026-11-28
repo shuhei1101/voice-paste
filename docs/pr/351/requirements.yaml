@@ -1,0 +1,9 @@
+docs:
+  - page: project-index.yaml
+    new: false
+    change: nav の「設計書」「コード」タブのグループのうち、利用者の作業か機能の単位で分けると探しやすいグループを、group の items[] に group を持つ 2 階層までの入れ子にする
+    status: todo
+scope_out:
+  - item: docs/layout/LAY-1.yaml の project-index.yaml の説明の書き換え
+    reason: 説明は「開発ドキュメントのタブとサイドバーの構成」で、入れ子にしても変わらない
+    plan: none

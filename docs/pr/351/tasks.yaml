@@ -1,0 +1,104 @@
+tasks:
+  - process: 初期構築
+    status: skipped
+    reason: 既存リポジトリのため対象外
+    updated_by: planner
+    updated_at: '2026-11-28T10:54:49.373527+00:00'
+  - process: リバースエンジニアリング
+    status: skipped
+    reason: 配信の設定の修正で、設計書の棚卸しは要らない
+    updated_by: planner
+    updated_at: '2026-11-28T10:54:49.373527+00:00'
+  - process: 方針決め
+    status: skipped
+    reason: 方針決めを依頼する Issue ではない
+    updated_by: planner
+    updated_at: '2026-11-28T10:54:49.373527+00:00'
+  - process: PoC 検証
+    status: skipped
+    reason: nav の group の入れ子は project-index の設定で既に使用できる機構で、未検証の技術に依存しない
+    updated_by: planner
+    updated_at: '2026-11-28T10:54:49.373527+00:00'
+  - process: 複合ユースケース設計
+    status: skipped
+    reason: アプリの動きを変えない開発ドキュメントの表示の設定だけの変更
+    updated_by: planner
+    updated_at: '2026-11-28T10:54:49.373527+00:00'
+  - process: デザインスタイル選定
+    status: skipped
+    reason: アプリの画面を変えない（判定フローチャート『モック要否』の Q1 が NO）
+    updated_by: planner
+    updated_at: '2026-11-28T10:54:49.373527+00:00'
+  - process: 画面一覧・画面遷移
+    status: skipped
+    reason: アプリの画面を変えない（判定フローチャート『モック要否』の Q1 が NO）
+    updated_by: planner
+    updated_at: '2026-11-28T10:54:49.373527+00:00'
+  - process: 単一ユースケース設計
+    status: skipped
+    reason: アプリの動きを変えない
+    updated_by: planner
+    updated_at: '2026-11-28T10:54:49.373527+00:00'
+  - process: モック作成
+    status: skipped
+    reason: アプリの画面を変えない（判定フローチャート『モック要否』の Q1 が NO）
+    updated_by: planner
+    updated_at: '2026-11-28T10:54:49.373527+00:00'
+  - process: データ設計
+    status: skipped
+    reason: データを変えない
+    updated_by: planner
+    updated_at: '2026-11-28T10:54:49.373527+00:00'
+  - process: インターフェース定義設計
+    status: skipped
+    reason: インターフェースを変えない
+    updated_by: planner
+    updated_at: '2026-11-28T10:54:49.373527+00:00'
+  - process: エージェント・MCP サーバー設計
+    status: skipped
+    reason: エージェント・MCP サーバーを変えない
+    updated_by: planner
+    updated_at: '2026-11-28T10:54:49.373527+00:00'
+  - process: エージェントフロー・LLM 呼び出し設計
+    status: skipped
+    reason: エージェントフロー・LLM の呼び出しを変えない
+    updated_by: planner
+    updated_at: '2026-11-28T10:54:49.373527+00:00'
+  - process: 精度評価設計
+    status: skipped
+    reason: LLM・意思決定モデルのノードを変えない
+    updated_by: planner
+    updated_at: '2026-11-28T10:54:49.373527+00:00'
+  - process: 部品設計
+    status: skipped
+    reason: 部品を変えない
+    updated_by: planner
+    updated_at: '2026-11-28T10:54:49.373527+00:00'
+  - process: 画面設計
+    status: skipped
+    reason: アプリの画面を変えない（判定フローチャート『画面設計要否』の Q1 が NO）
+    updated_by: planner
+    updated_at: '2026-11-28T10:54:49.373527+00:00'
+  - process: モジュール構成設計
+    status: skipped
+    reason: モジュールを変えない
+    updated_by: planner
+    updated_at: '2026-11-28T10:54:49.373527+00:00'
+  - process: ドキュメント修正
+    status: todo
+    note: project-index.yaml の nav の「設計書」「コード」タブのグループを、規約 dev-docs-navigation と判定フローチャート flowchart-sidebar-group-split に従って 2 階層までの入れ子にする。修正後に開発ドキュメントサーバーの画面をスクリーンショットで確認する
+  - process: 単体テスト作成
+    status: skipped
+    reason: コードを変えない
+    updated_by: planner
+    updated_at: '2026-11-28T10:54:49.373527+00:00'
+  - process: 実装
+    status: skipped
+    reason: コードを変えない
+    updated_by: planner
+    updated_at: '2026-11-28T10:54:49.373527+00:00'
+  - process: 結合テスト作成
+    status: skipped
+    reason: コードを変えない
+    updated_by: planner
+    updated_at: '2026-11-28T10:54:49.373527+00:00'

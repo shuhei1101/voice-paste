@@ -11,10 +11,8 @@
   <script src="../../../../../refs/44/assets/app.js" defer></script>
 </head>
 <body>
-  <!-- モック専用の操作列: 案のタブと、場面の切り替え（app.js が data-scene の場面だけを出す） -->
-  <nav class="mock-bar" aria-label="案と場面の切り替え（モック専用）">
-    <span class="mock-bar__label">案</span>
-    <ul><li><a href="../index.html">案 A</a></li><li><a href="../../b-list-detail/index.html">案 B</a></li><li><a href="./index.html" aria-current="page">案 A / 種類ごとのタブ</a></li></ul>
+  <!-- モック専用の操作列: 場面の切り替え（app.js が data-scene の場面だけを出す） -->
+  <nav class="mock-bar" aria-label="場面の切り替え（モック専用）">
     <span class="mock-bar__label">場面</span>
     <ul><li><button type="button" data-scene="browser-empty">ブラウザ添付: 空の一覧</button></li><li><button type="button" data-scene="browser-filled">ブラウザ添付: 登録した</button></li><li><button type="button" data-scene="browser-error">ブラウザ添付: 確かめに通らない</button></li><li><button type="button" data-scene="endpoint-empty">エンドポイントへ送る: 空の一覧</button></li><li><button type="button" data-scene="endpoint-filled">エンドポイントへ送る: 登録した</button></li><li><button type="button" data-scene="endpoint-error">エンドポイントへ送る: 確かめに通らない</button></li></ul>
   </nav>

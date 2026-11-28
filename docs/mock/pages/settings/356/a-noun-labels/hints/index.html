@@ -14,10 +14,8 @@
   <script src="../../../../../refs/99/assets/app.js" defer></script>
 </head>
 <body>
-  <!-- モック専用の操作列: 案のタブと、場面の切り替え（#44 の app.js が data-scene の場面だけを出す） -->
-  <nav class="mock-bar" aria-label="案と場面の切り替え（モック専用）">
-    <span class="mock-bar__label">案</span>
-    <ul><li><a href="../../a-hint-group/index.html" aria-current="page">案 A</a></li><li><a href="../../b-in-glossary/index.html">案 B</a></li></ul>
+  <!-- モック専用の操作列: 場面の切り替え（#44 の app.js が data-scene の場面だけを出す） -->
+  <nav class="mock-bar" aria-label="場面の切り替え（モック専用）">
     <span class="mock-bar__label">場面</span>
     <ul><li><button type="button" data-scene="empty">開いたところ（プリセットがまだ無い）</button></li><li><button type="button" data-scene="filled">有効と無効のプリセットがある</button></li><li><button type="button" data-scene="long">長い名前・長い語（上限ちょうど）</button></li><li><button type="button" data-scene="error">確かめに通らない</button></li></ul>
   </nav>

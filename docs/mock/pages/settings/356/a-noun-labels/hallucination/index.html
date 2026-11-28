@@ -15,10 +15,8 @@
   <script src="../../../../../refs/166/assets/app.js" defer></script>
 </head>
 <body>
-  <!-- モック専用の操作列: 案のタブと、場面の切り替え（#44 の app.js が data-scene の場面だけを出す） -->
-  <nav class="mock-bar" aria-label="案と場面の切り替え（モック専用）">
-    <span class="mock-bar__label">案</span>
-    <ul><li><a href="../../a-row-arrows/index.html">案 A</a></li><li><a href="../../b-drag-handle/index.html" aria-current="page">案 B</a></li></ul>
+  <!-- モック専用の操作列: 場面の切り替え（#44 の app.js が data-scene の場面だけを出す） -->
+  <nav class="mock-bar" aria-label="場面の切り替え（モック専用）">
     <span class="mock-bar__label">場面</span>
     <ul><li><button type="button" data-scene="default">既定の一覧</button></li><li><button type="button" data-scene="edited">行を足して先頭へ動かした</button></li><li><button type="button" data-scene="empty">一覧が空</button></li><li><button type="button" data-scene="error">確かめに通らない</button></li></ul>
   </nav>

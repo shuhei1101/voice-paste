@@ -1,0 +1,20 @@
+/* #356: 結果の 1 件のコピーのボタン。#37・#171・#347 の CSS の後に重ねる */
+
+/* チェックのアイコンは押した直後だけ出す */
+.copy-btn .ico--check { display: none; }
+
+/* 押した直後: コピーのアイコンをチェックに替え、色を成功の色にする（文言は替えない） */
+.copy-btn[data-copied="true"] {
+  .ico--copy { display: none; }
+  .ico--check { display: inline-block; }
+}
+
+/* 768px 未満: 文言を隠してアイコンだけにし、削除のボタンと同じ正方形にする */
+@media (width < 48rem) {
+  .copy-btn {
+    width: var(--touch-h);
+    padding: 0;
+    justify-content: center;
+  }
+  .copy-btn .copy-btn__label { display: none; }
+}

@@ -1,0 +1,140 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8">
+  <!-- viewport: スマホ・iPad の幅でも 1 カラムで読めるようにする -->
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>文字起こし | voice-paste のモック</title>
+  <!-- 採用スタイル「開発者ツール」の部品は #37、画面の部品は #171、用語集のプリセットの選択欄は #180、画面を暗くしないかのチェックは #292、録音中の操作と結果の折りたたみは #347、コピーのアイコンの切り替えと狭い幅のアイコンだけのコピーは #356 の共有 CSS に配置する -->
+  <link rel="stylesheet" href="../../../../refs/37/assets/style.css">
+  <link rel="stylesheet" href="../../../../refs/171/assets/style.css">
+  <link rel="stylesheet" href="../../../../refs/180/assets/style.css">
+  <link rel="stylesheet" href="../../../../refs/292/assets/style.css">
+  <link rel="stylesheet" href="../../../../refs/347/assets/style.css">
+  <link rel="stylesheet" href="../../../../refs/356/assets/style.css">
+  <!-- 場面とデータの量の切り替え・結果の一覧の描画・折りたたみ・コピーした直後の表示は #356 の共有 JS（#347 の JS のコピーの表示だけを替えた写し）が受ける -->
+  <script type="module" src="../../../../refs/356/assets/app.js"></script>
+</head>
+<body>
+  <!-- モック専用の操作列: 場面の切り替え（data-scene と data-scene-panel の場面名を合わせる） -->
+  <nav class="mock-bar" data-mock-bar aria-label="場面の切り替え（モック専用）">
+    <span class="mock-bar__label">場面</span>
+    <ul>
+      <li><button type="button" data-scene="idle">録音前・破棄後</button></li>
+      <li><button type="button" data-scene="recording">録音中</button></li>
+      <li><button type="button" data-scene="paused">一時停止中</button></li>
+    </ul>
+  </nav>
+  <!-- モック専用の操作列: データの量の切り替え（?data= を書き換える。場面は今の場面のまま） -->
+  <nav class="mock-bar" data-mock-bar aria-label="データの量の切り替え（モック専用）">
+    <span class="mock-bar__label">データ</span>
+    <ul>
+      <li><a data-data="normal" href="?data=normal">通常</a></li>
+      <li><a data-data="long" href="?data=long">長い</a></li>
+      <li><a data-data="many" href="?data=many">多い</a></li>
+      <li><a data-data="over" href="?data=over">上限を超える</a></li>
+      <li><a data-data="empty" href="?data=empty">空</a></li>
+    </ul>
+  </nav>
+
+  <main class="web-main">
+    <!-- パンくず -->
+    <nav class="crumb" aria-label="パンくず"><a href="../../../">pages</a> / <a href="../../">web-transcription</a> / <a href="../">356</a> / <span>a-copy-icon</span></nav>
+
+    <div class="web">
+      <!-- 画面の頭 -->
+      <header class="web-top">
+        <h1>voice-paste</h1>
+        <span class="web-top__sub">文字起こし</span>
+      </header>
+
+      <!-- 送信の区画 -->
+      <section class="web-panel" aria-labelledby="h-send">
+        <h2 id="h-send">音声送信</h2>
+
+        <!-- 用語集のプリセットの選択欄: #180 のまま。録音中・一時停止中は変えられない -->
+        <div class="preset-field" data-scene-panel="idle" hidden>
+          <label class="preset-field__label" for="preset-idle">用語集のプリセット</label>
+          <select id="preset-idle" name="glossary_preset"><option value="" selected>設定に従う（会議）</option><option value="既定">既定</option><option value="会議">会議</option><option value="下書き">下書き</option></select>
+        </div>
+        <div class="preset-field" data-scene-panel="recording paused" hidden>
+          <label class="preset-field__label" for="preset-rec">用語集のプリセット</label>
+          <select id="preset-rec" name="glossary_preset" disabled aria-describedby="preset-rec-help"><option value="" selected>設定に従う（会議）</option><option value="既定">既定</option><option value="会議">会議</option><option value="下書き">下書き</option></select>
+          <p class="preset-field__help" id="preset-rec-help">録音中は変更不可</p>
+        </div>
+
+        <!-- 画面を暗くしないかのチェック: #292 のまま。一時停止中も録音中と同じく画面を暗くしない -->
+        <div class="keep-field" data-scene-panel="idle" hidden>
+          <label class="keep-field__label" for="keep-idle"><input type="checkbox" id="keep-idle" name="keep_screen_on" checked> 録音中は画面を暗くしない</label>
+        </div>
+        <div class="keep-field" data-scene-panel="recording paused" hidden>
+          <label class="keep-field__label" for="keep-rec"><input type="checkbox" id="keep-rec" name="keep_screen_on" checked disabled aria-describedby="preset-rec-help"> 録音中は画面を暗くしない</label>
+        </div>
+
+        <!-- 録る・ファイルを選ぶ: 破棄した後もこの表示に戻り、続けて録音を始められる -->
+        <div class="send-actions" data-scene-panel="idle" hidden>
+          <button type="button" class="btn btn--lg btn--primary" data-go-scene="recording"><svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><circle class="fill" cx="12" cy="12" r="6"/></svg>録音開始</button>
+          <label class="btn btn--lg"><svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z"/><path d="M14 3v5h5"/></svg>ファイル送信<input type="file" accept="audio/*" class="sr-only"></label>
+        </div>
+        <p class="send-hint" data-scene-panel="idle" hidden>録音 最大 30 分・ファイル 100 MB 未満</p>
+
+        <!-- 録音中の表示: 主の操作の録音停止・送信と、一時停止・破棄を並べる -->
+        <div class="recorder" data-scene-panel="recording" hidden>
+          <div class="recorder__head">
+            <span class="state state--rec"><span class="dot" aria-hidden="true"></span>録音中</span>
+            <span class="recorder__time num" role="timer" data-elapsed aria-label="経過時間 2 分 14 秒">02:14</span>
+          </div>
+          <progress max="1800" value="134" data-progress aria-label="上限までの録音時間"></progress>
+          <div class="recorder__meta"><span>上限 <span class="num">30:00</span></span><span data-left-row>残り <span class="num" data-left>27:46</span><span data-left-note hidden>（上限で自動送信）</span></span></div>
+          <div class="recorder__actions">
+            <button type="button" class="btn btn--lg btn--primary"><svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><rect class="fill" x="7" y="7" width="10" height="10" rx="1"/></svg>録音停止・送信</button>
+            <button type="button" class="btn btn--lg" data-go-scene="paused"><svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M9 6v12M15 6v12"/></svg>一時停止</button>
+            <a class="btn btn--lg btn--danger" href="../../../web-confirm-dialog/347/a-standard/index.html?scene=recording"><svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16M10 11v6M14 11v6M6 7l1 13h10l1-13M9 7V4h6v3"/></svg>破棄</a>
+          </div>
+        </div>
+
+        <!-- 一時停止中の表示: 状態を「一時停止中」の文言と四角のマーカーに替え、経過時間・残り時間・進捗を止める。録音停止・送信と破棄は押せる -->
+        <div class="recorder recorder--paused" data-scene-panel="paused" hidden>
+          <div class="recorder__head">
+            <span class="state state--paused"><span class="dot" aria-hidden="true"></span>一時停止中</span>
+            <span class="recorder__time num" role="timer" data-elapsed aria-label="経過時間 2 分 14 秒">02:14</span>
+          </div>
+          <progress max="1800" value="134" data-progress aria-label="上限までの録音時間"></progress>
+          <div class="recorder__meta"><span>上限 <span class="num">30:00</span></span><span data-left-row>残り <span class="num" data-left>27:46</span><span data-left-note hidden>（上限で自動送信）</span></span></div>
+          <div class="recorder__actions">
+            <button type="button" class="btn btn--lg btn--primary"><svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><rect class="fill" x="7" y="7" width="10" height="10" rx="1"/></svg>録音停止・送信</button>
+            <button type="button" class="btn btn--lg" data-go-scene="recording"><svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><path class="fill" d="M8 5l11 7-11 7z"/></svg>再開</button>
+            <a class="btn btn--lg btn--danger" href="../../../web-confirm-dialog/347/a-standard/index.html?scene=paused"><svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16M10 11v6M14 11v6M6 7l1 13h10l1-13M9 7V4h6v3"/></svg>破棄</a>
+          </div>
+        </div>
+      </section>
+
+      <!-- 結果の区画: 一覧はデータの量の場面ごとに JS がテンプレートから描く -->
+      <section class="web-panel" aria-labelledby="h-results">
+        <div class="web-panel__head">
+          <h2 id="h-results">結果</h2>
+          <span class="web-panel__meta num" data-results-count>3 件・最大 10 件・保存 7 日</span>
+        </div>
+        <p class="results-empty" data-results-empty hidden>結果 0 件</p>
+        <ul class="results" aria-live="polite" data-results></ul>
+      </section>
+    </div>
+  </main>
+
+  <!-- 結果の 1 件（文字起こし完了）: #347 の配置のまま、コピーの押した直後の表示と狭い幅の出し方だけを替える -->
+  <template id="result-template">
+    <li class="result">
+      <div class="result__head">
+        <span class="result__meta"><span class="result__time num" data-time></span><span class="result__src" data-src></span></span>
+        <span class="result__actions">
+          <!-- コピー: 折りたたみの状態によらず全文をクリップボードへ入れる。押した直後の 2 秒だけアイコンをチェックに替え、文言は替えない。768px 未満はアイコンだけにする -->
+          <button type="button" class="btn copy-btn" data-copy data-copied="false" aria-label="コピー" title="コピー"><svg class="ico ico--copy" viewBox="0 0 24 24" aria-hidden="true"><rect x="9" y="9" width="11" height="11" rx="2"/><path d="M5 15V5a2 2 0 0 1 2-2h8"/></svg><svg class="ico ico--check" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12l5 5 9-10"/></svg><span class="copy-btn__label" aria-hidden="true">コピー</span><span class="sr-only" data-copy-status aria-live="polite"></span></button>
+          <a class="btn btn--icon btn--danger" href="../../../web-confirm-dialog/171/a-standard/index.html?scene=delete" aria-label="この結果を削除" title="この結果を削除"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16M10 11v6M14 11v6M6 7l1 13h10l1-13M9 7V4h6v3"/></svg></a>
+        </span>
+      </div>
+      <p class="result__text" data-text></p>
+      <button type="button" class="result__toggle" data-toggle aria-expanded="false" hidden><span data-toggle-label>続きを読む</span> <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg></button>
+    </li>
+  </template>
+</body>
+</html>

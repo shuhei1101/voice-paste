@@ -1,0 +1,14 @@
+docs:
+  - page: project-index.yaml
+    new: false
+    change: nav の「設計書」「コード」タブのグループのうち、利用者の作業か機能の単位で分けると探しやすいグループを、group の items[] に group を持つ 2 階層までの入れ子にする
+    status: done
+    updated_by: planner
+    updated_at: '2026-11-28T11:09:37.588920+00:00'
+scope_out:
+  - item: docs/layout/LAY-1.yaml の project-index.yaml の説明の書き換え
+    reason: 説明は「開発ドキュメントのタブとサイドバーの構成」で、入れ子にしても変わらない
+    plan: none
+  - item: docs/test-procedure/TP-1.yaml に、作業ブランチの配信の設定で開発ドキュメントサーバーの画面を開く手順（補足「画面の起動」）を追加する
+    reason: planner『実装』と reviewer のレビューが参照する補足「画面の起動」が無い（reviewer の対象外の逸脱の報告）。今回の要望（サイドバーの入れ子）に含まれない
+    plan: '#352'

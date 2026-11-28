@@ -80,8 +80,10 @@ tasks:
     updated_by: planner
     updated_at: '2026-11-28T15:07:49.030634+00:00'
   - process: モジュール構成設計
-    status: todo
+    status: done
     note: 画面設計の修正で常駐アプリ・外の端末の画面の実装の構成が変わる場合だけ、該当するモジュール構成を修正する。変わらなければ skipped にする
+    updated_by: planner
+    updated_at: '2026-11-28T15:37:20.424921+00:00'
   - process: ドキュメント修正
     status: todo
     note: project-index.yaml の documents[].schema の ref と content/prompts/openai-transcribe.yaml の $schema を design-schemas/v12.0.0 へ上げる

@@ -22,7 +22,7 @@ elements:
     position: 音声送信 > 操作
     description: 画面での録音を始める。MediaRecorder の形式を `isTypeSupported` で webm/opus・mp4・ogg の順に選び、audioBitsPerSecond に画面の録音のビットレートを引き渡す。マイクの許可はブラウザ標準の確認に任せる。端末内の音声が「送信失敗」「未送信」「文字起こし前」のときは塗りを除外し、主の操作を再送信ボタンへ移す
     label: 録音開始
-    visible_when: 録音中でないとき
+    visible_when: 録音中・一時停止中でないとき
     enabled_when: 送信中でないとき
     action: 端末内の音声が「送信失敗」「未送信」「文字起こし前」なら置換の確認を開く。それ以外（音声が無い・送信済み）なら確認せずに録音を始め、録音中の表示に替える
     action_ref: SCR-4#
@@ -37,7 +37,7 @@ elements:
     label: ファイル送信
     io: 入力
     type: File
-    visible_when: 録音中でないとき
+    visible_when: 録音中・一時停止中でないとき
     enabled_when: 送信中でないとき
     constraints: '`accept="audio/*"`。大きさがブラウザの本文の上限以上なら送信せずにファイルサイズ超過を出す'
     target: 音声を受け付ける.audio
@@ -49,7 +49,7 @@ elements:
     position: 音声送信 > 操作
     description: 録音の上限時間とファイルの大きさの上限
     label: 録音 最大 30 分・ファイル 100 MB 未満
-    visible_when: 録音中でないとき
+    visible_when: 録音中・一時停止中でないとき
     refs:
       - to: NFR-1
         item: "requirements[画面の録音の上限時間]"
@@ -63,24 +63,24 @@ elements:
     id: recording_state
     kind: label
     position: 音声送信 > 録音中の表示
-    description: 録音中であることを、点と文言で出す（色だけに頼らない）
-    label: 録音中
-    visible_when: 録音中
+    description: 録音中か一時停止中かを、マーカーと文言で出す（色だけに頼らない）。録音中は丸の点と「録音中」、一時停止中は四角のマーカーと「一時停止中」
+    label: 録音中（一時停止中は「一時停止中」）
+    visible_when: 録音中・一時停止中
   - name: 経過時間
     id: recording_elapsed
     kind: label
     position: 音声送信 > 録音中の表示
-    description: 録音を始めてからの時間。1 秒ごとに更新する（role=timer）。読み上げ名は「経過時間 {分} 分 {秒} 秒」
+    description: 録った時間の合計（一時停止していた時間を含まない）。録音中は 1 秒ごとに更新し、一時停止中は止めて補足の色にする（role=timer）。読み上げ名は「経過時間 {分} 分 {秒} 秒」
     io: 表示
-    visible_when: 録音中
+    visible_when: 録音中・一時停止中
     display_format: '`mm:ss`（例 `02:14`）'
   - name: 上限までの録音時間
     id: recording_progress
     kind: progress
     position: 音声送信 > 録音中の表示
-    description: 画面の録音の上限時間に対する経過時間（秒）
+    description: 画面の録音の上限時間に対する、録った時間の合計（秒）。一時停止中は進めない
     io: 表示
-    visible_when: 録音中
+    visible_when: 録音中・一時停止中
     range:
       min: '0'
       max: '1800'
@@ -88,18 +88,18 @@ elements:
     id: recording_remaining
     kind: label
     position: 音声送信 > 録音中の表示
-    description: 上限時間と残り時間。残り 60 秒未満になったら残り時間を注意の色にし、「（上限で自動送信）」を添える
+    description: 上限時間と、録った時間の合計で数えた残り時間（一時停止中は進めない）。残り 60 秒未満になったら残り時間を注意の色にし、「（上限で自動送信）」を添える
     label: 上限 30:00 / 残り {m:ss}
     io: 表示
-    visible_when: 録音中
+    visible_when: 録音中・一時停止中
     display_format: '`m:ss`（例 `27:46`・`0:48`）'
   - name: 録音停止・送信ボタン
     id: stop_button
     kind: button
     position: 音声送信 > 録音中の表示
-    description: 録音を止め、録った音声を保存日時つきで端末（IndexedDB）に 1 件だけ残して（前の 1 件を置き換える）送信する。上限時間に達したときも同じ動きを自動で行う
+    description: 録音を止め、録った音声（一時停止していた間を含まない）を保存日時つきで端末（IndexedDB）に 1 件だけ残して（前の 1 件を置き換える）送信する。一時停止中も押せる。録った時間の合計が上限時間に達したときも同じ動きを自動で行う。録音中の表示の主の操作（塗り）で、幅が 30rem 未満の録音中の表示では 1 行目に幅いっぱいで配置する
     label: 録音停止・送信
-    visible_when: 録音中
+    visible_when: 録音中・一時停止中
     target: 音声を受け付ける.audio
     action_ref: IF-11#
     status: planned
@@ -199,7 +199,7 @@ elements:
   - name: 結果の日時
     id: result_time
     kind: label
-    position: 結果 > 結果の 1 件
+    position: 結果 > 結果の 1 件 > 頭の行
     description: 送信した日時
     io: 表示
     visible_when: 常時
@@ -207,8 +207,8 @@ elements:
   - name: 結果の元の音声
     id: result_source
     kind: label
-    position: 結果 > 結果の 1 件
-    description: 画面で録った音声は「画面録音・{長さ}」、選んだファイルはファイル名。長い名前は 1 行で末尾を `…` で省く
+    position: 結果 > 結果の 1 件 > 頭の行
+    description: 画面で録った音声は「画面録音・{長さ}」、選んだファイルはファイル名。日時の右に並べ、コピー・削除に場所を譲って 1 行で末尾を `…` で省く（狭い幅では「画面録音・{長さ}」も省く）。省いた全文は `title` で出す
     io: 表示
     visible_when: 常時
   - name: 結果の状態
@@ -235,7 +235,7 @@ elements:
     id: result_text
     kind: label
     position: 結果 > 結果の 1 件
-    description: 用語集で補正した文字。改行を保ち、長い単語も折り返す。done を受けたら保存日時つきで端末（localStorage）に残す
+    description: 用語集で補正した文字。改行を保ち、長い単語も折り返す。表示が 5 行を超える件は先頭の 5 行だけを出して折りたたみ、続きを読む・折りたたむボタンで全文と行き来する。done を受けたら保存日時つきで端末（localStorage）に残す
     io: 表示
     visible_when: state が done のとき
     source: 文字起こしの結果を返却する.text
@@ -252,15 +252,15 @@ elements:
   - name: コピーボタン
     id: copy_button
     kind: button
-    position: 結果 > 結果の 1 件 > 操作
-    description: 起こした文字をクリップボードへ入れる（`navigator.clipboard.writeText`）。押した直後は 2 秒だけ「コピー済み」に替え、読み上げにも伝える
+    position: 結果 > 結果の 1 件 > 頭の行 > 操作
+    description: 起こした文字の全文を、折りたたみの状態によらずクリップボードへ入れる（`navigator.clipboard.writeText`）。日時・元の音声と同じ行の右端（起こした文字の上）に配置する。押した直後は 2 秒だけ「コピー済み」に替え、読み上げにも伝える
     label: コピー
     visible_when: state が done のとき
     action: 起こした文字をクリップボードへ入れる
   - name: 削除ボタン
     id: delete_button
     kind: button
-    position: 結果 > 結果の 1 件 > 操作
+    position: 結果 > 結果の 1 件 > 頭の行 > 操作
     description: その結果を端末から削除する確認を開く。アイコンだけのボタンで、読み上げ名は「この結果を削除」
     visible_when: state が done のとき
     action_ref: SCR-4#
@@ -299,7 +299,7 @@ elements:
     io: 入力
     type: 文字列
     visible_when: 常時
-    enabled_when: 録音中でないとき
+    enabled_when: 録音中・一時停止中でないとき
     required: false
     initial_value: 端末（localStorage voice-paste.glossary_preset）に覚えた名前が presets にあればその名前。覚えた名前が無い・一覧に無いときは「設定に従う」
     options: 先頭に「設定に従う（{active}）」（値は空文字。既定）、続けて presets を一覧の並びのまま並べる。一覧を取得できないときは「設定に従う」だけ。複数選択はしない
@@ -314,18 +314,18 @@ elements:
     position: 音声送信 > 用語集のプリセット
     description: 選択欄が押せない理由。選択欄の aria-describedby で読み上げにも伝える
     label: 録音中は変更不可
-    visible_when: 録音中
+    visible_when: 録音中・一時停止中
     status: planned
   - name: 画面を暗くしないかのチェック
     id: keep_screen_check
     kind: checkbox
     position: 音声送信 > 画面を暗くしない
-    description: 画面で録っている間、Screen Wake Lock で端末の画面の消灯を抑止するか。用語集のプリセットの選択欄のすぐ下、録音開始ボタンの上に配置する。オンなら録音を始めるときに `navigator.wakeLock.request("screen")` を取得し、録音の停止・上限での停止で解放する。録音中に画面が隠れるとブラウザが解放し、画面へ戻ったとき（visibilitychange）に録音中なら取得し直す。取得できないとき（拒否）は抑止せずに録音を続け、ブラウザのコンソールに警告を出す。ファイルの送信では抑止しない（モック `docs/mock/pages/web-transcription/292/a-below-preset/`）
+    description: 画面で録っている間、Screen Wake Lock で端末の画面の消灯を抑止するか。用語集のプリセットの選択欄のすぐ下、録音開始ボタンの上に配置する。オンなら録音を始めるときに `navigator.wakeLock.request("screen")` を取得し、一時停止中も抑止を続け、録音の停止・上限での停止・破棄で解放する。録音中・一時停止中に画面が隠れるとブラウザが解放し、画面へ戻ったとき（visibilitychange）に録音中か一時停止中なら取得し直す。取得できないとき（拒否）は抑止せずに録音を続け、ブラウザのコンソールに警告を出す。ファイルの送信では抑止しない（モック `docs/mock/pages/web-transcription/292/a-below-preset/`）
     label: 録音中は画面を暗くしない
     io: 入力
     type: 真偽値
     visible_when: 常時
-    enabled_when: 録音中でなく、ブラウザが Screen Wake Lock に対応しているとき（`navigator.wakeLock` がある）
+    enabled_when: 録音中・一時停止中でなく、ブラウザが Screen Wake Lock に対応しているとき（`navigator.wakeLock` がある）
     required: false
     initial_value: 端末（localStorage voice-paste.keep_screen_on）に覚えた値。無いときはオン。対応しないブラウザではオフ
     action: 変えたら、その値を端末（localStorage voice-paste.keep_screen_on）に覚える
@@ -372,8 +372,35 @@ elements:
     visible_when: 選んだファイルを送信している間
     display_format: プリセット「{名前}」（例 プリセット「下書き」）
     status: planned
+  - name: 一時停止・再開ボタン
+    id: pause_button
+    kind: button
+    position: 音声送信 > 録音中の表示
+    description: 録音中は「一時停止」で MediaRecorder を `pause()` し、一時停止中は「再開」で `resume()` する。録音停止・送信ボタンの右に配置し、幅が 30rem 未満の録音中の表示では破棄ボタンと 2 行目に同じ幅で並べる
+    label: 一時停止（一時停止中は「再開」）
+    visible_when: 録音中・一時停止中
+    action: 録音中なら一時停止中の表示に替え、一時停止中なら録音中の表示に戻す
+    status: planned
+  - name: 破棄ボタン
+    id: discard_button
+    kind: button
+    position: 音声送信 > 録音中の表示
+    description: 録った音声を送信せず、端末（IndexedDB）にも残さずに録音を止める確認を開く。取り消せない操作のため文字を警告の色にする。一時停止・再開ボタンの右に配置する
+    label: 破棄
+    visible_when: 録音中・一時停止中
+    action_ref: SCR-4#
+    status: planned
+  - name: 続きを読む・折りたたむボタン
+    id: result_toggle
+    kind: button
+    position: 結果 > 結果の 1 件
+    description: 起こした文字のすぐ下の左に出し、起こした文字の全文と先頭の 5 行を切り替える。`aria-expanded` と `aria-controls`（起こした文字）で開閉を伝え、開くと文言を「折りたたむ」、山形を上向きに替える。開閉に動きは付けない
+    label: 続きを読む（全文を出した後は「折りたたむ」）
+    visible_when: state が done で、起こした文字の表示が 5 行を超えるとき
+    action: 起こした文字の全文と先頭の 5 行を切り替える
+    status: planned
 screen: src/voice_paste/server/web/index.html
-mock: docs/mock/pages/web-transcription/180/a-follow-settings/
+mock: docs/mock/pages/web-transcription/347/a-actions-row/
 lead: 外の端末のブラウザで開く 1 枚（`GET /web/`）。上に音声送信の区画、下に結果の一覧を 1 カラムで並べる。
 refs:
   - to: SC-3

@@ -1,0 +1,13 @@
+confirmations:
+  - topic: 録音中の操作の並び・文言と、破棄の前の確認
+    decision: 「録音停止・送信」の横に「一時停止」（一時停止中は「再開」）と「破棄」を並べ、スマホの幅では録音停止・送信を 1 行目に出す。破棄は「録音を破棄しますか」の確認を出してから止める（推奨案 B）
+    decided_by: 👍
+    approver: shuhei1101
+    commit: 3d16077
+    thread: https://github.com/shuhei1101/voice-paste/pull/347#discussion_r4726368451
+  - topic: 結果の起こした文字を折りたたむ長さ
+    decision: 表示の行数で決め、5 行を超えたら折りたたんで「続きを読む」を出す（推奨案 A）
+    decided_by: 👍
+    approver: shuhei1101
+    commit: 3d16077
+    thread: https://github.com/shuhei1101/voice-paste/pull/347#discussion_r4726368858

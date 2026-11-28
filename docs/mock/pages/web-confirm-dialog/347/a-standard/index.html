@@ -1,0 +1,94 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8">
+  <!-- viewport: スマホ・iPad の幅でも 1 カラムで読めるようにする -->
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>録音の破棄の確認 | voice-paste のモック</title>
+  <link rel="stylesheet" href="../../../../refs/37/assets/style.css">
+  <link rel="stylesheet" href="../../../../refs/171/assets/style.css">
+  <link rel="stylesheet" href="../../../../refs/347/assets/style.css">
+  <!-- 場面の切り替えと、出している場面の確認のダイアログをモーダルで開く（#171 の共有 JS） -->
+  <script type="module" src="../../../../refs/171/assets/app.js"></script>
+</head>
+<body>
+  <!-- モック専用の操作列: 場面の切り替え（data-scene と data-scene-panel の場面名を合わせる） -->
+  <nav class="mock-bar" data-mock-bar aria-label="モックの場面">
+    <span class="mock-bar__label">場面</span>
+    <ul>
+      <li><button type="button" data-scene="recording">録音中に破棄</button></li>
+      <li><button type="button" data-scene="paused">一時停止中に破棄</button></li>
+    </ul>
+  </nav>
+
+  <main class="web-main">
+    <!-- パンくず -->
+    <nav class="crumb" aria-label="パンくず"><a href="../../../">pages</a> / <a href="../../">web-confirm-dialog</a> / <a href="../">347</a> / <span>a-standard</span></nav>
+
+    <!-- 場面: 録音中に破棄ボタンを押した（後ろは録音中のまま。確認を出している間も録音は続く） -->
+    <div data-scene-panel="recording">
+      <div class="web">
+        <header class="web-top">
+          <h1>voice-paste</h1>
+          <span class="web-top__sub">文字起こし</span>
+        </header>
+        <section class="web-panel" aria-labelledby="h-send-rec">
+          <h2 id="h-send-rec">音声送信</h2>
+          <div class="recorder">
+            <div class="recorder__head">
+              <span class="state state--rec"><span class="dot" aria-hidden="true"></span>録音中</span>
+              <span class="recorder__time num" role="timer" aria-label="経過時間 2 分 14 秒">02:14</span>
+            </div>
+            <progress max="1800" value="134" aria-label="上限までの録音時間"></progress>
+          </div>
+        </section>
+      </div>
+
+      <!-- 確認のダイアログ: 外側の押下では閉じず、Esc と戻る操作で閉じる（キャンセルと同じ） -->
+      <dialog class="web-dialog" closedby="closerequest" aria-labelledby="d-rec" aria-describedby="b-rec">
+        <div class="web-dialog__main">
+          <h2 id="d-rec">録音を破棄しますか</h2>
+          <p id="b-rec">録った音声（<span class="num">2:14</span>）は送信せず削除（復元不可）。端末内の前の音声は保持</p>
+        </div>
+        <div class="web-dialog__actions">
+          <!-- 最初のフォーカスは、破棄しない側に配置する -->
+          <a class="btn" href="../../../web-transcription/347/a-actions-row/index.html?scene=recording" autofocus>キャンセル</a>
+          <a class="btn btn--danger-fill" href="../../../web-transcription/347/a-actions-row/index.html?scene=idle">破棄</a>
+        </div>
+      </dialog>
+    </div>
+
+    <!-- 場面: 一時停止中に破棄ボタンを押した（後ろは一時停止中のまま） -->
+    <div data-scene-panel="paused" hidden>
+      <div class="web">
+        <header class="web-top">
+          <h1>voice-paste</h1>
+          <span class="web-top__sub">文字起こし</span>
+        </header>
+        <section class="web-panel" aria-labelledby="h-send-pau">
+          <h2 id="h-send-pau">音声送信</h2>
+          <div class="recorder recorder--paused">
+            <div class="recorder__head">
+              <span class="state state--paused"><span class="dot" aria-hidden="true"></span>一時停止中</span>
+              <span class="recorder__time num" role="timer" aria-label="経過時間 2 分 14 秒">02:14</span>
+            </div>
+            <progress max="1800" value="134" aria-label="上限までの録音時間"></progress>
+          </div>
+        </section>
+      </div>
+
+      <!-- 確認のダイアログ: 録音中と同じ文言。長さは一時停止していた時間を含まない -->
+      <dialog class="web-dialog" closedby="closerequest" aria-labelledby="d-pau" aria-describedby="b-pau">
+        <div class="web-dialog__main">
+          <h2 id="d-pau">録音を破棄しますか</h2>
+          <p id="b-pau">録った音声（<span class="num">2:14</span>）は送信せず削除（復元不可）。端末内の前の音声は保持</p>
+        </div>
+        <div class="web-dialog__actions">
+          <a class="btn" href="../../../web-transcription/347/a-actions-row/index.html?scene=paused" autofocus>キャンセル</a>
+          <a class="btn btn--danger-fill" href="../../../web-transcription/347/a-actions-row/index.html?scene=idle">破棄</a>
+        </div>
+      </dialog>
+    </div>
+  </main>
+</body>
+</html>

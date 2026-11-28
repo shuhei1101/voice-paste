@@ -1,0 +1,22 @@
+$ run_url=$(gh workflow run test.yml --ref "$(git branch --show-current)" -f layer=integration -f paths="tests/integration/test_serve_web_page.py" | ...) （テスト実行方法 TL-2 の run_runner。回した commit: a46ba88・実行 46133344674）
+============================= test session starts =============================
+platform win32 -- Python 3.14.10, pytest-9.1.1, pluggy-1.7.0 -- D:\a\voice-paste\voice-paste\.venv\Scripts\python.exe
+rootdir: D:\a\voice-paste\voice-paste
+configfile: pyproject.toml
+plugins: anyio-4.15.1, platformdirs-4.13.3, timeout-2.4.0
+timeout: 110.0s
+timeout method: thread
+timeout func_only: False
+collecting ... collected 8 items
+
+tests/integration/test_serve_web_page.py::test_normal PASSED             [ 12%]
+tests/integration/test_serve_web_page.py::test_normal_when_allowed_origin PASSED [ 25%]
+tests/integration/test_serve_web_page.py::test_error_when_origin_not_allowed PASSED [ 37%]
+tests/integration/test_serve_web_page.py::test_error_when_host_not_loopback PASSED [ 50%]
+tests/integration/test_serve_web_page.py::test_error_when_asset_not_found[missing_file] PASSED [ 62%]
+tests/integration/test_serve_web_page.py::test_error_when_asset_not_found[outside_directory] PASSED [ 75%]
+tests/integration/test_serve_web_page.py::test_error_when_running_on_linux[without_origin] PASSED [ 87%]
+tests/integration/test_serve_web_page.py::test_error_when_running_on_linux[not_allowed_origin] PASSED [100%]
+
+============================== 8 passed in 5.02s ==============================
+exit=0 run=46133344674

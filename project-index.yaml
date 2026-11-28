@@ -462,144 +462,189 @@ nav:
             - auto: {document: nonfunctional}
         - group: シナリオ
           items:
-            - page: scenario/SC-12
-            - page: scenario/SC-11
-            - page: scenario/SC-10
-            - page: scenario/SC-13
-            - page: scenario/SC-5
-            - page: scenario/SC-8
-            - page: scenario/SC-9
-            - page: scenario/SC-7
-            - page: scenario/SC-1
-            - page: scenario/SC-3
-            - page: scenario/SC-4
-            - page: scenario/SC-6
-            - page: scenario/SC-2
+            - group: 常駐アプリで使用する
+              items:
+                - page: scenario/SC-12
+                - page: scenario/SC-14
+                - page: scenario/SC-5
+                - page: scenario/SC-8
+                - page: scenario/SC-9
+                - page: scenario/SC-7
+                - page: scenario/SC-15
+                - page: scenario/SC-2
+                - page: scenario/SC-6
+            - group: ほかのシステムから使用する
+              items:
+                - page: scenario/SC-11
+                - page: scenario/SC-10
+                - page: scenario/SC-1
+            - group: 外の端末のブラウザから使用する
+              items:
+                - page: scenario/SC-13
+                - page: scenario/SC-3
+                - page: scenario/SC-4
             - auto: {document: scenario}
         - group: インターフェース定義
           items:
-            - page: interface/IF-10
-            - page: interface/IF-8
-            - page: interface/IF-9
-            - page: interface/IF-2
-            - page: interface/IF-3
-            - page: interface/IF-7
-            - page: interface/IF-6
-            - page: interface/IF-5
-            - page: interface/IF-11
-            - page: interface/IF-1
-            - page: interface/IF-4
-            - page: interface/IF-13
-            - page: interface/IF-12
-            - page: interface/IF-14
-            - page: interface/IF-15
+            - group: 録音の API
+              items:
+                - page: interface/IF-10
+                - page: interface/IF-8
+                - page: interface/IF-9
+                - page: interface/IF-2
+                - page: interface/IF-3
+                - page: interface/IF-7
+            - group: ブラウザの文字起こし
+              items:
+                - page: interface/IF-11
+                - page: interface/IF-4
+                - page: interface/IF-5
+                - page: interface/IF-6
+                - page: interface/IF-1
+            - group: Haas の文字起こしのサーバー
+              items:
+                - page: interface/IF-12
+                - page: interface/IF-13
+                - page: interface/IF-14
+            - group: テスト
+              items:
+                - page: interface/IF-15
             - auto: {document: interface}
         - group: モジュール構成
           items:
-            - page: module/MOD-98
-            - page: module/MOD-99
-            - page: module/MOD-100
-            - page: module/MOD-101
-            - page: module/MOD-1
-            - page: module/MOD-19
-            - page: module/MOD-17
-            - page: module/MOD-20
-            - page: module/MOD-15
-            - page: module/MOD-16
-            - page: module/MOD-18
-            - page: module/MOD-21
-            - page: module/MOD-2
-            - page: module/MOD-4
-            - page: module/MOD-29
-            - page: module/MOD-27
-            - page: module/MOD-28
-            - page: module/MOD-26
-            - page: module/MOD-5
-            - page: module/MOD-32
-            - page: module/MOD-45
-            - page: module/MOD-30
-            - page: module/MOD-33
-            - page: module/MOD-42
-            - page: module/MOD-40
-            - page: module/MOD-43
-            - page: module/MOD-34
-            - page: module/MOD-47
-            - page: module/MOD-41
-            - page: module/MOD-46
-            - page: module/MOD-38
-            - page: module/MOD-39
-            - page: module/MOD-37
-            - page: module/MOD-104
-            - page: module/MOD-36
-            - page: module/MOD-44
-            - page: module/MOD-35
-            - page: module/MOD-31
-            - page: module/MOD-6
-            - page: module/MOD-49
-            - page: module/MOD-52
-            - page: module/MOD-53
-            - page: module/MOD-51
-            - page: module/MOD-50
-            - page: module/MOD-48
-            - page: module/MOD-7
-            - page: module/MOD-58
-            - page: module/MOD-65
-            - page: module/MOD-64
-            - page: module/MOD-62
-            - page: module/MOD-63
-            - page: module/MOD-61
-            - page: module/MOD-59
-            - page: module/MOD-60
-            - page: module/MOD-57
-            - page: module/MOD-56
-            - page: module/MOD-55
-            - page: module/MOD-54
-            - page: module/MOD-8
-            - page: module/MOD-81
-            - page: module/MOD-77
-            - page: module/MOD-71
-            - page: module/MOD-68
-            - page: module/MOD-78
-            - page: module/MOD-67
-            - page: module/MOD-76
-            - page: module/MOD-102
-            - page: module/MOD-103
-            - page: module/MOD-75
-            - page: module/MOD-73
-            - page: module/MOD-74
-            - page: module/MOD-79
-            - page: module/MOD-72
-            - page: module/MOD-80
-            - page: module/MOD-70
-            - page: module/MOD-96
-            - page: module/MOD-97
-            - page: module/MOD-69
-            - page: module/MOD-66
-            - page: module/MOD-9
-            - page: module/MOD-10
-            - page: module/MOD-83
-            - page: module/MOD-82
-            - page: module/MOD-11
-            - page: module/MOD-12
-            - page: module/MOD-84
-            - page: module/MOD-89
-            - page: module/MOD-86
-            - page: module/MOD-87
-            - page: module/MOD-88
-            - page: module/MOD-85
-            - page: module/MOD-13
-            - page: module/MOD-92
-            - page: module/MOD-91
-            - page: module/MOD-90
-            - page: module/MOD-93
-            - page: module/MOD-3
-            - page: module/MOD-25
-            - page: module/MOD-23
-            - page: module/MOD-24
-            - page: module/MOD-22
-            - page: module/MOD-14
-            - page: module/MOD-94
-            - page: module/MOD-95
+            - group: 起動と配線
+              items:
+                - page: module/MOD-12
+                - page: module/MOD-84
+                - page: module/MOD-89
+                - page: module/MOD-86
+                - page: module/MOD-87
+                - page: module/MOD-88
+                - page: module/MOD-85
+            - group: 録音セッション
+              items:
+                - page: module/MOD-3
+                - page: module/MOD-25
+                - page: module/MOD-23
+                - page: module/MOD-24
+                - page: module/MOD-22
+            - group: 録音
+              items:
+                - page: module/MOD-13
+                - page: module/MOD-92
+                - page: module/MOD-91
+                - page: module/MOD-90
+                - page: module/MOD-93
+            - group: 文字起こし
+              items:
+                - page: module/MOD-10
+                - page: module/MOD-83
+                - page: module/MOD-82
+            - group: 文字起こしワーカー
+              items:
+                - page: module/MOD-14
+                - page: module/MOD-94
+                - page: module/MOD-95
+            - group: Haas の文字起こしのサーバー
+              items:
+                - page: module/MOD-98
+                - page: module/MOD-99
+                - page: module/MOD-100
+                - page: module/MOD-101
+            - group: 補正
+              items:
+                - page: module/MOD-11
+            - group: 出力先
+              items:
+                - page: module/MOD-7
+                - page: module/MOD-58
+                - page: module/MOD-65
+                - page: module/MOD-64
+                - page: module/MOD-62
+                - page: module/MOD-63
+                - page: module/MOD-61
+                - page: module/MOD-59
+                - page: module/MOD-60
+                - page: module/MOD-57
+                - page: module/MOD-56
+                - page: module/MOD-55
+                - page: module/MOD-54
+            - group: 履歴
+              items:
+                - page: module/MOD-9
+            - group: ブラウザの文字起こし
+              items:
+                - page: module/MOD-4
+                - page: module/MOD-29
+                - page: module/MOD-27
+                - page: module/MOD-28
+                - page: module/MOD-26
+            - group: APIサーバー
+              items:
+                - page: module/MOD-1
+                - page: module/MOD-19
+                - page: module/MOD-17
+                - page: module/MOD-20
+                - page: module/MOD-15
+                - page: module/MOD-16
+                - page: module/MOD-18
+                - page: module/MOD-21
+            - group: ホットキーと画面
+              items:
+                - page: module/MOD-5
+                - page: module/MOD-32
+                - page: module/MOD-45
+                - page: module/MOD-30
+                - page: module/MOD-33
+                - page: module/MOD-42
+                - page: module/MOD-40
+                - page: module/MOD-43
+                - page: module/MOD-34
+                - page: module/MOD-47
+                - page: module/MOD-41
+                - page: module/MOD-46
+                - page: module/MOD-38
+                - page: module/MOD-39
+                - page: module/MOD-37
+                - page: module/MOD-104
+                - page: module/MOD-36
+                - page: module/MOD-44
+                - page: module/MOD-35
+                - page: module/MOD-31
+            - group: 外部連携
+              items:
+                - page: module/MOD-8
+                - page: module/MOD-81
+                - page: module/MOD-77
+                - page: module/MOD-71
+                - page: module/MOD-68
+                - page: module/MOD-78
+                - page: module/MOD-67
+                - page: module/MOD-76
+                - page: module/MOD-102
+                - page: module/MOD-103
+                - page: module/MOD-75
+                - page: module/MOD-73
+                - page: module/MOD-74
+                - page: module/MOD-79
+                - page: module/MOD-72
+                - page: module/MOD-80
+                - page: module/MOD-70
+                - page: module/MOD-96
+                - page: module/MOD-97
+                - page: module/MOD-69
+                - page: module/MOD-66
+            - group: 共通
+              items:
+                - page: module/MOD-2
+                - page: module/MOD-6
+                - page: module/MOD-49
+                - page: module/MOD-52
+                - page: module/MOD-53
+                - page: module/MOD-51
+                - page: module/MOD-50
+                - page: module/MOD-48
+                - page: module/MOD-105
             - auto: {document: module}
         - group: 画面設計
           items:
@@ -617,22 +662,28 @@ nav:
             - auto: {document: screen}
         - group: データ
           items:
-            - page: data/DATA-5
-            - page: data/DATA-6
-            - page: data/DATA-7
-            - page: data/DATA-11
-            - page: data/DATA-8
-            - page: data/DATA-9
-            - page: data/DATA-10
-            - page: data/DATA-15
-            - page: data/DATA-12
-            - page: data/DATA-13
-            - page: data/DATA-14
-            - page: data/DATA-1
-            - page: data/DATA-2
-            - page: data/DATA-3
-            - page: data/DATA-4
-            - page: data/DATA-16
+            - group: 常駐アプリ
+              items:
+                - page: data/DATA-5
+                - page: data/DATA-6
+                - page: data/DATA-7
+                - page: data/DATA-11
+                - page: data/DATA-8
+                - page: data/DATA-9
+                - page: data/DATA-10
+                - page: data/DATA-15
+                - page: data/DATA-12
+                - page: data/DATA-13
+                - page: data/DATA-14
+            - group: 外の端末のブラウザ
+              items:
+                - page: data/DATA-1
+                - page: data/DATA-2
+                - page: data/DATA-3
+                - page: data/DATA-4
+            - group: Haas の文字起こしのサーバー
+              items:
+                - page: data/DATA-16
             - auto: {document: data}
         - group: ER 図
           items:
@@ -649,44 +700,51 @@ nav:
             - auto: {document: api}
         - group: 外部ライブラリ
           items:
-            - page: library/LIB-37
-            - page: library/LIB-34
-            - page: library/LIB-36
-            - page: library/LIB-35
-            - page: library/LIB-4
-            - page: library/LIB-5
-            - page: library/LIB-6
-            - page: library/LIB-7
-            - page: library/LIB-8
-            - page: library/LIB-1
-            - page: library/LIB-32
-            - page: library/LIB-30
-            - page: library/LIB-9
-            - page: library/LIB-10
-            - page: library/LIB-2
-            - page: library/LIB-31
-            - page: library/LIB-11
-            - page: library/LIB-12
-            - page: library/LIB-13
-            - page: library/LIB-14
-            - page: library/LIB-15
-            - page: library/LIB-3
-            - page: library/LIB-16
-            - page: library/LIB-17
-            - page: library/LIB-18
-            - page: library/LIB-19
-            - page: library/LIB-20
-            - page: library/LIB-21
-            - page: library/LIB-38
-            - page: library/LIB-22
-            - page: library/LIB-23
-            - page: library/LIB-24
-            - page: library/LIB-25
-            - page: library/LIB-26
-            - page: library/LIB-27
-            - page: library/LIB-28
-            - page: library/LIB-29
-            - page: library/LIB-33
+            - group: 常駐アプリ
+              items:
+                - page: library/LIB-4
+                - page: library/LIB-5
+                - page: library/LIB-6
+                - page: library/LIB-7
+                - page: library/LIB-8
+                - page: library/LIB-1
+                - page: library/LIB-32
+                - page: library/LIB-9
+                - page: library/LIB-2
+                - page: library/LIB-11
+                - page: library/LIB-12
+                - page: library/LIB-13
+                - page: library/LIB-14
+                - page: library/LIB-15
+                - page: library/LIB-16
+                - page: library/LIB-17
+                - page: library/LIB-18
+                - page: library/LIB-19
+                - page: library/LIB-20
+                - page: library/LIB-21
+                - page: library/LIB-22
+                - page: library/LIB-23
+                - page: library/LIB-25
+                - page: library/LIB-26
+                - page: library/LIB-27
+                - page: library/LIB-28
+                - page: library/LIB-29
+                - page: library/LIB-33
+                - page: library/LIB-39
+            - group: Haas の文字起こしのサーバー
+              items:
+                - page: library/LIB-30
+                - page: library/LIB-31
+            - group: 開発とテスト
+              items:
+                - page: library/LIB-37
+                - page: library/LIB-34
+                - page: library/LIB-36
+                - page: library/LIB-35
+                - page: library/LIB-10
+                - page: library/LIB-3
+                - page: library/LIB-38
+                - page: library/LIB-24
             - auto: {document: library}
         - group: フォルダ構成
           items:
@@ -701,13 +759,52 @@ nav:
       items:
         - group: 常駐アプリ
           items:
-            - auto: {document: files_src}
+            - auto: {document: files_src, filter: {not: {field: path, op: prefix, values: [voice_paste/features/, voice_paste/integrations/, voice_paste/runtime/, voice_paste/ui/, voice_paste/server/, voice_paste/shared/]}}}
+            - group: features/
+              items:
+                - auto: {document: files_src, filter: {field: path, op: prefix, values: [voice_paste/features/]}}
+            - group: integrations/
+              items:
+                - auto: {document: files_src, filter: {field: path, op: prefix, values: [voice_paste/integrations/]}}
+            - group: runtime/
+              items:
+                - auto: {document: files_src, filter: {field: path, op: prefix, values: [voice_paste/runtime/]}}
+            - group: ui/
+              items:
+                - auto: {document: files_src, filter: {field: path, op: prefix, values: [voice_paste/ui/]}}
+            - group: server/
+              items:
+                - auto: {document: files_src, filter: {field: path, op: prefix, values: [voice_paste/server/]}}
+            - group: shared/
+              items:
+                - auto: {document: files_src, filter: {field: path, op: prefix, values: [voice_paste/shared/]}}
         - group: Haas の文字起こしのサーバー
           items:
             - auto: {document: files_haas_server}
         - group: テスト
           items:
-            - auto: {document: files_tests}
+            - auto: {document: files_tests, filter: {not: {field: path, op: prefix, values: [unit/, integration/, e2e/, nfr/, external/, support/, mocks/]}}}
+            - group: unit/
+              items:
+                - auto: {document: files_tests, filter: {field: path, op: prefix, values: [unit/]}}
+            - group: integration/
+              items:
+                - auto: {document: files_tests, filter: {field: path, op: prefix, values: [integration/]}}
+            - group: e2e/
+              items:
+                - auto: {document: files_tests, filter: {field: path, op: prefix, values: [e2e/]}}
+            - group: nfr/
+              items:
+                - auto: {document: files_tests, filter: {field: path, op: prefix, values: [nfr/]}}
+            - group: external/
+              items:
+                - auto: {document: files_tests, filter: {field: path, op: prefix, values: [external/]}}
+            - group: support/
+              items:
+                - auto: {document: files_tests, filter: {field: path, op: prefix, values: [support/]}}
+            - group: mocks/
+              items:
+                - auto: {document: files_tests, filter: {field: path, op: prefix, values: [mocks/]}}
     - title: リファレンス
       items:
         - page: files_guide/docs/guide/API.md

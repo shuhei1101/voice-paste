@@ -38,11 +38,15 @@ docs:
   - page: project-index.yaml
     new: false
     change: documents[].schema の ref を design-schemas/v9.5.0 から design-schemas/v12.0.0 へ上げる
-    status: todo
+    status: done
+    updated_by: planner
+    updated_at: '2026-11-28T15:07:47.118986+00:00'
   - page: content/prompts/openai-transcribe.yaml
     new: false
     change: 先頭の $schema の参照を design-schemas/v12.0.0 へ上げる
-    status: todo
+    status: done
+    updated_by: planner
+    updated_at: '2026-11-28T15:07:47.118986+00:00'
 scope_out:
   - item: 部品設計書の記載し直し
     reason: このプロジェクトは部品設計書の種類（docs/component/）を持たず、記載し直す部品設計書が無い

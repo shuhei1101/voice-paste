@@ -75,8 +75,10 @@ tasks:
     updated_by: planner
     updated_at: '2026-11-28T14:21:15.317858+00:00'
   - process: 画面設計
-    status: todo
+    status: done
     note: docs/screen/SCR-1〜SCR-10 を design-schemas/v12.0.0（v10.0.0・v11.0.0 の変更を含む）で記載し直し、気づいた漏れ・誤りを修正する
+    updated_by: planner
+    updated_at: '2026-11-28T15:07:49.030634+00:00'
   - process: モジュール構成設計
     status: todo
     note: 画面設計の修正で常駐アプリ・外の端末の画面の実装の構成が変わる場合だけ、該当するモジュール構成を修正する。変わらなければ skipped にする

@@ -120,12 +120,18 @@ interface ResultEntry {
   error: string | null;
 }
 
-/** 録音中の情報。 */
+/** 録音中・一時停止中の情報。 */
 interface Recording {
   recorder: MediaRecorder;
-  startedAt: number;
+  /** 今の録る区間より前に録った時間の合計（ミリ秒）。一時停止していた時間は含まない。 */
+  recordedMs: number;
+  /** 今の録る区間を始めた時刻（一時停止中は null）。 */
+  segmentStartedAt: number | null;
+  /** 録った時間の合計（秒）。 */
   elapsedSec: number;
   timer: number | null;
+  /** 破棄の確認で「破棄」を押したか。真なら止まった音声を送信も保存もしない。 */
+  discarded: boolean;
 }
 
 /** 選んだファイルの送信中の情報。 */
@@ -206,6 +212,8 @@ interface AppState {
   results: ResultEntry[];
   /** 削除の確認を開いている件。 */
   pendingDelete: ResultEntry | null;
+  /** 起こした文字の全文を出している件の job_id。 */
+  expandedResults: Set<string>;
 }
 
 // ===== 状態 =====
@@ -226,6 +234,7 @@ const state: AppState = {
   wakeLock: null,
   results: [],
   pendingDelete: null,
+  expandedResults: new Set(),
 };
 
 let pollTimer: number | null = null;
@@ -636,7 +645,14 @@ async function startRecording(): Promise<void> {
     void finishRecording(recorder, chunks);
   };
 
-  const recording: Recording = { recorder, startedAt: Date.now(), elapsedSec: 0, timer: null };
+  const recording: Recording = {
+    recorder,
+    recordedMs: 0,
+    segmentStartedAt: Date.now(),
+    elapsedSec: 0,
+    timer: null,
+    discarded: false,
+  };
   recording.timer = window.setInterval(tickRecording, 1000);
   state.recording = recording;
   recorder.start();
@@ -644,13 +660,18 @@ async function startRecording(): Promise<void> {
   void acquireWakeLock();
 }
 
-/** 1 秒ごとに経過時間を進め、上限に達したら録音を止めて送信する。 */
+/** 録った時間の合計（秒）。一時停止していた時間は含まず、上限で頭打ちにする。 */
+function recordedSec(recording: Recording): number {
+  const segmentMs = recording.segmentStartedAt === null ? 0 : Date.now() - recording.segmentStartedAt;
+  return Math.min(RECORDING_LIMIT_SEC, Math.floor((recording.recordedMs + segmentMs) / 1000));
+}
+
+/** 1 秒ごとに録った時間を進め、上限に達したら録音を止めて送信する。一時停止中は進めない。 */
 function tickRecording(): void {
   const recording = state.recording;
-  if (!recording) return;
-  recording.elapsedSec = Math.floor((Date.now() - recording.startedAt) / 1000);
+  if (!recording || recording.segmentStartedAt === null) return;
+  recording.elapsedSec = recordedSec(recording);
   if (recording.elapsedSec >= RECORDING_LIMIT_SEC) {
-    recording.elapsedSec = RECORDING_LIMIT_SEC;
     state.limitNotice = true;
     stopRecording();
     return;
@@ -658,20 +679,75 @@ function tickRecording(): void {
   renderRecording();
 }
 
-/** 録音を止める。止まった音声は finishRecording が端末に残して送信する。 */
+/** 録音を一時停止する。録った時間はそこまでの分を加えて止める。 */
+function pauseRecording(): void {
+  const recording = state.recording;
+  if (!recording || recording.recorder.state !== 'recording' || recording.segmentStartedAt === null) return;
+  recording.recorder.pause();
+  recording.recordedMs += Date.now() - recording.segmentStartedAt;
+  recording.segmentStartedAt = null;
+  recording.elapsedSec = recordedSec(recording);
+  render();
+}
+
+/** 一時停止した録音を続きから再開する。 */
+function resumeRecording(): void {
+  const recording = state.recording;
+  if (!recording || recording.recorder.state !== 'paused') return;
+  recording.recorder.resume();
+  recording.segmentStartedAt = Date.now();
+  render();
+}
+
+/** 録音中なら一時停止し、一時停止中なら再開する。 */
+function onPauseClick(): void {
+  if (state.recording?.segmentStartedAt === null) {
+    resumeRecording();
+  } else {
+    pauseRecording();
+  }
+}
+
+/** 録音を止める（一時停止中も止められる）。止まった音声は finishRecording が端末に残して送信する。 */
 function stopRecording(): void {
   const recording = state.recording;
   if (!recording || recording.recorder.state === 'inactive') return;
+  recording.elapsedSec = recordedSec(recording);
   recording.recorder.stop();
 }
 
-/** 止まった録音を端末（IndexedDB）に残して送信する。前の 1 件は置き換わる。 */
+/** 録音の破棄の確認を開く。開いている間も録音・一時停止は押す前のまま続く。 */
+function openDiscardDialog(): void {
+  const recording = present(state.recording, 'recording');
+  byId('discard-body').textContent =
+    `録った音声（${formatDuration(recordedSec(recording))}）は送信せず削除（復元不可）。端末内の前の音声は保持`;
+  byId<HTMLDialogElement>('discard-dialog').showModal();
+}
+
+/** 破棄の確認で「破棄」を押した。録音を止め、録った音声を送信も保存もせずに捨てる。 */
+function confirmDiscard(): void {
+  byId<HTMLDialogElement>('discard-dialog').close();
+  const recording = state.recording;
+  if (!recording || recording.recorder.state === 'inactive') return;
+  recording.discarded = true;
+  recording.recorder.stop();
+}
+
+/** 止まった録音を端末（IndexedDB）に残して送信する。前の 1 件は置き換わる。破棄した録音は残さず送信もしない。 */
 async function finishRecording(recorder: MediaRecorder, chunks: Blob[]): Promise<void> {
   const recording = present(state.recording, 'recording');
   releaseWakeLock();
   if (recording.timer !== null) clearInterval(recording.timer);
-  const blob = new Blob(chunks, { type: recorder.mimeType });
+  // 上限で止まったときに破棄の確認が開いていれば閉じる
+  const discardDialog = byId<HTMLDialogElement>('discard-dialog');
+  if (discardDialog.open) discardDialog.close();
   state.recording = null;
+  if (recording.discarded) {
+    render();
+    $<HTMLButtonElement>('record_button').focus();
+    return;
+  }
+  const blob = new Blob(chunks, { type: recorder.mimeType });
   const kept: KeptAudio = {
     blob,
     mime_type: recorder.mimeType,
@@ -830,6 +906,7 @@ function renderSend(): void {
   byId('send-hint').hidden = recording;
   byId('recorder').hidden = !recording;
   byId('limit-notice').hidden = !state.limitNotice;
+  renderPause();
 
   const recordButton = $<HTMLButtonElement>('record_button');
   recordButton.disabled = sending;
@@ -837,6 +914,19 @@ function renderSend(): void {
   const fileInput = $<HTMLInputElement>('file_input');
   fileInput.disabled = sending;
   byId('file-label').setAttribute('aria-disabled', String(sending));
+}
+
+/** 録音中・一時停止中の状態の表示と、一時停止・再開ボタンの文言とマーカーを描く。 */
+function renderPause(): void {
+  const paused = state.recording?.segmentStartedAt === null;
+  byId('recorder').classList.toggle('recorder--paused', paused);
+  const stateElement = byId('recording-state');
+  stateElement.classList.toggle('state--rec', !paused);
+  stateElement.classList.toggle('state--paused', paused);
+  byId('recording-state-text').textContent = paused ? '一時停止中' : '録音中';
+  byId('pause-label').textContent = paused ? '再開' : '一時停止';
+  byId('pause-icon').toggleAttribute('hidden', paused);
+  byId('resume-icon').toggleAttribute('hidden', !paused);
 }
 
 /** 「録音中は画面を暗くしない」のチェックの値・押せるか・対応しないことの補足を描く。 */
@@ -999,6 +1089,39 @@ function renderResults(): void {
   const list = byId('results');
   list.hidden = count === 0;
   list.replaceChildren(...state.results.map(resultElement));
+  applyCollapse();
+}
+
+/**
+ * 表示が 5 行を超える起こした文字だけを折りたたみ、続きを読む・折りたたむのボタンを出す。
+ * 行数は描いた後の高さで測るため、一覧を描いた後と画面の幅が変わった後に呼ぶ。
+ */
+function applyCollapse(): void {
+  for (const item of byId('results').querySelectorAll<HTMLElement>('.result')) {
+    const text = item.querySelector<HTMLElement>('[data-element="result_text"]');
+    const toggle = item.querySelector<HTMLButtonElement>('[data-element="result_toggle"]');
+    if (!text || !toggle || text.hidden) continue;
+    const jobId = present(item.dataset.jobId, 'job_id');
+    const expanded = state.expandedResults.has(jobId);
+    // 折りたたんだ高さで測り、5 行に収まる件はボタンを出さずに全文のまま出す
+    text.dataset.collapsed = 'true';
+    const overflows = text.scrollHeight > text.clientHeight;
+    text.dataset.collapsed = String(overflows && !expanded);
+    toggle.hidden = !overflows;
+    toggle.setAttribute('aria-expanded', String(overflows && expanded));
+    present(toggle.querySelector('.result__toggle-label'), 'toggle-label').textContent =
+      overflows && expanded ? '折りたたむ' : '続きを読む';
+  }
+}
+
+/** 続きを読む・折りたたむのボタン。その件の全文と先頭の 5 行を切り替える。 */
+function toggleResult(jobId: string): void {
+  if (state.expandedResults.has(jobId)) {
+    state.expandedResults.delete(jobId);
+  } else {
+    state.expandedResults.add(jobId);
+  }
+  applyCollapse();
 }
 
 /** 結果 1 件の要素を雛形から作る。 */
@@ -1009,9 +1132,13 @@ function resultElement(entry: ResultEntry): HTMLElement {
   ) as HTMLElement;
   const field = <T extends HTMLElement = HTMLElement>(id: string): T =>
     present(item.querySelector<T>(`[data-element="${id}"]`), id);
+  item.dataset.jobId = entry.jobId;
   field('result_time').textContent = formatDateTime(entry.sentAt);
-  field('result_source').textContent =
+  const source = field('result_source');
+  source.textContent =
     entry.durationSec === null ? entry.source : `${entry.source}・${formatDuration(entry.durationSec)}`;
+  // 頭の行で省いた元の音声の全文を出す
+  source.title = source.textContent;
 
   const status = field('result_status');
   const statusText = present(status.querySelector<HTMLElement>('.result__status-text'), 'status-text');
@@ -1041,6 +1168,12 @@ function resultElement(entry: ResultEntry): HTMLElement {
   } else if (entry.state === 'done') {
     text.hidden = false;
     text.textContent = entry.text === null || entry.text === '' ? '文字なし' : entry.text;
+    text.id = `result-text-${entry.jobId}`;
+    const toggle = field<HTMLButtonElement>('result_toggle');
+    toggle.setAttribute('aria-controls', text.id);
+    toggle.addEventListener('click', () => {
+      toggleResult(entry.jobId);
+    });
     actions.hidden = false;
     field<HTMLButtonElement>('copy_button').addEventListener('click', (event) => {
       void copyResult(entry, event.currentTarget as HTMLButtonElement);
@@ -1154,6 +1287,16 @@ async function resendKept(): Promise<void> {
 async function init(): Promise<void> {
   $('record_button').addEventListener('click', onRecordClick);
   $('stop_button').addEventListener('click', stopRecording);
+  $('pause_button').addEventListener('click', onPauseClick);
+  $('discard_button').addEventListener('click', openDiscardDialog);
+  $('discard_cancel').addEventListener('click', () => byId<HTMLDialogElement>('discard-dialog').close());
+  $('discard_confirm').addEventListener('click', confirmDiscard);
+  // 破棄せずに閉じたら（キャンセル・Esc・戻る操作）、録音中の表示の破棄ボタンへフォーカスを戻す
+  byId<HTMLDialogElement>('discard-dialog').addEventListener('close', () => {
+    if (state.recording !== null && !state.recording.discarded) $('discard_button').focus();
+  });
+  // 画面の幅で起こした文字の行数が変わるため、折りたたむかを測り直す
+  window.addEventListener('resize', applyCollapse);
   $<HTMLInputElement>('file_input').addEventListener('change', (event) => {
     const input = event.currentTarget as HTMLInputElement;
     const file = input.files?.[0];

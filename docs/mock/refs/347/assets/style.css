@@ -33,19 +33,17 @@
 
 /* ===== 結果の 1 件 ===== */
 
-/* 結果の頭: 日時と元の音声を左、コピーと削除を右に配置し、収まらない幅では操作を次の行へ回す */
+/* 結果の頭: 日時と元の音声を左、コピーと削除を右に配置し、スマホの幅でも 1 行に収める */
 .result__head {
-  flex-wrap: wrap;
   align-items: center;
   justify-content: space-between;
-  row-gap: 4px;
 }
 
-/* 日時と元の音声のまとまり: 元の音声の長い名前を 1 行で省けるよう縮める */
+/* 日時と元の音声のまとまり: 操作に場所を譲って縮み、元の音声の長い名前を 1 行で省く */
 .result__meta {
   display: flex;
   gap: 8px;
-  flex: 1 1 12rem;
+  flex: 1 1 0;
   min-width: 0;
 }
 

@@ -84,9 +84,46 @@ elements:
     label: 置換して録音
     visible_when: 常時
     action: 確認を閉じ、録音を始めて録音中の表示に替える
+  - name: 破棄の確認
+    id: discard_dialog
+    kind: dialog
+    position: 破棄の確認
+    description: '`<dialog>` を `showModal()` で開く。`closedby="closerequest"` で Esc・戻る操作では閉じ、外側の押下では閉じない。開いている間も録音（一時停止中なら一時停止）は続く。閉じたら破棄ボタンへフォーカスを戻し、破棄したときは録音開始ボタンへ移す（モック `docs/mock/pages/web-confirm-dialog/347/a-standard/`）'
+    visible_when: 録音中・一時停止中に破棄ボタンを押したとき
+  - name: 破棄の確認の見出し
+    id: discard_title
+    kind: label
+    position: 破棄の確認 > 本体
+    description: 録音を破棄するかを問う
+    label: 録音を破棄しますか
+    visible_when: 常時
+  - name: 破棄の確認の本文
+    id: discard_body
+    kind: label
+    position: 破棄の確認 > 本体
+    description: 捨てる音声の長さ（録った時間の合計）と、元に戻せないこと、端末内の前の音声は残ること
+    label: 録った音声（{m:ss}）は送信せず削除（復元不可）。端末内の前の音声は保持
+    visible_when: 常時
+  - name: 破棄のキャンセルボタン
+    id: discard_cancel
+    kind: button
+    position: 破棄の確認 > フッター
+    description: 破棄せずに閉じ、録音中・一時停止中の表示に戻る。最初のフォーカスを配置する
+    label: キャンセル
+    visible_when: 常時
+    autofocus: true
+    action: 確認を閉じる
+  - name: 破棄ボタン
+    id: discard_confirm
+    kind: button
+    position: 破棄の確認 > フッター
+    description: MediaRecorder を止めて録ったデータを捨て、マイクのトラックと画面を暗くしない抑止を解放する。音声の送信も端末（IndexedDB）への保存もしない。危険の塗りのボタン
+    label: 破棄
+    visible_when: 常時
+    action: 確認を閉じ、録音していない状態の表示（録音開始ボタン・ファイル送信ボタン）に戻す
 screen: src/voice_paste/server/web/index.html
 mock: docs/mock/pages/web-confirm-dialog/171/a-standard/
-lead: 外の端末の文字起こしの画面で、結果の削除と、文字起こし前の音声を新しい録音で置換することを確認するモーダル。
+lead: 外の端末の文字起こしの画面で、結果の削除・文字起こし前の音声を新しい録音で置換すること・録音の破棄を確認するモーダル。
 refs:
   - to: SC-4
     type: references

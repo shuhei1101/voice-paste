@@ -1,0 +1,1 @@
+# 配信元の設定ファイル dev-docs.yaml を project-index.yaml へ改名する

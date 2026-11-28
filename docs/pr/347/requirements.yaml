@@ -20,7 +20,9 @@ docs:
   - page: docs/guide/外の端末から文字に起こす.md
     new: false
     change: 録音の破棄・一時停止と再開の操作と、長い結果の折りたたみ・「続きを読む」、起こした文字の上のコピーを記載する
-    status: todo
+    status: done
+    updated_by: planner
+    updated_at: '2026-11-28T09:35:02.638551+00:00'
 scope_out:
   - item: 常駐アプリの録音の画面（ホットキー・トレイから開く録音の画面）の破棄・一時停止
     reason: '#18 で一時停止・再開・取り消しを作り済みで、起点 Issue は外の端末の画面を対象にしている'

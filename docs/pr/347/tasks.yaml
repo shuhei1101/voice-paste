@@ -95,4 +95,7 @@ tasks:
     updated_by: planner
     updated_at: '2026-11-28T09:55:38.388664+00:00'
   - process: 結合テスト作成
-    status: todo
+    status: done
+    note: IF-6 の flows に変更が無く、新規の結合テストは無し。合格した実行範囲の tests/integration/test_serve_web_page.py を回した
+    updated_by: planner
+    updated_at: '2026-11-28T10:04:41.839608+00:00'

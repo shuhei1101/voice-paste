@@ -73,7 +73,9 @@ tasks:
     updated_by: planner
     updated_at: '2026-11-28T08:31:43.503182+00:00'
   - process: 画面設計
-    status: todo
+    status: done
+    updated_by: planner
+    updated_at: '2026-11-28T09:29:57.300679+00:00'
   - process: モジュール構成設計
     status: skipped
     reason: 画面のスクリプト（app.ts）のモジュール構成の設計書が無く、Python のモジュール構成は変わらないため

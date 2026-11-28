@@ -1,14 +1,14 @@
 端末の設定の配信元の設定ファイルの書き換え:
-  説明: project-index・dev-docs・alias-inject の端末の設定（~/.config/project-index/settings.yaml・~/.config/dev-docs/settings.yaml・~/.config/alias-inject/settings.yaml）で、配信元 voice-input の設定ファイルとして /home/shuhei2441/repo/voice-paste/.claude/worktrees/develop/dev-docs.yaml を指す値を、同じフォルダの project-index.yaml へ書き換える。書き換える前に同じ場所へ {ファイル名}.bak-{YYYYMMDD-HHMMSS} のバックアップを取り、ほかの行は変えない。develop の worktree に project-index.yaml が入ったことを確かめてから書き換える
+  説明: project-index・dev-docs・alias-inject の端末の設定（~/.config/project-index/settings.yaml・~/.config/dev-docs/settings.yaml・~/.config/alias-inject/settings.yaml）で、配信元 voice-input の設定ファイルとして /home/shuhei2441/repo/voice-paste/.claude/worktrees/develop/dev-docs.yaml を指す値を、同じフォルダの project-index.yaml へ書き換える。書き換える前に同じ場所へ {ファイル名}.bak-{YYYYMMDD-HHMMSS} のバックアップを取り、ほかの行は変えない（project-index は端末の設定の API の PATCH /settings/sources/voice-input で書き換えて配信元を再読み込みさせ、API が保存の前のファイルを残さないためバックアップは取らない）。develop の worktree に project-index.yaml が入ったことを確かめてから書き換える
   タグ: [設定の書き換え]
   実行者: planner
   時期: マージの後
   回数: 1 回限り
   可逆: true
-  疎通確認: null
-  実行: null
-  確認: null
-  切り戻し: null
+  疎通確認: 端末の設定の配信元の設定ファイルの書き換え/疎通確認.py
+  実行: 端末の設定の配信元の設定ファイルの書き換え/実行.py
+  確認: 端末の設定の配信元の設定ファイルの書き換え/確認.py
+  切り戻し: 端末の設定の配信元の設定ファイルの書き換え/切り戻し.py
   失敗時: 既定の対処を 1 回、2 回連続で失敗したら依頼元へ返す
-  確認方法: 3 つの端末の設定に voice-paste の dev-docs.yaml を指す行が無く、project-index の describe の一覧に配信元 voice-input が設定ファイルの読み込みの警告なしで出る
+  確認方法: project-index の GET /settings/sources の配信元 voice-input の行が config に develop の worktree の project-index.yaml だけを持ち、status が serving で errors が空。dev-docs・alias-inject の端末の設定に voice-paste の dev-docs.yaml を指す行が無く、project-index.yaml を指す行がある
   状態: skipped

@@ -10,7 +10,7 @@ classes:
     usecase: 録音を文字に起こす
     role: 画面
     summary: 確定から届けるまで、経過と残りの時間・進みをフォーカスを取らずに出す
-    description: |
+    description: |-
       要素は画面設計「文字起こし中の表示」が持つ。窓は `Qt.Tool | Qt.FramelessWindowHint | Qt.WindowDoesNotAcceptFocus` と `WA_ShowWithoutActivating` で出す。窓の外側の枠線の role は `window` にし、縁を frame で描かせる。
       `WindowDoesNotAcceptFocus` のため、切り替えのボタンを押しても見出しの行をつかんでも窓は前面にならず、貼り付け先の入力欄のフォーカスはそのまま残る（前面を戻す処理は持たない）。
       見出しの行・ドラッグのハンドル・名前の下にホットキーを出すボタンは、録音の画面と同じ部品（window_parts.py の HeadRow・GripIcon・HotkeyButton。recording_window.py から移す）を使用する。見出しの行を押したまま動かすと `QWindow.startSystemMove` で窓を動かす。
@@ -19,6 +19,7 @@ classes:
       切り替えのボタンは、右と上にマーカーがはみ出す分の余白を枠の外に取り、選んだときの丸いマーカーを枠の右上の角からその余白へはみ出して描く。名前とホットキーの文字の範囲にはマーカーを重ねない。
       残りの時間は、進み（区間の終わり ÷ 録音の長さ）と経過から「経過 ÷ 進み − 経過」で見積もる。UiDeps.reports_progress が False なら、進みが届かないため、open で「残りを計っています」を出さず「経過 {秒}」だけを出す。
       コンストラクタは UiDeps と、経過を数える時計 clock（秒を返却する関数。既定は time.monotonic）を受ける。
+      カスタムプリセットで確定したときのプリセットの名前は、音声ファイルの名前と同じ ElidedLabel で 1 行に出す（窓の幅に収まらなければ末尾を「…」で省き、ヒントに全体を出す。窓の幅を広げない）。
     kind: クラス
     inherits: PySide6.QtWidgets.QWidget
     methods:
@@ -45,7 +46,7 @@ classes:
             required: false
             default: None
             passing: keyword
-            description: カスタムプリセットで確定したときのそのタイトル。引き渡されたら切り替えのボタンと貼り付けの案内を出さず、プリセットの名前だけを出す
+            description: カスタムプリセットで確定したときのそのタイトル。引き渡されたら切り替えのボタンと貼り付けの案内を出さず、プリセットの名前だけを出す（窓の幅に収まらなければ末尾を「…」で省き、ヒントに全体を出す）
           - name: audio_file_name
             type: str | None
             required: false
@@ -68,6 +69,12 @@ classes:
             condition: open(preset_title="ChatGPT") する。QT_QPA_PLATFORM=offscreen
             mock: UiDeps
             expected: preset_label が ChatGPT、switch_button_* が 1 つも表示されず、paste_hint が表示されない
+          - name: test_open_when_long_preset_title
+            case: 正常
+            summary: 長いプリセットの名前は省いて出し、窓の幅を広げない
+            condition: open(preset_title="A" * 200) と open(preset_title="ChatGPT") をそれぞれする。QT_QPA_PLATFORM=offscreen
+            mock: UiDeps
+            expected: 200 文字のときの窓の幅が ChatGPT のときと同じで、preset_label の表示が「…」で終わり、toolTip が 200 文字の全体
           - name: test_open_when_switch_buttons_same_width
             case: 正常
             summary: 切り替えのボタンを、名前の最も長いボタンが収まる同じ固定の幅にする

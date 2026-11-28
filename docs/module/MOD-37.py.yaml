@@ -11,12 +11,13 @@ classes:
     role: 画面の部品
     kind: クラス
     inherits: PySide6.QtWidgets.QWidget
-    summary: 設定画面の 1 つの種類のタブに配置する、プリセットのまとまりの縦の並びと「プリセットを追加」。追加・削除・上へ・下へを受ける
+    summary: 設定画面の 1 つの種類のタブに配置する、プリセットのまとまりの縦の並びと「プリセット追加」。追加・削除・上へ・下へを受ける
     description: |-
       要素（有効の切り替え・タイトル・URL・Enter まで送信・Authorization・確定のホットキー・上へ・下へ・削除・追加・空の案内）と読み上げの名前は画面設計「設定画面」が持つ。
       種類ごとに違う欄（browser は Enter まで送信、endpoint は Authorization）は、種類の設定のモデル（BrowserPreset・EndpointPreset）の共通でない項目から組み立てる。
       並べ替え・追加・削除はこの部品の中だけを変え、settings.yaml へは設定画面の保存で書き込む。
       変えた欄の数えのため、プリセットごとに、開いたとき・保存したときのプリセットを追う番号を持つ。set_presets と mark_saved で今の並びの順に 0 から振り直し、追加したプリセットには振ったどの番号より大きい番号を振る。削除・並べ替えで一覧を作り直しても番号を引き継ぐ。
+      上へ・下へ・削除のボタンは IconButton（window_parts.py。arrow_up・arrow_down・trash）で作り、タイトルを入れ直したら set_label で読み上げ名とツールチップを替える。
     properties:
       - name: kind
         type: str
@@ -64,10 +65,10 @@ classes:
             mock: なし（offscreen）
             expected: collect のタイトルが B・A の順
       - name: add_preset
-        title: プリセットを追加
+        title: プリセット追加
         kind: メソッド
         scope: public
-        summary: 末尾に空のプリセット（有効。browser は Enter まで送信がオン）を追加し、タイトルの欄へフォーカスを移して changed を emit する。「プリセットを追加」が呼ぶ
+        summary: 末尾に空のプリセット（有効。browser は Enter まで送信がオン）を追加し、タイトルの欄へフォーカスを移して changed を emit する。「プリセット追加」が呼ぶ
         returns:
           type: None
           description: なし

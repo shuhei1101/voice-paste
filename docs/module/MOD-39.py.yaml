@@ -11,7 +11,7 @@ classes:
     role: 画面の部品
     kind: クラス
     inherits: PySide6.QtWidgets.QWidget
-    summary: 設定画面の「表記のヒント」のまとまりに配置する、有効なヒントの長さ・プリセットのまとまりの縦の並び・「プリセットを追加」・補足。プリセットと単語の追加・削除・並べ替えを受け、長さを数え直す
+    summary: 設定画面の「表記のヒント」のまとまりに配置する、有効なヒントの長さ・プリセットのまとまりの縦の並び・「プリセット追加」・補足。プリセットと単語の追加・削除・並べ替えを受け、長さを数え直す
     description: |-
       要素（説明・有効なヒントの長さ・一覧・空の案内・有効の切り替え・単語の数と長さ・名前・列の見出し・単語・読み込み・単語を削除・単語が無いときの文・単語を追加・上へ・下へ・削除・追加・補足）と読み上げの名前は画面設計「設定画面」が持つ。
       プリセットのまとまりは PresetListPanel と同じ構造（頭に切り替え・名前・上へ・下へ・削除、下に欄）で作る。単語の欄は、単語の入力・読みの入力・削除ボタンを 1 行に（幅は単語 3 : 読み込み 2）、上から下が単語の順に縦に追加する。単語が 1 つ以上あるときだけ、上に列の見出し「語」「読み」を左端を欄に合わせて出す。エラーはその行の下に出す。
@@ -19,6 +19,7 @@ classes:
       無効のプリセットの単語の欄は、用語集のオフの行と同じく文字を薄くして取り消し線を引く（編集はできる）。
       追加・削除・並べ替えはこの部品の中だけを変え、settings.yaml へは設定画面の保存で書き込む。
       変えた欄の数えのため、プリセットごとに、開いたとき・保存したときのプリセットを追う番号を持つ。set_presets と mark_saved で今の並びの順に 0 から振り直し、追加したプリセットには振ったどの番号より大きい番号を振る。削除・並べ替え・単語の追加・削除で一覧を作り直しても番号を引き継ぐ。単体テストは tests/unit/voice_paste/ui/windows/test_settings_hints.py に配置する。
+      上へ・下へ・プリセットの削除・単語の削除のボタンは IconButton（window_parts.py。arrow_up・arrow_down・trash）で作る。頭の単語の数と長さは「{単語の数} 単語・{長さ} バイト」で出し、画面に出す文言（列の見出し・読み上げの名前・空の文・エラー）は「語」でなく「単語」にする。
     properties:
       - name: changed
         type: Signal()
@@ -91,10 +92,10 @@ classes:
             mock: なし
             expected: words が ["B"]、readings が ["い"]
       - name: add_preset
-        title: プリセットを追加
+        title: プリセット追加
         kind: メソッド
         scope: public
-        summary: 末尾に名前と単語が空で有効のプリセットを追加し、名前の欄へフォーカスを移して changed を emit する。「プリセットを追加」が呼ぶ
+        summary: 末尾に名前と単語が空で有効のプリセットを追加し、名前の欄へフォーカスを移して changed を emit する。「プリセット追加」が呼ぶ
         returns:
           type: None
           description: なし
@@ -106,10 +107,10 @@ classes:
             mock: なし（offscreen）
             expected: collect が 1 件（enabled True・name が空・words が空）を返却し、changed が 1 回 emit され、空の案内が消える
       - name: add_word
-        title: 語を追加
+        title: 単語追加
         kind: メソッド
         scope: public
-        summary: そのプリセットの単語の末尾に空の欄を追加してフォーカスを移し、changed を emit する。「語を追加」が呼ぶ
+        summary: そのプリセットの単語の末尾に空の欄を追加してフォーカスを移し、changed を emit する。「単語追加」が呼ぶ
         args:
           - name: position
             type: int

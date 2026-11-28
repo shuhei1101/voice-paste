@@ -454,7 +454,7 @@ elements:
     confirm: none
     icon: trash-2
     accessible_name: '{名前}を削除（名前が空なら「名前未入力の用語集を削除」）'
-    tooltip: '{名前}を削除'
+    tooltip: '{名前}を削除（名前が空なら「名前未入力の用語集を削除」）'
     visible_when: 用語集ごと
     action: 用語集を一覧と全てのプリセットの使用する用語集から削除する
     status: planned
@@ -1097,7 +1097,7 @@ elements:
     confirm: none
     icon: trash-2
     accessible_name: '{名前}を削除（名前が空なら「名前未入力のプリセットを削除」）'
-    tooltip: '{名前}を削除'
+    tooltip: '{名前}を削除（名前が空なら「名前未入力のプリセットを削除」）'
     enabled_when: 補正に使用するプリセットでないとき。無効のときはツールチップ「補正に使うプリセットは削除できません」を出す
     action: プリセットを一覧から削除する（保存するまで settings.yaml へは書き込まない）
     status: planned

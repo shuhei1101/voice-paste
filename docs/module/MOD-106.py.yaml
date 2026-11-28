@@ -106,7 +106,6 @@ classes:
       - to: SCR-9
         type: requires
         when: 『設定画面』の行の操作のボタン（label_display が icon_only の要素）のアイコンと読み上げ名を確認するとき。
-    status: planned
 functions:
   - name: clear_layout
     title: レイアウトを空にする
@@ -132,14 +131,12 @@ constants:
     usecase: 設定を変える
     summary: 設定画面の行の操作のアイコンのボタンの幅と高さ。同じ行の入力欄の高さにそろえる
     value: '28'
-    status: planned
   - name: ICON_PEN_PX
     title: アイコンの線の太さ
     container: ui/windows/window_parts.py
     usecase: 設定を変える
     summary: アイコンのボタンに描く線の太さ
     value: '1.6'
-    status: planned
 notes:
   再利用と新規作成の判定: |-
     | 新規作成するもの | 探した単語 | 見つかった候補 | 判定 |

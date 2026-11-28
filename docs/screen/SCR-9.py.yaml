@@ -457,7 +457,6 @@ elements:
     tooltip: '{名前}を削除（名前が空なら「名前未入力の用語集を削除」）'
     visible_when: 用語集ごと
     action: 用語集を一覧と全てのプリセットの使用する用語集から削除する
-    status: planned
     enabled_when: 用語集が一覧に 2 件以上あるとき。最後の 1 件のボタンは薄くして押しても何も起きないようにし、フォーカスは受けてツールチップ「最後の用語集は削除できません」を出す
   - name: 用語集の追加ボタン
     id: add_glossary_button
@@ -1100,7 +1099,6 @@ elements:
     tooltip: '{名前}を削除（名前が空なら「名前未入力のプリセットを削除」）'
     enabled_when: 補正に使用するプリセットでないとき。無効のときはツールチップ「補正に使うプリセットは削除できません」を出す
     action: プリセットを一覧から削除する（保存するまで settings.yaml へは書き込まない）
-    status: planned
   - name: 用語集のプリセットの追加ボタン
     id: add_glossary_preset_button
     kind: button
@@ -1182,7 +1180,6 @@ elements:
     accessible_name: '{用語集}を外す'
     tooltip: '{用語集}を外す'
     action: 行を表から除外し、追加する用語集の選択肢へ戻す
-    status: planned
   - name: 使う用語集が無いときの文
     id: glossary_preset_glossaries_empty
     kind: label
@@ -1413,7 +1410,6 @@ elements:
     tooltip: '{何行目か} 行目を削除'
     visible_when: 行ごと
     action: 行を削除する
-    status: planned
   - name: ショートカットの行の追加ボタン
     id: add_shortcut_button
     kind: button

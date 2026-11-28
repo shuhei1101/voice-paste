@@ -134,7 +134,6 @@ elements:
         item: "settings[presets[].title]"
         type: references
         when: "『設定: 常駐アプリ』の設定「presets[].title」の既定値と意味を確認するとき。"
-    status: planned
   - name: 音声ファイルの名前
     id: audio_file_name
     kind: label

@@ -85,8 +85,10 @@ tasks:
     updated_by: planner
     updated_at: '2026-11-28T13:41:05.251503+00:00'
   - process: ドキュメント修正
-    status: todo
+    status: done
     note: docs/test-procedure/TP-1.yaml に補足「画面の起動」を追加し、開発ドキュメントサーバーの行に作業ブランチの配信の設定で画面を開く手順と止め方を記載する。記載した手順で起動して画面が開くことを確認する
+    updated_by: planner
+    updated_at: '2026-11-28T13:54:50.359427+00:00'
   - process: 単体テスト作成
     status: skipped
     reason: コードを変えない
